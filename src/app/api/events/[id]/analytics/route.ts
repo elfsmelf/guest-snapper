@@ -1,0 +1,76 @@
+import { NextRequest, NextResponse } from "next/server"
+import { db } from "@/database/db"
+import { uploads, guestbookEntries } from "@/database/schema"
+import { eq, count, countDistinct } from "drizzle-orm"
+import { auth } from "@/lib/auth"
+import { headers } from "next/headers"
+import { validateEventAccess } from "@/lib/auth-helpers"
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
+
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    const { id } = await params
+
+    // Verify the user can access this event (owner or organization member)
+    try {
+      await validateEventAccess(id, session.user.id)
+    } catch (error) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 })
+    }
+
+    // Get analytics data
+    const [
+      totalUploadsResult,
+      uniqueUploadersResult,
+      totalGuestbookResult,
+      uniqueGuestbookUsersResult
+    ] = await Promise.all([
+      // Total uploads
+      db.select({ count: count() })
+        .from(uploads)
+        .where(eq(uploads.eventId, id)),
+
+      // Unique uploaders (by sessionId)
+      db.select({ count: countDistinct(uploads.sessionId) })
+        .from(uploads)
+        .where(eq(uploads.eventId, id)),
+
+      // Total guestbook entries
+      db.select({ count: count() })
+        .from(guestbookEntries)
+        .where(eq(guestbookEntries.eventId, id)),
+
+      // Unique guestbook users (by sessionId)
+      db.select({ count: countDistinct(guestbookEntries.sessionId) })
+        .from(guestbookEntries)
+        .where(eq(guestbookEntries.eventId, id))
+    ])
+
+    return NextResponse.json({
+      success: true,
+      analytics: {
+        totalUploads: totalUploadsResult[0]?.count || 0,
+        uniqueUploaders: uniqueUploadersResult[0]?.count || 0,
+        totalMessages: totalGuestbookResult[0]?.count || 0,
+        uniqueMessageUsers: uniqueGuestbookUsersResult[0]?.count || 0,
+      }
+    })
+
+  } catch (error) {
+    console.error('Failed to fetch event analytics:', error)
+    return NextResponse.json(
+      { error: "Failed to fetch analytics" },
+      { status: 500 }
+    )
+  }
+}

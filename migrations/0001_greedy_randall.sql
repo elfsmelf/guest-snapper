@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "settings" text DEFAULT '{}' NOT NULL;
