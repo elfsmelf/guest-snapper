@@ -1,11 +1,17 @@
 import { Resend } from 'resend';
 import { OrganizationInvitationTemplate } from '@/components/email-templates/organization-invitation';
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error('RESEND_API_KEY environment variable is required');
-}
+let resend: Resend | null = null;
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient() {
+  if (!resend) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY environment variable is required');
+    }
+    resend = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resend;
+}
 
 interface SendOrganizationInvitationParams {
   email: string;
@@ -32,7 +38,7 @@ export async function sendOrganizationInvitation({
       inviteLink
     })
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResendClient().emails.send({
       from: process.env.EMAIL_FROM || 'Guest Snapper <noreply@notifications.guestsnapper.com>',
       to: [email],
       subject: `You're invited to join ${organizationName}`,
