@@ -11,7 +11,6 @@
         "setup-realtime": "node scripts/apply-realtime-migration.js"
     },
     "dependencies": {
-        "@ably-labs/models": "^0.0.4",
         "@aws-sdk/client-s3": "^3.864.0",
         "@aws-sdk/s3-request-presigner": "^3.864.0",
         "@better-auth/stripe": "^1.3.7",
@@ -30,7 +29,6 @@
         "@types/archiver": "^6.0.3",
         "@types/lodash": "^4.17.20",
         "@wavesurfer/react": "^1.0.11",
-        "ably": "^2.11.0",
         "archiver": "^7.0.1",
         "better-auth": "1.2.9",
         "class-variance-authority": "^0.7.1",
