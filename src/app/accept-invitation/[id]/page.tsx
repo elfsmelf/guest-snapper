@@ -22,11 +22,11 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
     headers: await headers()
   })
   
-  // Try to get invitation details (may not be available until after login)
+  // Get invitation details if user is logged in
   let invitation = null;
   if (session?.user) {
     invitation = await getInvitation(id);
-    console.log("Invitation fetch result:", invitation);
+    console.log("Invitation details:", invitation);
   }
 
   // If user is not logged in, redirect to sign in
@@ -104,14 +104,15 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {!success && !error && (
+          {!success && !error && invitation && (
             <>
               <div className="text-center space-y-2">
+                <p className="font-medium">{invitation.organization?.name || 'Organization'}</p>
                 <Badge variant="secondary" className="capitalize">
-                  Member
+                  {invitation.role || 'Member'}
                 </Badge>
                 <p className="text-sm text-muted-foreground">
-                  You've been invited to join an organization
+                  You've been invited by {invitation.inviter?.user?.name || invitation.inviter?.user?.email || 'someone'}
                 </p>
               </div>
               
@@ -136,6 +137,17 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
                   Decline
                 </Button>
               </form>
+            </>
+          )}
+          
+          {!success && !error && !invitation && (
+            <>
+              <div className="text-center space-y-2">
+                <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto" />
+                <p className="text-sm text-muted-foreground">
+                  This invitation could not be found or has expired
+                </p>
+              </div>
             </>
           )}
           
