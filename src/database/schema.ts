@@ -27,6 +27,12 @@ export const events = pgTable("events", {
   slideDuration: integer('slide_duration').default(5),
   revealSetting: text('reveal_setting').default('immediately'),
   guestCount: integer('guest_count').default(0),
+  // Payment-related fields
+  plan: text('plan').default('free').notNull(), // 'free', 'starter', 'small', 'medium', 'large', 'xlarge', 'unlimited'
+  currency: text('currency').default('AUD').notNull(), // 'AUD', 'USD', 'GBP', 'EUR', 'CAD', 'NZD'
+  paidAt: timestamp('paid_at', { mode: 'string' }),
+  stripeSessionId: text('stripe_session_id'),
+  stripePaymentIntent: text('stripe_payment_intent'),
   settings: text('settings').default('{}').notNull(), // JSON field for storing event settings
   createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
@@ -73,4 +79,5 @@ export const guestbookEntries = pgTable("guestbook_entries", {
   createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
   updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
 })
+
 

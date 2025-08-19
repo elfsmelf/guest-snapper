@@ -2,6 +2,21 @@ import { getSessionCookie } from "better-auth/cookies"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function middleware(request: NextRequest) {
+    // Handle www redirect first
+    if (request.nextUrl.hostname === 'guestsnapper.com') {
+        return NextResponse.redirect(
+            new URL(`https://www.guestsnapper.com${request.nextUrl.pathname}${request.nextUrl.search}`, request.url)
+        )
+    }
+
+    // Public routes that don't require authentication
+    const publicRoutes = ['/gallery', '/auth/sign-in', '/auth/sign-up']
+    const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+    
+    if (isPublicRoute) {
+        return NextResponse.next()
+    }
+
     // Check cookie for optimistic redirects for protected routes
     // Use getSession in your RSC to protect a route via SSR or useAuthenticate client side
     const sessionCookie = getSessionCookie(request)
@@ -17,6 +32,10 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    // Protected routes
-    matcher: ["/auth/settings"]
+    // Protected routes plus domain handling
+    // Exclude static files and public assets
+    matcher: [
+        "/auth/settings", 
+        "/((?!api|_next|favicon.ico|manifest.webmanifest|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.webp).*)"
+    ]
 }

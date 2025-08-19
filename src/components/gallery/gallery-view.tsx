@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { ImageViewer } from "./image-viewer"
 import { MessageDialog } from "./message-dialog"
+import Masonry from 'react-masonry-css'
 import { GuestbookEntries } from "./guestbook-entries"
 import { AudioPlayer } from "./audio-player"
 import { toast } from "sonner"
@@ -85,10 +86,29 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   const [selectedUpload, setSelectedUpload] = useState<Upload | null>(null)
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false)
   const [guestbookCount, setGuestbookCount] = useState(event.guestbookCount)
+  const [imageDimensions, setImageDimensions] = useState<Record<string, { w: number; h: number }>>({})
   const router = useRouter()
   
   // Initialize anonymous authentication for gallery visitors
   const { isInitialized } = useAnonymousAuth()
+  
+  // Preload image dimensions for all images
+  useEffect(() => {
+    const allImages = [...uploads, ...pendingUploads].filter(u => u.fileType === 'image')
+    
+    allImages.forEach(upload => {
+      if (!imageDimensions[upload.id]) {
+        const img = new window.Image()
+        img.src = upload.fileUrl
+        img.onload = () => {
+          setImageDimensions(prev => ({
+            ...prev,
+            [upload.id]: { w: img.naturalWidth, h: img.naturalHeight }
+          }))
+        }
+      }
+    })
+  }, [uploads, pendingUploads])
 
   const handleMessageAdded = () => {
     setGuestbookCount(prev => prev + 1)
@@ -204,7 +224,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
             alt={event.coupleNames + ' - ' + event.name}
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-black/50" />
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="text-center text-white">
               <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2">
@@ -307,7 +327,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
       )}
 
       {/* Main Content */}
-      <div className="p-4">
+      <div className="p-4 bg-[#FFF5F5] min-h-screen">
         {event.guestCanViewAlbum ? (
           <>
             {/* Tabs */}
@@ -324,19 +344,19 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                 setSelectedAlbum('all')
               }
             }} className="mb-4">
-              <TabsList className="w-full justify-start">
-                <TabsTrigger value="photos">
+              <TabsList className="w-full justify-start bg-transparent overflow-x-auto flex-nowrap scrollbar-hide">
+                <TabsTrigger value="photos" className="data-[state=active]:bg-white flex-shrink-0">
                   Photos ({approvedPhotoCount})
                 </TabsTrigger>
-                <TabsTrigger value="audio">
+                <TabsTrigger value="audio" className="data-[state=active]:bg-white flex-shrink-0">
                   Audio Messages ({approvedAudioCount})
                 </TabsTrigger>
                 {hasEventAccess && event.approveUploads && (
-                  <TabsTrigger value="pending">
+                  <TabsTrigger value="pending" className="data-[state=active]:bg-white flex-shrink-0">
                     Pending ({pendingPhotoCount + pendingAudioCount})
                   </TabsTrigger>
                 )}
-                <TabsTrigger value="guestbook">
+                <TabsTrigger value="guestbook" className="data-[state=active]:bg-white flex-shrink-0">
                   Messages ({guestbookCount})
                 </TabsTrigger>
               </TabsList>
@@ -344,7 +364,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
             {/* Upload Review Notice */}
             {event.approveUploads && selectedTab === 'photos' && (
-              <Alert className="mb-4">
+              <Alert className="mb-4 bg-white border-gray-200">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
                   <strong>Upload Review:</strong> Photos and videos you upload may take some time to appear in the gallery as the host reviews all uploads before they are published.
@@ -448,17 +468,26 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
                 {/* Photo Masonry Grid */}
                 {viewMode === 'grid' ? (
-                  <div className="columns-2 sm:columns-3 lg:columns-4 gap-2 space-y-2">
+                  <Masonry
+                    breakpointCols={{
+                      default: 5,
+                      1280: 4,
+                      1024: 3,
+                      640: 2
+                    }}
+                    className="flex -ml-3 w-auto"
+                    columnClassName="pl-3 bg-clip-padding"
+                  >
                     {displayUploads.map((upload) => (
                       <div 
                         key={upload.id} 
-                        className="relative break-inside-avoid cursor-pointer group overflow-hidden rounded-lg"
+                        className="relative cursor-pointer group overflow-hidden rounded-lg mb-3"
                         onClick={() => openImageModal(upload)}
                       >
                         <img
                           src={upload.fileUrl}
                           alt={upload.fileName}
-                          className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-auto transition-transform duration-300 group-hover:scale-105"
                         />
                         
                         {/* Hover overlay */}
@@ -514,7 +543,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         )}
                       </div>
                     ))}
-                  </div>
+                  </Masonry>
                 ) : (
                   <div className="space-y-2">
                     {displayUploads.map((upload) => (
@@ -660,6 +689,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
         upload={selectedUpload}
         isOpen={selectedUpload !== null}
         onClose={closeImageModal}
+        preloadedDimensions={selectedUpload ? imageDimensions[selectedUpload.id] : undefined}
       />
 
       {/* Message Dialog */}

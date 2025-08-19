@@ -113,12 +113,12 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
     setProcessingInvitations(prev => new Set(prev.add(invitationId)))
     try {
       // First cancel the existing invitation, then send a new one
-      await authClient.organization.cancelInvitation({
+      await (authClient as any).organization.cancelInvitation({
         invitationId
       })
 
       // Send a fresh invitation
-      const result = await authClient.organization.inviteMember({
+      const result = await (authClient as any).organization.inviteMember({
         email,
         role,
         organizationId: organization.id
@@ -147,7 +147,7 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
     setProcessingInvitations(prev => new Set(prev.add(invitationId)))
     
     try {
-      const result = await authClient.organization.cancelInvitation({
+      const result = await (authClient as any).organization.cancelInvitation({
         invitationId
       })
 
@@ -188,7 +188,7 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
     setRemovingMembers(prev => new Set(prev.add(memberId)))
     
     try {
-      const result = await authClient.organization.removeMember({
+      const result = await (authClient as any).organization.removeMember({
         memberIdOrEmail: userEmail,
         organizationId: organization?.id
       })

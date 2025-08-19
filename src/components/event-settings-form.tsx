@@ -17,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { GuestCountPricingDialog } from "./guest-count-pricing-dialog"
 import { CoverImageUpload } from "./cover-image-upload"
+import { UpgradePrompt } from "./upgrade-prompt"
+import { canPublishEvent } from "@/lib/feature-gates"
 import { toast } from "sonner"
 
 interface Event {
@@ -33,6 +35,12 @@ interface Event {
   settings?: string
   coverImageUrl?: string | null
   name: string
+  // Payment fields
+  plan?: string
+  currency?: string
+  paidAt?: string | null
+  stripeSessionId?: string | null
+  stripePaymentIntent?: string | null
 }
 
 interface EventSettingsFormProps {
@@ -48,6 +56,11 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
   const [guestCanView, setGuestCanView] = useState(event.guestCanViewAlbum)
   const [autoApprove, setAutoApprove] = useState(event.approveUploads)
   const [guestCountDialogOpen, setGuestCountDialogOpen] = useState(false)
+  const [upgradePromptOpen, setUpgradePromptOpen] = useState(false)
+  const [publishError, setPublishError] = useState<{
+    reason: string
+    suggestedPlan: any
+  } | null>(null)
   const [currentGuestCount, setCurrentGuestCount] = useState(event.guestCount || calculatedGuestCount)
   const [isUpdating, setIsUpdating] = useState(false)
 
@@ -120,6 +133,23 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       return
     }
 
+    // Client-side check first for better UX
+    const publishCheck = canPublishEvent({
+      id: event.id,
+      plan: event.plan,
+      guestCount: event.guestCount || 0,
+      isPublished: event.isPublished
+    })
+
+    if (!publishCheck.allowed && publishCheck.upgradeRequired) {
+      setPublishError({
+        reason: publishCheck.reason || 'Cannot publish with current plan',
+        suggestedPlan: publishCheck.suggestedPlan
+      })
+      setUpgradePromptOpen(true)
+      return
+    }
+
     setIsUpdating(true)
     try {
       const response = await fetch(`/api/events/${event.id}/publish`, {
@@ -130,7 +160,16 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       })
 
       if (!response.ok) {
-        throw new Error('Failed to publish event')
+        const errorData = await response.json()
+        if (errorData.requiresUpgrade) {
+          setPublishError({
+            reason: errorData.error,
+            suggestedPlan: errorData.suggestedPlan
+          })
+          setUpgradePromptOpen(true)
+          return
+        }
+        throw new Error(errorData.error || 'Failed to publish event')
       }
 
       const result = await response.json()
@@ -138,22 +177,23 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       
       // Refresh the page to show updated state
       window.location.reload()
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to publish event:', error)
-      toast.error('Failed to publish event')
+      toast.error(error.message || 'Failed to publish event')
     } finally {
       setIsUpdating(false)
     }
-  }, [activationDate, event.id])
+  }, [activationDate, event.id, event.plan, event.guestCount, event.isPublished])
 
   // Map current guest count to valid pricing tier
   const getValidGuestCount = (count: number) => {
     if (count <= 8) return 8
+    if (count <= 10) return 10
     if (count <= 25) return 25
     if (count <= 50) return 50
     if (count <= 100) return 100
     if (count <= 200) return 200
-    return 500
+    return 999999 // unlimited
   }
 
   // Calculate upload and download durations based on activation date
@@ -220,10 +260,16 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
               disabled={isUpdating}
             >
               <Users className="mr-2 h-4 w-4" />
-              {currentGuestCount} guests
+{currentGuestCount === 8 ? "FREE" : currentGuestCount >= 999999 ? "Unlimited" : currentGuestCount} guests
               <ChevronRight className="ml-auto h-4 w-4" />
               {isUpdating && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             </Button>
+            {/* Free Trial Notice */}
+            {currentGuestCount === 8 && (
+              <div className="text-center text-sm text-muted-foreground bg-orange-50 border border-orange-200 rounded-lg p-3">
+                Change the amount of guests to make your gallery public
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -422,9 +468,30 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       <GuestCountPricingDialog
         isOpen={guestCountDialogOpen}
         onClose={() => setGuestCountDialogOpen(false)}
-        currentGuestCount={getValidGuestCount(event.guestCount || calculatedGuestCount)}
-        onGuestCountChange={handleGuestCountChange}
+        eventId={event.id}
+        currentPlan={event.plan || 'free'}
+        eventCurrency={(event.currency as any) || 'AUD'}
+        paymentSuccess={false}
+        paymentData={undefined}
       />
+      
+      {/* Publish Upgrade Prompt */}
+      {publishError && (
+        <UpgradePrompt
+          isOpen={upgradePromptOpen}
+          onClose={() => {
+            setUpgradePromptOpen(false)
+            setPublishError(null)
+          }}
+          eventId={event.id}
+          currentPlan={event.plan || 'free'}
+          eventCurrency={(event.currency as any) || 'AUD'}
+          reason={publishError.reason}
+          suggestedPlan={publishError.suggestedPlan}
+          feature="publishing"
+          actionText="Maybe Later"
+        />
+      )}
     </div>
   )
 }

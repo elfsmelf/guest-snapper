@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { db } from '@/database/db'
-import { albums } from '@/database/schema'
-import { eq, max } from 'drizzle-orm'
+import { albums, events } from '@/database/schema'
+import { eq, max, count } from 'drizzle-orm'
 import { canUserAccessEvent } from '@/lib/auth-helpers'
+import { canCreateAlbum } from '@/lib/feature-gates'
 
 export async function POST(
   request: NextRequest,
@@ -16,7 +17,7 @@ export async function POST(
       headers: await headers()
     })
 
-    if (!session?.user || session.user.isAnonymous) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -28,10 +29,48 @@ export async function POST(
       return NextResponse.json({ error: 'Album name is required' }, { status: 400 })
     }
 
-    // Verify the user can access this event
+    // Verify the user can access this event and get event details for plan checking
     const hasAccess = await canUserAccessEvent(eventId, session.user.id)
     if (!hasAccess) {
       return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
+    // Get event details for plan checking
+    const event = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1)
+      .then(results => results[0])
+
+    if (!event) {
+      return NextResponse.json({ error: 'Event not found' }, { status: 404 })
+    }
+
+    // Get current album count
+    const albumCountResult = await db
+      .select({ count: count() })
+      .from(albums)
+      .where(eq(albums.eventId, eventId))
+
+    const currentAlbumCount = albumCountResult[0]?.count || 0
+
+    // Check if user can create another album based on their plan
+    const albumCheck = canCreateAlbum({
+      id: eventId,
+      plan: event.plan,
+      guestCount: event.guestCount || 0,
+      isPublished: event.isPublished
+    }, currentAlbumCount)
+
+    if (!albumCheck.allowed) {
+      return NextResponse.json({ 
+        error: albumCheck.reason,
+        requiresUpgrade: albumCheck.upgradeRequired,
+        suggestedPlan: albumCheck.suggestedPlan,
+        currentLimit: albumCheck.currentLimit,
+        currentCount: currentAlbumCount
+      }, { status: 403 })
     }
 
     // Get the highest sort order for this event
@@ -77,7 +116,7 @@ export async function GET(
       headers: await headers()
     })
 
-    if (!session?.user || session.user.isAnonymous) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

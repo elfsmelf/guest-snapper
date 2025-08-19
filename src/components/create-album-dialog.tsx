@@ -20,10 +20,11 @@ interface CreateAlbumDialogProps {
   eventId: string
   isOpen: boolean
   onClose: () => void
-  onAlbumCreated: (album: any) => void
+  onSubmit?: (albumData: { name: string; description?: string }) => Promise<void>
+  onAlbumCreated?: (album: any) => void // Keep for backward compatibility
 }
 
-export function CreateAlbumDialog({ eventId, isOpen, onClose, onAlbumCreated }: CreateAlbumDialogProps) {
+export function CreateAlbumDialog({ eventId, isOpen, onClose, onSubmit, onAlbumCreated }: CreateAlbumDialogProps) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [isCreating, setIsCreating] = useState(false)
@@ -36,31 +37,44 @@ export function CreateAlbumDialog({ eventId, isOpen, onClose, onAlbumCreated }: 
       return
     }
 
+    const albumData = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+    }
+
     setIsCreating(true)
     try {
-      const response = await fetch(`/api/events/${eventId}/albums`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: name.trim(),
-          description: description.trim() || undefined,
-        }),
-      })
+      if (onSubmit) {
+        // Use new onSubmit prop for better error handling
+        await onSubmit(albumData)
+        toast.success('Album created successfully!')
+        // Reset form and close dialog
+        setName('')
+        setDescription('')
+        onClose()
+      } else if (onAlbumCreated) {
+        // Fallback to old behavior for backward compatibility
+        const response = await fetch(`/api/events/${eventId}/albums`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(albumData),
+        })
 
-      if (!response.ok) {
-        throw new Error('Failed to create album')
+        if (!response.ok) {
+          throw new Error('Failed to create album')
+        }
+
+        const result = await response.json()
+        toast.success('Album created successfully!')
+        onAlbumCreated(result.album)
+        
+        // Reset form and close dialog
+        setName('')
+        setDescription('')
+        onClose()
       }
-
-      const result = await response.json()
-      toast.success('Album created successfully!')
-      onAlbumCreated(result.album)
-      
-      // Reset form and close dialog
-      setName('')
-      setDescription('')
-      onClose()
     } catch (error) {
       console.error('Failed to create album:', error)
       toast.error('Failed to create album')

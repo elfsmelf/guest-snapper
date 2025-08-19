@@ -21,69 +21,6 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
     headers: await headers()
   })
 
-  // Get invitation details (only if user is authenticated)
-  let invitation = null
-  let invitationError = null
-  
-  if (session?.user) {
-    try {
-      console.log('Fetching invitation with ID:', id)
-      invitation = await auth.api.getInvitation({
-        headers: await headers(),
-        query: { id }
-      })
-      console.log('Invitation fetched:', invitation)
-    } catch (err: any) {
-      console.error('Error fetching invitation:', err)
-      invitationError = err.message || 'Failed to fetch invitation'
-      
-      // If it's a "not recipient" error, we can still show the page but with appropriate messaging
-      if (err.message?.includes('not the recipient')) {
-        // We'll handle this case in the UI
-      } else if (err.message?.includes('not found') || err.message?.includes('expired')) {
-        notFound()
-      }
-    }
-  }
-
-  // Handle invitation error (wrong user)
-  if (invitationError && invitationError.includes('not the recipient')) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <XCircle className="w-6 h-6 text-red-600" />
-            </div>
-            <CardTitle>Wrong Account</CardTitle>
-            <CardDescription>
-              You're signed in as <strong>{session?.user?.email}</strong>, but this invitation is for a different email address.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="text-center space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Please sign out and sign in with the email address that received this invitation.
-              </p>
-              <div className="space-y-2">
-                <Button variant="outline" asChild className="w-full">
-                  <Link href="/sign-out">
-                    Sign Out & Try Again
-                  </Link>
-                </Button>
-                <Button variant="ghost" asChild className="w-full">
-                  <Link href="/dashboard">
-                    Go to Dashboard
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
-
   // If user is not logged in, redirect to sign in
   if (!session?.user) {
     return (
@@ -122,46 +59,6 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
     )
   }
 
-  // Handle invitation acceptance
-  if (action === 'accept') {
-    try {
-      console.log('Attempting to accept invitation:', id)
-      const result = await auth.api.acceptInvitation({
-        headers: await headers(),
-        body: { invitationId: id }
-      })
-      console.log('Invitation accepted successfully:', result)
-      redirect(`/dashboard?invitation=accepted&orgName=${encodeURIComponent(invitation?.organizationName || 'organization')}`)
-    } catch (err: any) {
-      // Handle redirect errors - simplified for build
-      
-      console.error('Failed to accept invitation:', err)
-      // Redirect with more specific error information
-      const errorMessage = err?.message || 'Failed to accept invitation'
-      redirect(`/dashboard?invitation=error&message=${encodeURIComponent(errorMessage)}`)
-    }
-  }
-
-  // Handle invitation rejection
-  if (action === 'reject') {
-    try {
-      console.log('Attempting to reject invitation:', id)
-      const result = await auth.api.rejectInvitation({
-        headers: await headers(),
-        body: { invitationId: id }
-      })
-      console.log('Invitation rejected successfully:', result)
-      redirect(`/dashboard?invitation=rejected&orgName=${encodeURIComponent(invitation?.organizationName || 'organization')}`)
-    } catch (err: any) {
-      // Handle redirect errors - simplified for build
-      
-      console.error('Failed to reject invitation:', err)
-      // Redirect with more specific error information
-      const errorMessage = err?.message || 'Failed to reject invitation'
-      redirect(`/dashboard?invitation=error&message=${encodeURIComponent(errorMessage)}`)
-    }
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
@@ -187,13 +84,11 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
           
           <CardDescription>
             {success === 'accepted' ? (
-              <>You've successfully joined <strong>{invitation?.organizationName}</strong></>
+              'You\'ve successfully joined the organization'
             ) : success === 'rejected' ? (
-              <>You've declined the invitation to join <strong>{invitation?.organizationName}</strong></>
+              'You\'ve declined the invitation'
             ) : error ? (
               'There was an error processing your invitation'
-            ) : invitation ? (
-              <>You've been invited to join <strong>{invitation?.organizationName}</strong></>
             ) : (
               'You have an organization invitation'
             )}
@@ -201,40 +96,35 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {!success && !error && invitation && (
+          {!success && !error && (
             <>
               <div className="text-center space-y-2">
-                <Badge variant="secondary">{invitation.role}</Badge>
+                <Badge variant="secondary">Member</Badge>
                 <p className="text-sm text-muted-foreground">
                   Role in the organization
                 </p>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
-                <form action={`/accept-invitation/${id}`} method="GET">
-                  <input type="hidden" name="action" value="accept" />
-                  <Button type="submit" className="w-full">
-                    Accept
-                  </Button>
-                </form>
-                
-                <form action={`/accept-invitation/${id}`} method="GET">
-                  <input type="hidden" name="action" value="reject" />
-                  <Button type="submit" variant="outline" className="w-full">
-                    Decline
-                  </Button>
-                </form>
+                <Button disabled className="w-full">
+                  Accept
+                </Button>
+                <Button disabled variant="outline" className="w-full">
+                  Decline
+                </Button>
               </div>
+              
+              <p className="text-xs text-muted-foreground text-center">
+                Organization invitations are temporarily disabled
+              </p>
             </>
           )}
           
-          {(success || error) && (
-            <Button asChild className="w-full">
-              <Link href="/dashboard">
-                Go to Dashboard
-              </Link>
-            </Button>
-          )}
+          <Button asChild className="w-full">
+            <Link href="/dashboard">
+              Go to Dashboard
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </div>

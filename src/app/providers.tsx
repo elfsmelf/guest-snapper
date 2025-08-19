@@ -19,7 +19,7 @@ export function Providers({ children }: { children: ReactNode }) {
             disableTransitionOnChange
         >
             <AuthUIProvider
-                authClient={authClient}
+                authClient={authClient as any}
                 navigate={router.push}
                 replace={router.replace}
                 onSessionChange={() => {

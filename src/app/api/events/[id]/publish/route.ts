@@ -6,6 +6,7 @@ import { events } from '@/database/schema'
 import { eq } from 'drizzle-orm'
 import { addMonths } from 'date-fns'
 import { validateEventAccess } from '@/lib/auth-helpers'
+import { canPublishEvent } from '@/lib/feature-gates'
 
 export async function POST(
   request: NextRequest,
@@ -17,7 +18,7 @@ export async function POST(
       headers: await headers()
     })
 
-    if (!session?.user || session.user.isAnonymous) {
+    if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -40,6 +41,22 @@ export async function POST(
     // Check if activation date is set
     if (!event.activationDate) {
       return NextResponse.json({ error: 'Activation date must be set before publishing' }, { status: 400 })
+    }
+
+    // Check if event can be published based on plan
+    const publishCheck = canPublishEvent({
+      id: event.id,
+      plan: event.plan,
+      guestCount: event.guestCount || 0,
+      isPublished: event.isPublished
+    })
+
+    if (!publishCheck.allowed) {
+      return NextResponse.json({ 
+        error: publishCheck.reason || 'Cannot publish event with current plan',
+        requiresUpgrade: publishCheck.upgradeRequired,
+        suggestedPlan: publishCheck.suggestedPlan
+      }, { status: 403 })
     }
 
     const activationDate = new Date(event.activationDate)

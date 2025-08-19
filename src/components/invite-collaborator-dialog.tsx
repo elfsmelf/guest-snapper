@@ -61,7 +61,7 @@ export function InviteCollaboratorDialog({
       console.log('Sending invitation:', { email: email.trim(), role, organizationId, resend })
       
       // Use Better Auth's organization client to send invitation
-      const result = await authClient.organization.inviteMember({
+      const result = await (authClient as any).organization.inviteMember({
         email: email.trim(),
         role: role,
         organizationId: organizationId,

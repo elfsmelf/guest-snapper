@@ -37,7 +37,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
   // If gallery is not published and user doesn't have access, show draft message
   if (!eventWithAlbums.isPublished && !hasEventAccess) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-pink-50/30">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto text-center">
             {/* Cover Image */}
@@ -106,7 +106,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
   // If guest viewing is disabled and user doesn't have access, show privacy message
   if (!eventWithAlbums.guestCanViewAlbum && !hasEventAccess) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-pink-50/30">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto text-center">
             {/* Cover Image */}
@@ -173,7 +173,7 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-pink-50/30">
       {/* Owner/Member badge */}
       {hasEventAccess && (
         <div className={`border-b ${isOwner ? 'bg-yellow-50 border-yellow-200' : 'bg-purple-50 border-purple-200'}`}>

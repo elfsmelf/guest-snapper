@@ -16,7 +16,7 @@ export async function POST(
       headers: await headers()
     })
 
-    if (!session?.user || session.user.isAnonymous) {
+    if (!session?.user ) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -41,7 +41,7 @@ export async function POST(
     }
 
     // Create organization using Better Auth API
-    const organizationResult = await auth.api.createOrganization({
+    const organizationResult = await (auth.api as any).createOrganization({
       headers: await headers(),
       body: {
         name: `${event.coupleNames} - ${event.name}`,
@@ -89,7 +89,7 @@ export async function GET(
       headers: await headers()
     })
 
-    if (!session?.user || session.user.isAnonymous) {
+    if (!session?.user ) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
@@ -116,18 +116,18 @@ export async function GET(
 
     if (event.organizationId) {
       const [fullOrg, orgInvitations] = await Promise.all([
-        auth.api.getFullOrganization({
+        (auth.api as any).getFullOrganization({
           headers: await headers(),
           query: {
             organizationId: event.organizationId
           }
         }),
-        auth.api.listInvitations({
+        (auth.api as any).listInvitations({
           headers: await headers(),
           query: {
             organizationId: event.organizationId
           }
-        }).catch((error) => {
+        }).catch((error: any) => {
           console.error('Failed to fetch invitations:', error)
           return []
         })
@@ -146,7 +146,7 @@ export async function GET(
       }
       
       // Filter out canceled/rejected invitations - only show pending ones
-      invitations = (orgInvitations || []).filter(invitation => 
+      invitations = (orgInvitations || []).filter((invitation: any) => 
         invitation.status === 'pending'
       )
       
@@ -154,8 +154,8 @@ export async function GET(
         organizationId: organization?.id,
         membersCount: members.length,
         invitationsCount: invitations.length,
-        allInvitations: (orgInvitations || []).map(i => ({ id: i.id, email: i.email, status: i.status })),
-        pendingInvitations: invitations.map(i => ({ id: i.id, email: i.email, status: i.status }))
+        allInvitations: (orgInvitations || []).map((i: any) => ({ id: i.id, email: i.email, status: i.status })),
+        pendingInvitations: invitations.map((i: any) => ({ id: i.id, email: i.email, status: i.status }))
       })
     }
 

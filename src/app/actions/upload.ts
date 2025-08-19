@@ -2,10 +2,11 @@
 
 import { db } from '@/database/db'
 import { uploads, events } from '@/database/schema'
-import { eq } from 'drizzle-orm'
+import { eq, count, countDistinct, and } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { headers } from 'next/headers'
 import { revalidateTag } from 'next/cache'
+import { canAcceptMoreGuests } from '@/lib/feature-gates'
 
 interface UploadData {
   eventId: string
@@ -30,7 +31,7 @@ export async function createUpload(uploadData: UploadData) {
       throw new Error('No user session found')
     }
 
-    // Verify event exists
+    // Verify event exists and get event details for plan checking
     const eventResult = await db
       .select()
       .from(events)
@@ -41,8 +42,44 @@ export async function createUpload(uploadData: UploadData) {
       throw new Error('Event not found')
     }
 
+    const event = eventResult[0]
+
+    // Get current unique guest count (by sessionId)
+    const guestCountResult = await db
+      .select({ count: countDistinct(uploads.sessionId) })
+      .from(uploads)
+      .where(eq(uploads.eventId, uploadData.eventId))
+
+    const currentGuestCount = guestCountResult[0]?.count || 0
+
+    // Check if this is a new guest (session not seen before)
+    const existingUploadsForSession = await db
+      .select({ count: count() })
+      .from(uploads)
+      .where(and(
+        eq(uploads.eventId, uploadData.eventId),
+        eq(uploads.sessionId, session.user.id)
+      ))
+
+    const isNewGuest = (existingUploadsForSession[0]?.count || 0) === 0
+    const effectiveGuestCount = isNewGuest ? currentGuestCount + 1 : currentGuestCount
+
+    // Check if event can accept more guests based on plan
+    if (isNewGuest) {
+      const guestCheck = canAcceptMoreGuests({
+        id: event.id,
+        plan: event.plan,
+        guestCount: event.guestCount || 0,
+        isPublished: event.isPublished
+      }, effectiveGuestCount)
+
+      if (!guestCheck.allowed && guestCheck.upgradeRequired) {
+        throw new Error(`Guest limit exceeded. ${guestCheck.reason} Upgrade your plan to accept more guests.`)
+      }
+    }
+
     // Determine moderation status based on event settings
-    const moderationStatus = !eventResult[0].approveUploads
+    const moderationStatus = !event.approveUploads
 
     // Insert upload record
     const newUpload = await db

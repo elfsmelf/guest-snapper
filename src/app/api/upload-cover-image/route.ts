@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       headers: await headers()
     })
 
-    if (!session?.user || session.user.isAnonymous) {
+    if (!session?.user ) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
