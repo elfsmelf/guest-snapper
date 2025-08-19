@@ -23,8 +23,14 @@ export async function middleware(request: NextRequest) {
 
     if (!sessionCookie) {
         const redirectTo = request.nextUrl.pathname + request.nextUrl.search
+        
+        // Prevent redirect loops by not redirecting to auth pages
+        if (request.nextUrl.pathname.startsWith('/auth/')) {
+            return NextResponse.redirect(new URL('/auth/sign-in', request.url))
+        }
+        
         return NextResponse.redirect(
-            new URL(`/auth/sign-in?redirectTo=${redirectTo}`, request.url)
+            new URL(`/auth/sign-in?redirectTo=${encodeURIComponent(redirectTo)}`, request.url)
         )
     }
 
