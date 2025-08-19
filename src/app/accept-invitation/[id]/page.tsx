@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Users, CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import Link from "next/link"
+import { acceptInvitation, rejectInvitation, getInvitation } from "@/app/actions/invitation"
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -20,6 +21,9 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
   const session = await auth.api.getSession({
     headers: await headers()
   })
+  
+  // Get invitation details
+  const invitation = await getInvitation(id)
 
   // If user is not logged in, redirect to sign in
   if (!session?.user) {
@@ -96,28 +100,64 @@ export default async function AcceptInvitationPage({ params, searchParams }: Pag
         </CardHeader>
         
         <CardContent className="space-y-4">
-          {!success && !error && (
+          {!success && !error && invitation && (
             <>
               <div className="text-center space-y-2">
-                <Badge variant="secondary">Member</Badge>
+                <p className="font-medium">{invitation.organization?.name || 'Organization'}</p>
+                <Badge variant="secondary" className="capitalize">
+                  {invitation.role || 'Member'}
+                </Badge>
                 <p className="text-sm text-muted-foreground">
                   Role in the organization
                 </p>
               </div>
               
-              <div className="grid grid-cols-2 gap-3">
-                <Button disabled className="w-full">
+              <form className="grid grid-cols-2 gap-3">
+                <Button 
+                  formAction={async () => {
+                    'use server';
+                    await acceptInvitation(id);
+                  }}
+                  className="w-full"
+                >
                   Accept
                 </Button>
-                <Button disabled variant="outline" className="w-full">
+                <Button 
+                  formAction={async () => {
+                    'use server';
+                    await rejectInvitation(id);
+                  }}
+                  variant="outline" 
+                  className="w-full"
+                >
                   Decline
                 </Button>
-              </div>
-              
-              <p className="text-xs text-muted-foreground text-center">
-                Organization invitations are temporarily disabled
-              </p>
+              </form>
             </>
+          )}
+          
+          {!success && !error && !invitation && (
+            <div className="text-center space-y-2">
+              <AlertCircle className="w-8 h-8 text-muted-foreground mx-auto" />
+              <p className="text-sm text-muted-foreground">
+                This invitation could not be found or has expired
+              </p>
+            </div>
+          )}
+          
+          {(success || error) && (
+            <div className="text-center space-y-2">
+              {success === 'accepted' && (
+                <p className="text-sm text-green-600">
+                  You can now access the organization's events and collaborate with the team.
+                </p>
+              )}
+              {error && (
+                <p className="text-sm text-red-600">
+                  {decodeURIComponent(error)}
+                </p>
+              )}
+            </div>
           )}
           
           <Button asChild className="w-full">
