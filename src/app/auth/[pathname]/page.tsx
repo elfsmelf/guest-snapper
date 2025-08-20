@@ -10,11 +10,14 @@ export function generateStaticParams() {
 }
 
 export default async function AuthPage({
-    params
+    params,
+    searchParams
 }: {
     params: Promise<{ pathname: string }>
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }) {
     const { pathname } = await params
+    const searchParamsData = await searchParams
 
     // **EXAMPLE** SSR route protection for /auth/settings
     // NOTE: This opts /auth/settings out of static rendering
@@ -27,10 +30,14 @@ export default async function AuthPage({
         if (!sessionData) redirect("/auth/sign-in?redirectTo=/auth/settings")
     }
 
+    // Get redirectTo from search params
+    const redirectTo = searchParamsData.redirectTo as string | undefined
+
     return (
         <main className="container flex grow flex-col items-center justify-center gap-4 self-center p-4 md:p-6">
             <AuthCard
                 pathname={pathname}
+                redirectTo={redirectTo}
             />
 
             {["sign-in", "sign-up", "magic-link", "forgot-password"].includes(

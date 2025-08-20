@@ -29,6 +29,12 @@ export function Providers({ children }: { children: ReactNode }) {
                 social={{
                     providers: ["google"]
                 }}
+                organization={{
+                    customRoles: [
+                        { role: "collaborator", label: "Collaborator" },
+                        { role: "photographer", label: "Photographer" }
+                    ]
+                }}
             >
                 {children}
 

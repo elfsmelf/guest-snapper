@@ -10,8 +10,11 @@ export async function middleware(request: NextRequest) {
     }
 
     // Public routes that don't require authentication
-    const publicRoutes = ['/gallery', '/auth/sign-in', '/auth/sign-up']
+    const publicRoutes = ['/gallery', '/auth/sign-in', '/auth/sign-up', '/auth/accept-invitation', '/api/accept-invitation']
     const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+    
+    // Admin routes require special handling
+    const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
     
     if (isPublicRoute) {
         return NextResponse.next()
@@ -41,7 +44,8 @@ export const config = {
     // Protected routes plus domain handling
     // Exclude static files and public assets
     matcher: [
-        "/auth/settings", 
+        "/auth/settings",
+        "/admin/:path*",
         "/((?!api|_next|favicon.ico|manifest.webmanifest|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.webp).*)"
     ]
 }

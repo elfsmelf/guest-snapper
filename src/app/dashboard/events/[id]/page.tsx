@@ -41,6 +41,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CopyButton } from "@/components/copy-button"
 import { EventSettingsForm } from "@/components/event-settings-form"
 import { PaymentSuccessHandler } from "@/components/payment-success-handler"
+import { QuickActionsClient } from "@/components/quick-actions-client"
 import dynamic from 'next/dynamic'
 
 // Dynamically import heavy client components
@@ -275,23 +276,7 @@ export default async function EventDetailPage({ params }: PageProps) {
               <CardDescription>Manage your gallery</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 w-full">
-                <Button size="sm" asChild className="text-xs sm:text-sm w-full min-w-0">
-                  <Link href={`/gallery/${event.slug}`}>
-                    <Eye className="mr-1.5 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">View Gallery</span>
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" asChild className="text-xs sm:text-sm w-full min-w-0">
-                  <Link href={`/gallery/${event.slug}/upload`}>
-                    <Upload className="mr-1.5 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
-                    <span className="truncate">Upload Photos</span>
-                  </Link>
-                </Button>
-                <CopyButton text={galleryUrl} variant="outline" className="text-xs sm:text-sm w-full min-w-0 col-span-1 sm:col-span-2 md:col-span-1">
-                  <span className="truncate">Copy Gallery Link</span>
-                </CopyButton>
-              </div>
+              <QuickActionsClient eventSlug={event.slug} galleryUrl={galleryUrl} />
             </CardContent>
           </Card>
 

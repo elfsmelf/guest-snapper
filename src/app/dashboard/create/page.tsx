@@ -34,7 +34,8 @@ export default function CreateGalleryPage() {
     try {
       const slug = generateSlug(formData.coupleNames)
       
-      const response = await fetch('/api/events', {
+      // Start the API call
+      const apiCall = fetch('/api/events', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,16 +48,46 @@ export default function CreateGalleryPage() {
         }),
       })
 
+      // Generate optimistic event data
+      const optimisticEvent = {
+        id: 'temp-' + Date.now(), // Temporary ID
+        name: formData.coupleNames,
+        coupleNames: formData.coupleNames,
+        venue: formData.venue,
+        eventDate: formData.eventDate || new Date().toISOString().split('T')[0],
+        slug: slug,
+        isPublished: false,
+        plan: 'free',
+        currency: 'USD',
+        guestCount: 0,
+        themeId: 'default',
+        realtimeSlideshow: true,
+        uploadWindowEnd: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+        downloadWindowEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        createdAt: new Date().toISOString(),
+        coverImageUrl: null
+      }
+
+      // Wait for response to get real event ID
+      const response = await apiCall
+      
       if (!response.ok) {
         throw new Error('Failed to create event')
       }
 
       const event = await response.json()
+      
+      // Store optimistic data in sessionStorage for instant loading
+      sessionStorage.setItem(`optimistic-event-${event.id}`, JSON.stringify({
+        ...optimisticEvent,
+        id: event.id // Use real ID
+      }))
+
+      // Navigate immediately - no waiting
       router.push(`/dashboard/events/${event.id}`)
     } catch (error) {
       console.error('Error creating event:', error)
       alert('Failed to create event. Please try again.')
-    } finally {
       setIsLoading(false)
     }
   }

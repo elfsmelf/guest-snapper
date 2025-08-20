@@ -60,7 +60,7 @@ export const getCachedGalleryData = unstable_cache(
 // Cached function to fetch event with albums and counts
 export const getCachedEventData = unstable_cache(
   async (slug: string, hasAccess: boolean) => {
-    // Get event details by slug
+    // Get event details by slug (only active events visible to public)
     const eventResult = await db
       .select({
         id: events.id,
@@ -79,9 +79,13 @@ export const getCachedEventData = unstable_cache(
         userId: events.userId,
         isPublished: events.isPublished,
         activationDate: events.activationDate,
+        status: events.status,
       })
       .from(events)
-      .where(eq(events.slug, slug))
+      .where(and(
+        eq(events.slug, slug),
+        eq(events.status, 'active') // Only show active events
+      ))
       .limit(1)
 
     if (!eventResult.length) {

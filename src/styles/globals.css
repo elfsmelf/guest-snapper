@@ -2,6 +2,7 @@
 @import "tw-animate-css";
 @import "./custom.css";
 
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
     --color-background: var(--background);
@@ -46,45 +47,45 @@
 
 :root {
     --radius: 0.75rem;
-    
+
     /* Wedding theme: warm off-white background with elegant rose/chocolate accents */
     --background: oklch(0.98 0.01 30);
     --foreground: oklch(0.15 0.02 222);
-    
+
     --card: oklch(1 0.01 30);
     --card-foreground: oklch(0.15 0.02 222);
     --popover: oklch(1 0.01 30);
     --popover-foreground: oklch(0.15 0.02 222);
-    
+
     /* Primary: elegant deep rose/chocolate for CTAs */
     --primary: oklch(0.35 0.08 345);
     --primary-foreground: oklch(0.98 0.01 25);
-    
+
     /* Secondary: soft blush neutral */
     --secondary: oklch(0.96 0.02 25);
     --secondary-foreground: oklch(0.20 0.02 222);
-    
+
     /* Muted: gentle neutrals */
     --muted: oklch(0.95 0.01 30);
     --muted-foreground: oklch(0.45 0.01 222);
     --accent: oklch(0.94 0.02 25);
     --accent-foreground: oklch(0.20 0.02 222);
-    
+
     --destructive: oklch(0.577 0.245 27.325);
     --destructive-foreground: oklch(0.98 0 0);
-    
+
     /* Borders tuned for warm palette */
     --border: oklch(0.88 0.01 30);
     --input: oklch(0.88 0.01 30);
     --ring: oklch(0.35 0.08 345);
-    
+
     /* Wedding color palette */
     --chart-1: oklch(0.65 0.15 345); /* rose */
     --chart-2: oklch(0.55 0.08 156); /* sage */
     --chart-3: oklch(0.70 0.18 42);  /* marigold */
     --chart-4: oklch(0.55 0.08 210); /* slate blue */
     --chart-5: oklch(0.65 0.15 12);  /* terracotta */
-    
+
     --sidebar: oklch(1 0.01 30);
     --sidebar-foreground: oklch(0.15 0.02 222);
     --sidebar-primary: oklch(0.35 0.08 345);
@@ -94,7 +95,6 @@
     --sidebar-border: oklch(0.88 0.01 30);
     --sidebar-ring: oklch(0.35 0.08 345);
 }
-
 
 @layer base {
   * {
@@ -113,7 +113,7 @@
   label + select {
     @apply mt-2;
   }
-  
+
   /* For shadcn Label + Input combinations */
   [data-slot="label"] + [data-slot="input"],
   .space-y-2 > label + input,
@@ -121,4 +121,15 @@
   .space-y-2 > label + select {
     @apply mt-2;
   }
+}
+
+.dark {
+    --sidebar: hsl(240 5.9% 10%);
+    --sidebar-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-primary: hsl(224.3 76.3% 48%);
+    --sidebar-primary-foreground: hsl(0 0% 100%);
+    --sidebar-accent: hsl(240 3.7% 15.9%);
+    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+    --sidebar-border: hsl(240 3.7% 15.9%);
+    --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }

@@ -36,6 +36,13 @@
       "when": 1755600262010,
       "tag": "0004_parallel_deathbird",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1755652608450,
+      "tag": "0005_lazy_black_bolt",
+      "breakpoints": true
     }
   ]
 }

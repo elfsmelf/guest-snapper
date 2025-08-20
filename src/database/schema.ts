@@ -34,6 +34,10 @@ export const events = pgTable("events", {
   stripeSessionId: text('stripe_session_id'),
   stripePaymentIntent: text('stripe_payment_intent'),
   settings: text('settings').default('{}').notNull(), // JSON field for storing event settings
+  // Scheduled deletion fields
+  status: text('status').default('active').notNull(), // 'active', 'trashed', 'deleted'
+  trashedAt: timestamp('trashed_at', { mode: 'string' }),
+  deleteAt: timestamp('delete_at', { mode: 'string' }),
   createdAt: timestamp('created_at', { mode: 'string' }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { mode: 'string' }).defaultNow().notNull(),
 })
@@ -78,6 +82,16 @@ export const guestbookEntries = pgTable("guestbook_entries", {
   isApproved: boolean('is_approved').default(true).notNull(),
   createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
   updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
+})
+
+// Deletion events log table for audit trail
+export const deletionEvents = pgTable("deletion_events", {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  eventId: text('event_id').references(() => events.id, { onDelete: 'set null' }),
+  action: text('action').notNull(), // 'trashed', 'deleted'
+  reason: text('reason'), // 'expired_download', 'manual'
+  executedAt: timestamp('executed_at', { mode: 'string' }).defaultNow().notNull(),
+  metadata: text('metadata').default('{}').notNull(), // JSON field for additional data
 })
 
 
