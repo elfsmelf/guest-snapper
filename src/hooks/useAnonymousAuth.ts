@@ -32,16 +32,21 @@ export function useAnonymousAuth() {
 
         // Only sign in anonymously if truly no session exists
         console.log('No session found, signing in anonymously...')
-        const result = await (authClient.signIn as any).anonymous()
-        
-        if (result.error) {
-          console.error('Anonymous sign-in error:', result.error)
-          // If error is because user is already anonymous, that's actually fine
-          if (result.error.code === 'ANONYMOUS_USERS_CANNOT_SIGN_IN_AGAIN_ANONYMOUSLY') {
-            console.log('User already has anonymous session, continuing...')
+        try {
+          const result = await (authClient.signIn as any).anonymous()
+          
+          if (result?.error) {
+            console.error('Anonymous sign-in error:', result.error)
+            // If error is because user is already anonymous, that's actually fine
+            if (result.error.code === 'ANONYMOUS_USERS_CANNOT_SIGN_IN_AGAIN_ANONYMOUSLY') {
+              console.log('User already has anonymous session, continuing...')
+            }
+          } else if (result) {
+            console.log('Anonymous sign-in successful:', result)
           }
-        } else {
-          console.log('Anonymous sign-in successful:', result)
+        } catch (signInError) {
+          console.error('Anonymous sign-in failed:', signInError)
+          // Continue without anonymous auth - user can still view public content
         }
         
         setIsInitialized(true)

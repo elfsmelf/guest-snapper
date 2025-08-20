@@ -85,7 +85,10 @@ export const auth = betterAuth({
         } as any,
     },
     plugins: [
-        anonymous(),
+        anonymous({
+            emailDomainName: process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : "localhost",
+            generateName: () => `Guest-${Math.random().toString(36).substring(2, 8)}`
+        }),
         admin({
             // Users with role 'admin' will have admin privileges
             // You can also use adminUserIds: ["user_id_1", "user_id_2"] for specific user IDs

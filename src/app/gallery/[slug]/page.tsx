@@ -34,6 +34,17 @@ export default async function GalleryPage({ params }: GalleryPageProps) {
   // Get cached gallery data
   const galleryData = await getCachedGalleryData(eventWithAlbums.id, hasEventAccess)
 
+  // Debug logging
+  console.log('[Gallery Page] Event data:', {
+    slug,
+    isPublished: eventWithAlbums.isPublished,
+    status: eventWithAlbums.status,
+    hasEventAccess,
+    isOwner,
+    userId: session?.user?.id,
+    eventUserId: eventWithAlbums.userId
+  })
+
   // If gallery is not published and user doesn't have access, show draft message
   if (!eventWithAlbums.isPublished && !hasEventAccess) {
     return (

@@ -8,7 +8,7 @@ export const users = pgTable("users", {
  image: text('image'),
  createdAt: timestamp('created_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
  updatedAt: timestamp('updated_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
- isAnonymous: boolean('is_anonymous'),
+ isAnonymous: boolean('is_anonymous').default(false),
  role: text('role')
 				});
 

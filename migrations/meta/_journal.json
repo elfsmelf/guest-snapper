@@ -43,6 +43,13 @@
       "when": 1755652608450,
       "tag": "0005_lazy_black_bolt",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1755661202710,
+      "tag": "0006_milky_boom_boom",
+      "breakpoints": true
     }
   ]
 }
