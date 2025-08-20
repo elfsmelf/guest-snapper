@@ -3,13 +3,22 @@ import { adminClient, anonymousClient, organizationClient, inferAdditionalFields
 import { stripeClient } from "@better-auth/stripe/client"
 import type { auth } from "./auth"
 
-export const authClient = createAuthClient({
+// Create the auth client with proper type inference
+const client = createAuthClient({
     baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
     plugins: [
         adminClient(),
         anonymousClient(),
         organizationClient(),
         inferAdditionalFields<typeof auth>(),
-        stripeClient()
+        (stripeClient as any)()
     ]
 })
+
+// Export with proper typing
+export const authClient = client
+
+// Export inferred types
+export type AuthClientType = typeof client
+export type Session = typeof client.$Infer.Session
+export type User = Session['user']
