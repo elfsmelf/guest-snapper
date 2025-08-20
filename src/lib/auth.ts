@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth"
+import { admin, organization } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { admin, anonymous, organization } from "better-auth/plugins"
 import { stripe as stripePlugin } from "@better-auth/stripe"
 
 import { db } from "@/database/db"
@@ -68,15 +68,6 @@ export const auth = betterAuth({
             console.log('User deleted successfully:', user.email)
         }
     },
-    user: {
-        // Automatically assign admin role when users are created or updated
-        additionalFields: {
-            role: {
-                type: "string",
-                defaultValue: "user"
-            }
-        } as any
-    },
     socialProviders: {
         google: {
             clientId: process.env.GOOGLE_CLIENT_ID as string,
@@ -85,10 +76,6 @@ export const auth = betterAuth({
         } as any,
     },
     plugins: [
-        anonymous({
-            emailDomainName: "guestsnapper.com",
-            generateName: () => `Guest-${Math.random().toString(36).substring(2, 8)}`
-        }),
         admin({
             // Users with role 'admin' will have admin privileges
             // You can also use adminUserIds: ["user_id_1", "user_id_2"] for specific user IDs
@@ -119,10 +106,11 @@ export const auth = betterAuth({
                 return '/dashboard'
             }
         }),
-        (stripePlugin as any)({
+        // Only include Stripe plugin if Stripe is configured
+        ...(stripe ? [(stripePlugin as any)({
             stripeClient: stripe,
             stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
             createCustomerOnSignUp: true,
-        })
+        })] : [])
     ]
 })

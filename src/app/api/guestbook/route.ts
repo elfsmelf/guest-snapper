@@ -7,7 +7,7 @@ import { headers } from "next/headers"
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the current session (should be anonymous user)
+    // Get the current session
     const session = await auth.api.getSession({
       headers: await headers()
     })
@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create guestbook entry with anonymous user tracking
+    // Create guestbook entry
     const newEntry = await db
       .insert(guestbookEntries)
       .values({
         eventId,
-        sessionId: session?.user?.id || null, // Track anonymous user ID
+        sessionId: session?.user?.id || null, // Track user ID if authenticated
         guestName: guestName.trim(),
         message: message.trim(),
         isApproved: true, // Auto-approve for now

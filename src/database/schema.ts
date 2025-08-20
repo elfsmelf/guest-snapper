@@ -59,7 +59,7 @@ export const uploads = pgTable("uploads", {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   albumId: text('album_id').references(() => albums.id, { onDelete: 'set null' }),
-  sessionId: text('session_id'), // for anonymous users
+  sessionId: text('session_id'), // for session tracking
   fileName: text('file_name').notNull(),
   fileUrl: text('file_url').notNull(),
   fileType: text('file_type').notNull(), // 'image' | 'video' | 'audio'
@@ -76,7 +76,7 @@ export const uploads = pgTable("uploads", {
 export const guestbookEntries = pgTable("guestbook_entries", {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
-  sessionId: text('session_id'), // for anonymous users
+  sessionId: text('session_id'), // for session tracking
   guestName: text('guest_name').notNull(),
   message: text('message').notNull(),
   isApproved: boolean('is_approved').default(true).notNull(),

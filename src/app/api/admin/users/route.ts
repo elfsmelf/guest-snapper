@@ -45,13 +45,12 @@ export async function GET(request: NextRequest) {
         image: users.image,
         createdAt: users.createdAt,
         updatedAt: users.updatedAt,
-        isAnonymous: users.isAnonymous,
         eventCount: count(events.id),
       })
       .from(users)
       .leftJoin(events, eq(users.id, events.userId))
       .where(whereCondition)
-      .groupBy(users.id, users.name, users.email, users.emailVerified, users.image, users.createdAt, users.updatedAt, users.isAnonymous)
+      .groupBy(users.id, users.name, users.email, users.emailVerified, users.image, users.createdAt, users.updatedAt)
       .orderBy(users.createdAt)
       .limit(limit)
       .offset(offset)

@@ -21,6 +21,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Retrieve the checkout session from Stripe
+    if (!stripe) {
+      throw new Error('Stripe is not configured')
+    }
     const checkoutSession = await stripe.checkout.sessions.retrieve(session_id);
 
     // Verify this session belongs to the current user

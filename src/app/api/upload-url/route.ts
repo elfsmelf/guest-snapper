@@ -14,8 +14,7 @@ export async function POST(request: NextRequest) {
       headers: await headers()
     })
 
-    // Allow both authenticated and anonymous users for now
-    // In production, you'd implement proper anonymous session management
+    // Allow public uploads for now
     
     const body = await request.json()
     const { eventId, fileName, fileType, fileSize } = body
@@ -74,7 +73,7 @@ export async function POST(request: NextRequest) {
       Metadata: {
         'original-name': fileName.replace(/[^a-zA-Z0-9.-]/g, '_'),
         'event-id': eventId,
-        'uploader-id': session?.user?.id || 'anonymous',
+        'uploader-id': session?.user?.id || 'unknown',
         'upload-type': 'media',
         'file-size': fileSize.toString(),
         'upload-timestamp': timestamp.toString()

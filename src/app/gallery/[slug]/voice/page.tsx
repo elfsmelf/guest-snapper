@@ -55,6 +55,7 @@ export default async function VoicePage({ params }: VoicePageProps) {
         }}
         uploadWindowOpen={uploadWindowOpen}
         isOwner={isOwner}
+        guestCanUpload={eventWithAlbums.guestCanViewAlbum ?? false}
       />
     </div>
   )

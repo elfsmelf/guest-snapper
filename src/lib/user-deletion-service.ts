@@ -43,7 +43,7 @@ export interface DeletionResult {
   success: boolean
   deletedUser: {
     id: string
-    email: string
+    email: string | null
   }
   summary: {
     eventsDeleted: number
@@ -111,7 +111,7 @@ export class UserDeletionService {
     const [userSessions, userAccounts, userVerifications, userMemberships, userInvitations] = await Promise.all([
       db.select({ id: sessions.id }).from(sessions).where(eq(sessions.userId, userId)),
       db.select({ id: accounts.id }).from(accounts).where(eq(accounts.userId, userId)),
-      db.select({ id: verifications.id }).from(verifications).where(eq(verifications.identifier, userInfo[0].email)),
+      userInfo[0].email ? db.select({ id: verifications.id }).from(verifications).where(eq(verifications.identifier, userInfo[0].email)) : Promise.resolve([]),
       db.select({ id: members.id }).from(members).where(eq(members.userId, userId)),
       db.select({ id: invitations.id }).from(invitations).where(eq(invitations.inviterId, userId))
     ])
@@ -137,7 +137,7 @@ export class UserDeletionService {
     return {
       user: {
         id: userInfo[0].id,
-        email: userInfo[0].email,
+        email: userInfo[0].email || '',
         name: userInfo[0].name || 'No name',
         createdAt: userInfo[0].createdAt?.toISOString() || new Date().toISOString()
       },
@@ -176,7 +176,7 @@ export class UserDeletionService {
    */
   async deleteUser(userId: string): Promise<DeletionResult> {
     const errors: string[] = []
-    let deletedUser: { id: string, email: string } | null = null
+    let deletedUser: { id: string, email: string | null } | null = null
     
     // Get user info before deletion
     const userInfo = await db.select({
@@ -234,7 +234,9 @@ export class UserDeletionService {
         await tx.delete(events).where(eq(events.userId, userId))
 
         // Delete Better Auth related data
-        await tx.delete(verifications).where(eq(verifications.identifier, deletedUser!.email))
+        if (deletedUser!.email) {
+          await tx.delete(verifications).where(eq(verifications.identifier, deletedUser!.email))
+        }
         await tx.delete(invitations).where(eq(invitations.inviterId, userId))
         await tx.delete(members).where(eq(members.userId, userId))
         await tx.delete(accounts).where(eq(accounts.userId, userId))

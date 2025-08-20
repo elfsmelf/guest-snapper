@@ -55,7 +55,6 @@ interface User {
   image?: string | null
   createdAt: string
   updatedAt: string
-  isAnonymous: boolean | null
   eventCount: number
 }
 
@@ -118,11 +117,6 @@ export default function AdminDashboard() {
             <Badge variant={user.emailVerified ? 'default' : 'secondary'}>
               {user.emailVerified ? 'Verified' : 'Unverified'}
             </Badge>
-            {user.isAnonymous && (
-              <Badge variant="outline" className="text-xs">
-                Anonymous
-              </Badge>
-            )}
           </div>
         )
       },
@@ -335,17 +329,6 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        <div className="bg-white p-6 rounded-lg border">
-          <div className="flex items-center">
-            <Eye className="h-8 w-8 text-orange-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Anonymous Users</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {data.users.filter(u => u.isAnonymous).length}
-              </p>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Table */}

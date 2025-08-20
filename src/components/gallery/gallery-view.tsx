@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth"
+import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -89,8 +89,8 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   const [imageDimensions, setImageDimensions] = useState<Record<string, { w: number; h: number }>>({})
   const router = useRouter()
   
-  // Initialize anonymous authentication for gallery visitors
-  const { isInitialized } = useAnonymousAuth()
+  // Check client-side session
+  const clientSession = authClient.useSession()
   
   // Preload image dimensions for all images
   useEffect(() => {
@@ -251,16 +251,16 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               variant="outline"
               size="sm"
               onClick={() => router.push(`/gallery/${eventSlug}/upload`)}
-              disabled={!uploadWindowOpen || !isInitialized}
+              disabled={!uploadWindowOpen}
             >
               <Camera className="h-4 w-4 mr-2" />
-              {!isInitialized ? 'Loading...' : 'Upload'}
+              Upload
             </Button>
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => setIsMessageDialogOpen(true)}
-              disabled={!isInitialized}
+              disabled={false}
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Message
@@ -269,10 +269,10 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               variant="outline" 
               size="sm"
               onClick={() => router.push(`/gallery/${eventSlug}/voice`)}
-              disabled={!uploadWindowOpen || !isInitialized}
+              disabled={!uploadWindowOpen}
             >
               <Mic className="h-4 w-4 mr-2" />
-              {!isInitialized ? 'Loading...' : 'Voice'}
+              Voice
             </Button>
           </div>
         </div>
@@ -299,16 +299,16 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               variant="outline"
               size="sm"
               onClick={() => router.push(`/gallery/${eventSlug}/upload`)}
-              disabled={!uploadWindowOpen || !isInitialized}
+              disabled={!uploadWindowOpen}
             >
               <Camera className="h-4 w-4 mr-2" />
-              {!isInitialized ? 'Loading...' : 'Upload'}
+              Upload
             </Button>
             <Button 
               variant="outline" 
               size="sm"
               onClick={() => setIsMessageDialogOpen(true)}
-              disabled={!isInitialized}
+              disabled={false}
             >
               <MessageSquare className="h-4 w-4 mr-2" />
               Message
@@ -317,10 +317,10 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               variant="outline" 
               size="sm"
               onClick={() => router.push(`/gallery/${eventSlug}/voice`)}
-              disabled={!uploadWindowOpen || !isInitialized}
+              disabled={!uploadWindowOpen}
             >
               <Mic className="h-4 w-4 mr-2" />
-              {!isInitialized ? 'Loading...' : 'Voice'}
+              Voice
             </Button>
           </div>
         </div>

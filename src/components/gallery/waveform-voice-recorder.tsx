@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth"
+import { authClient } from "@/lib/auth-client"
 import WavesurferPlayer from '@wavesurfer/react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -36,6 +36,7 @@ interface VoiceRecorderProps {
   event: Event
   uploadWindowOpen: boolean
   isOwner: boolean
+  guestCanUpload?: boolean
 }
 
 interface AudioMessage {
@@ -51,7 +52,7 @@ interface AudioMessage {
   duration: number
 }
 
-export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner }: VoiceRecorderProps) {
+export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestCanUpload = false }: VoiceRecorderProps) {
   const [uploaderName, setUploaderName] = useState("")
   const [message, setMessage] = useState("")
   const [audioMessages, setAudioMessages] = useState<AudioMessage[]>([])
@@ -71,8 +72,8 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
   const animationRef = useRef<number | null>(null)
   const startTimeRef = useRef<number>(0)
   
-  // Initialize anonymous authentication
-  const { isInitialized, session } = useAnonymousAuth()
+  // Check session for authenticated users
+  const session = authClient.useSession()
 
   useEffect(() => {
     return () => {
@@ -286,8 +287,6 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
   }
 
   const uploadAudioMessage = async (audioMessage: AudioMessage) => {
-    if (!isInitialized) return
-
     updateAudioMessage(audioMessage.id, { status: 'uploading', progress: 0 })
 
     try {
@@ -365,7 +364,7 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
   }
 
   const uploadAllAudioMessages = async () => {
-    if (audioMessages.length === 0 || !isInitialized) return
+    if (audioMessages.length === 0) return
 
     setIsUploading(true)
 
@@ -521,7 +520,7 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
                   <div className="flex items-center justify-center gap-4">
                     <Button
                       onClick={startRecording}
-                      disabled={!uploadWindowOpen || isUploading || !isInitialized}
+                      disabled={!uploadWindowOpen || isUploading}
                       size="lg"
                       className="bg-purple-600 hover:bg-purple-700 text-white"
                     >
@@ -666,14 +665,9 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
               
               <Button
                 onClick={uploadAllAudioMessages}
-                disabled={isUploading || audioMessages.every(a => a.status !== 'pending') || !isInitialized}
+                disabled={isUploading || audioMessages.every(a => a.status !== 'pending')}
               >
-                {!isInitialized ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Initializing...
-                  </>
-                ) : isUploading ? (
+                {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Uploading...

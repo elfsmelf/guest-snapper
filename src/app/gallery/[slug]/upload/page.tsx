@@ -104,6 +104,7 @@ export default async function UploadPage({ params }: UploadPageProps) {
         event={eventWithAlbums}
         uploadWindowOpen={uploadWindowOpen}
         isOwner={isOwner}
+        guestCanUpload={event.guestCanViewAlbum ?? false}
       />
     </div>
   )

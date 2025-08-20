@@ -77,6 +77,9 @@ export async function POST(req: NextRequest) {
 
   let event;
   try {
+    if (!stripe) {
+      throw new Error('Stripe is not configured')
+    }
     event = stripe.webhooks.constructEvent(
       rawBody,
       sig,

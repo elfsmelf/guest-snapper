@@ -132,7 +132,9 @@ export async function DELETE(
       console.log('🔧 Performing manual deletion...')
       
       // Delete Better Auth related data manually
-      await db.delete(verifications).where(eq(verifications.identifier, userToDelete[0].email))
+      if (userToDelete[0].email) {
+        await db.delete(verifications).where(eq(verifications.identifier, userToDelete[0].email))
+      }
       await db.delete(invitations).where(eq(invitations.inviterId, userId))
       await db.delete(members).where(eq(members.userId, userId))
       await db.delete(accounts).where(eq(accounts.userId, userId))

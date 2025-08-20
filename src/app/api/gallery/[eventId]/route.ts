@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   try {
-    // Get current session (allow both authenticated and anonymous users)
+    // Get current session
     const session = await auth.api.getSession({
       headers: await headers()
     })
@@ -20,11 +20,8 @@ export async function GET(
 
     // Check if user has access to this event
     let hasAccess = false
-    if (session?.user && true) {
+    if (session?.user) {
       hasAccess = await canUserAccessEvent(eventId, session.user.id)
-    } else if ((session?.user as any)?.isAnonymous) {
-      // For anonymous users, they can access if they have a session for this event
-      hasAccess = true // Simplified for now - you might want more strict checking
     }
 
     // Fetch uploads based on access level

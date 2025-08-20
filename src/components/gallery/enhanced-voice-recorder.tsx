@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth"
+import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -35,6 +35,7 @@ interface VoiceRecorderProps {
   event: Event
   uploadWindowOpen: boolean
   isOwner: boolean
+  guestCanUpload?: boolean
 }
 
 interface AudioMessage {
@@ -49,7 +50,7 @@ interface AudioMessage {
   fileName: string
 }
 
-export function EnhancedVoiceRecorder({ event, uploadWindowOpen, isOwner }: VoiceRecorderProps) {
+export function EnhancedVoiceRecorder({ event, uploadWindowOpen, isOwner, guestCanUpload = false }: VoiceRecorderProps) {
   const [uploaderName, setUploaderName] = useState("")
   const [message, setMessage] = useState("")
   const [audioMessages, setAudioMessages] = useState<AudioMessage[]>([])
@@ -63,8 +64,8 @@ export function EnhancedVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
   const audioChunks = useRef<Blob[]>([])
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
-  // Initialize anonymous authentication
-  const { isInitialized, session } = useAnonymousAuth()
+  // Check session for authenticated users
+  const session = authClient.useSession()
 
   useEffect(() => {
     return () => {
@@ -173,8 +174,6 @@ export function EnhancedVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
   }
 
   const uploadAudioMessage = async (audioMessage: AudioMessage) => {
-    if (!isInitialized) return
-
     updateAudioMessage(audioMessage.id, { status: 'uploading', progress: 0 })
 
     try {
@@ -252,7 +251,7 @@ export function EnhancedVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
   }
 
   const uploadAllAudioMessages = async () => {
-    if (audioMessages.length === 0 || !isInitialized) return
+    if (audioMessages.length === 0) return
 
     setIsUploading(true)
 
@@ -374,7 +373,7 @@ export function EnhancedVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
                   {!isRecording ? (
                     <Button
                       onClick={startRecording}
-                      disabled={!uploadWindowOpen || isUploading || !isInitialized}
+                      disabled={!uploadWindowOpen || isUploading}
                       size="lg"
                       className="bg-red-500 hover:bg-red-600 text-white"
                     >
@@ -515,14 +514,9 @@ export function EnhancedVoiceRecorder({ event, uploadWindowOpen, isOwner }: Voic
               
               <Button
                 onClick={uploadAllAudioMessages}
-                disabled={isUploading || audioMessages.every(a => a.status !== 'pending') || !isInitialized}
+                disabled={isUploading || audioMessages.every(a => a.status !== 'pending')}
               >
-                {!isInitialized ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Initializing...
-                  </>
-                ) : isUploading ? (
+                {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Uploading...

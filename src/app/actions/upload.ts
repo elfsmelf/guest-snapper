@@ -26,10 +26,7 @@ export async function createUpload(uploadData: UploadData) {
       headers: await headers()
     })
 
-    // Ensure we have a session for tracking
-    if (!session?.user?.id) {
-      throw new Error('No user session found')
-    }
+    // Allow public uploads for now (no session required)
 
     // Verify event exists and get event details for plan checking
     const eventResult = await db
@@ -53,15 +50,18 @@ export async function createUpload(uploadData: UploadData) {
     const currentGuestCount = guestCountResult[0]?.count || 0
 
     // Check if this is a new guest (session not seen before)
-    const existingUploadsForSession = await db
-      .select({ count: count() })
-      .from(uploads)
-      .where(and(
-        eq(uploads.eventId, uploadData.eventId),
-        eq(uploads.sessionId, session.user.id)
-      ))
-
-    const isNewGuest = (existingUploadsForSession[0]?.count || 0) === 0
+    let isNewGuest = true
+    if (session?.user?.id) {
+      const existingUploadsForSession = await db
+        .select({ count: count() })
+        .from(uploads)
+        .where(and(
+          eq(uploads.eventId, uploadData.eventId),
+          eq(uploads.sessionId, session.user.id)
+        ))
+      
+      isNewGuest = (existingUploadsForSession[0]?.count || 0) === 0
+    }
     const effectiveGuestCount = isNewGuest ? currentGuestCount + 1 : currentGuestCount
 
     // Check if event can accept more guests based on plan
@@ -87,7 +87,7 @@ export async function createUpload(uploadData: UploadData) {
       .values({
         eventId: uploadData.eventId,
         albumId: uploadData.albumId || null,
-        sessionId: session.user.id,
+        sessionId: session?.user?.id || null,
         fileName: uploadData.fileName,
         fileUrl: uploadData.fileUrl,
         fileType: uploadData.fileType,

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { useAnonymousAuth } from "@/hooks/useAnonymousAuth"
+import { authClient } from "@/lib/auth-client"
 import { useDropzone } from "react-dropzone"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -50,16 +50,17 @@ interface UploadInterfaceProps {
   event: Event
   uploadWindowOpen: boolean
   isOwner: boolean
+  guestCanUpload?: boolean
 }
 
-export function UploadInterface({ event, uploadWindowOpen, isOwner }: UploadInterfaceProps) {
+export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false }: UploadInterfaceProps) {
   const [files, setFiles] = useState<UploadFile[]>([])
   const [uploaderName, setUploaderName] = useState("")
   const [isUploading, setIsUploading] = useState(false)
   const router = useRouter()
   
-  // Initialize anonymous authentication for upload interface
-  const { isInitialized, session } = useAnonymousAuth()
+  // Check client-side session
+  const clientSession = authClient.useSession()
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -83,7 +84,7 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner }: UploadInte
       'video/*': ['.mp4', '.mov', '.avi', '.quicktime']
     },
     maxSize: 50 * 1024 * 1024, // 50MB
-    disabled: !uploadWindowOpen || isUploading || !isInitialized
+    disabled: !uploadWindowOpen || isUploading
   })
 
   const removeFile = (id: string) => {
@@ -103,7 +104,7 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner }: UploadInte
   }
 
   const handleUploadAll = async () => {
-    if (files.length === 0 || !isInitialized) return
+    if (files.length === 0) return
 
     setIsUploading(true)
 
@@ -260,7 +261,7 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner }: UploadInte
                 isDragActive 
                   ? 'border-primary bg-primary/5' 
                   : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-              } ${!uploadWindowOpen || isUploading || !isInitialized ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              } ${!uploadWindowOpen || isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <input {...getInputProps()} />
               <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
@@ -418,14 +419,9 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner }: UploadInte
               
               <Button
                 onClick={handleUploadAll}
-                disabled={isUploading || files.every(f => f.status !== 'pending') || !isInitialized}
+                disabled={isUploading || files.every(f => f.status !== 'pending')}
               >
-                {!isInitialized ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Initializing...
-                  </>
-                ) : isUploading ? (
+                {isUploading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Uploading...
