@@ -86,7 +86,7 @@ export const auth = betterAuth({
     },
     plugins: [
         anonymous({
-            emailDomainName: process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname : "localhost",
+            emailDomainName: "guestsnapper.com",
             generateName: () => `Guest-${Math.random().toString(36).substring(2, 8)}`
         }),
         admin({

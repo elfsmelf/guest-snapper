@@ -37,17 +37,21 @@ export function useAnonymousAuth() {
           // According to Better Auth docs: authClient.signIn.anonymous()
           const result = await (authClient.signIn as any).anonymous()
           
+          console.log('Anonymous sign-in result:', result)
+          
           if (result?.error) {
             console.error('Anonymous sign-in error:', result.error)
             // If error is because user is already anonymous, that's actually fine
             if (result.error.code === 'ANONYMOUS_USERS_CANNOT_SIGN_IN_AGAIN_ANONYMOUSLY') {
               console.log('User already has anonymous session, continuing...')
             }
-          } else if (result) {
-            console.log('Anonymous sign-in successful:', result)
+          } else if (result?.data) {
+            console.log('Anonymous sign-in successful:', result.data)
+          } else {
+            console.log('Anonymous sign-in completed but no data returned')
           }
         } catch (signInError) {
-          console.error('Anonymous sign-in failed:', signInError)
+          console.error('Anonymous sign-in failed with exception:', signInError)
           // Continue without anonymous auth - user can still view public content
         }
         

@@ -2,13 +2,13 @@ import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core"
 
 export const users = pgTable("users", {
 					id: text('id').primaryKey(),
-					name: text('name').notNull(),
- email: text('email').notNull().unique(),
+					name: text('name'),
+ email: text('email').unique(),
  emailVerified: boolean('email_verified').$defaultFn(() => false).notNull(),
  image: text('image'),
  createdAt: timestamp('created_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
  updatedAt: timestamp('updated_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
- isAnonymous: boolean('is_anonymous').default(false),
+ isAnonymous: boolean('is_anonymous').default(false).notNull(),
  role: text('role')
 				});
 
