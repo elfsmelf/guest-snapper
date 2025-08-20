@@ -33,7 +33,7 @@ export function useAnonymousAuth() {
         // Only sign in anonymously if truly no session exists
         console.log('No session found, signing in anonymously...')
         try {
-          const result = await (authClient.signIn as any).anonymous()
+          const result = await authClient.signIn.anonymous()
           
           if (result?.error) {
             console.error('Anonymous sign-in error:', result.error)

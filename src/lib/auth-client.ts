@@ -1,6 +1,7 @@
 import { createAuthClient } from "better-auth/react"
-import { adminClient, anonymousClient, organizationClient } from "better-auth/client/plugins"
+import { adminClient, anonymousClient, organizationClient, inferAdditionalFields } from "better-auth/client/plugins"
 import { stripeClient } from "@better-auth/stripe/client"
+import type { auth } from "./auth"
 
 export const authClient = createAuthClient({
     baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
@@ -8,6 +9,7 @@ export const authClient = createAuthClient({
         adminClient(),
         anonymousClient(),
         organizationClient(),
-        (stripeClient as any)()
+        inferAdditionalFields<typeof auth>(),
+        stripeClient()
     ]
 })
