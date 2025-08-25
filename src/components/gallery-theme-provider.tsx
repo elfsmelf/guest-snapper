@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { getGalleryTheme, PRECOMPILED_THEMES } from "@/lib/gallery-themes"
-// Font loading handled by Next.js font optimization
+// Load gallery theme fonts directly from Google Fonts (only when gallery components are used)
+import "@/styles/gallery-fonts.css"
 
 interface GalleryThemeProviderProps {
   children: React.ReactNode

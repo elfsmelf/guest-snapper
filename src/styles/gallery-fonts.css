@@ -1,0 +1,24 @@
+/* Gallery Theme Fonts - Loaded directly from Google Fonts
+ * 
+ * These fonts are loaded on-demand when gallery components need them,
+ * bypassing Vercel edge requests and reducing Next.js bundle size.
+ * Only loaded when gallery themes that use these fonts are active.
+ */
+
+/* Lora - Elegant serif for Lavender theme */
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;700&display=swap');
+
+/* Playfair Display - Classic serif for Sepia Noir theme */  
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap');
+
+/* Libre Baskerville - Traditional serif for Vintage Paper theme */
+@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap');
+
+/* Architects Daughter - Handwritten for Notebook theme */
+@import url('https://fonts.googleapis.com/css2?family=Architects+Daughter:wght@400&display=swap');
+
+/* Inter - Modern sans serif for Ocean theme */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+/* Source Serif 4 - Readable serif for Ocean theme */
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;700&display=swap');

@@ -58,17 +58,17 @@ export function GalleryThemeManager({ eventId, currentThemeId, onThemeChange, ev
       
       switch (theme.fontKey) {
         case 'lora':
-          return 'var(--font-lora), Georgia, serif'
+          return '"Lora", Georgia, serif'
         case 'playfair-display':
-          return 'var(--font-playfair-display), Georgia, serif'
+          return '"Playfair Display", Georgia, serif'
         case 'libre-baskerville':
-          return 'var(--font-libre-baskerville), Georgia, serif'
+          return '"Libre Baskerville", Georgia, serif'
         case 'architects-daughter':
-          return 'var(--font-architects-daughter), ui-sans-serif, system-ui, sans-serif'
+          return '"Architects Daughter", ui-sans-serif, system-ui, sans-serif'
         case 'inter':
-          return 'var(--font-inter), ui-sans-serif, system-ui, sans-serif'
-        case 'montserrat':
-          return 'var(--font-montserrat), ui-sans-serif, system-ui, sans-serif'
+          return '"Inter", ui-sans-serif, system-ui, sans-serif'
+        case 'source-serif-4':
+          return '"Source Serif 4", Georgia, serif'
         default:
           return 'ui-serif, Georgia, serif'
       }
