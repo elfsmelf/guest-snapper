@@ -602,7 +602,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                               className="relative w-12 h-12 flex-shrink-0 cursor-pointer group"
                               onClick={() => openImageModal(upload)}
                             >
-                              <Image
+                              <CloudflareImage
                                 src={upload.fileUrl}
                                 alt={upload.fileName}
                                 fill
