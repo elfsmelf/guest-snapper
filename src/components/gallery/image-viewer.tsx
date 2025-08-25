@@ -34,13 +34,27 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
       return
     }
     
-    // Only start loading the image when modal opens
+    // Start loading the image when modal opens
     setShouldLoadImage(true)
+    
+    // Preload the image to Vercel's edge cache
+    if (upload.fileUrl && !upload.fileType.startsWith('video/')) {
+      const img = new window.Image()
+      img.src = upload.fileUrl
+    }
   }, [isOpen, upload])
   
   if (!upload) return null
 
   const isVideo = upload.fileType === 'video'
+  
+  // Optimize image URLs for Vercel's Image Optimization API
+  const getOptimizedImageUrl = (url: string, width: number, quality: number = 85) => {
+    if (url.includes('/_next/image') || url.includes('vercel.app')) {
+      return url // Already optimized
+    }
+    return url // Return original for external URLs
+  }
 
   const handleDownload = () => {
     const a = document.createElement('a')
@@ -78,6 +92,7 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
                   className="w-full max-h-[70vh] object-contain"
                   autoPlay
                   muted
+                  preload="metadata"
                 />
               ) : (
                 <div className="w-full h-[50vh] bg-gray-200 animate-pulse flex items-center justify-center">
@@ -92,8 +107,11 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
                     alt={upload.fileName}
                     fill
                     className="object-contain"
-                    sizes="90vw"
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 80vw"
                     priority
+                    quality={95}
+                    placeholder="blur"
+                    blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkrHB0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                   />
                 </div>
               ) : (

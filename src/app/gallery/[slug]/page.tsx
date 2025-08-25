@@ -63,6 +63,8 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
                   fill
                   className="object-cover opacity-75"
                   sizes="(max-width: 768px) 100vw, 672px"
+                  quality={90}
+                  priority
                 />
               </div>
             )}
@@ -134,6 +136,8 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
                   fill
                   className="object-cover"
                   sizes="(max-width: 768px) 100vw, 672px"
+                  quality={90}
+                  priority
                 />
               </div>
             )}
