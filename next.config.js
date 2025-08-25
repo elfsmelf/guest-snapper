@@ -17,6 +17,8 @@ const nextConfig = {
         }
     },
     images: {
+        // Disable Next.js image optimization to serve directly from Cloudflare
+        unoptimized: true,
         remotePatterns: [
             {
                 protocol: 'https',
