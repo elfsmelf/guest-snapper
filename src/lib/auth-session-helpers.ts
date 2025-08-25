@@ -1,9 +1,24 @@
+import { cache } from "react"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 
 /**
+ * Cached session lookup using React's cache() for request-level deduplication.
+ * This prevents duplicate session calls within a single request.
+ */
+const getCachedSession = cache(async (fresh: boolean = false) => {
+  return auth.api.getSession({
+    headers: await headers(),
+    ...(fresh && {
+      query: { disableCookieCache: true }
+    })
+  })
+})
+
+/**
  * Get session with optimal caching strategy.
  * Uses cookie cache by default for performance, but allows fresh DB lookup when needed.
+ * Also uses React cache() for request-level deduplication.
  */
 export async function getSession(options?: { 
   /**
@@ -12,12 +27,7 @@ export async function getSession(options?: {
    */
   fresh?: boolean 
 }) {
-  return auth.api.getSession({
-    headers: await headers(),
-    ...(options?.fresh && {
-      query: { disableCookieCache: true }
-    })
-  })
+  return getCachedSession(options?.fresh || false)
 }
 
 /**
@@ -25,5 +35,5 @@ export async function getSession(options?: {
  * This is specifically for cases where client-side navigation might have outdated cache.
  */
 export async function getSessionAfterNavigation() {
-  return getSession({ fresh: true })
+  return getCachedSession(true)
 }

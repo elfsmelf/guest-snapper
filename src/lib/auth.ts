@@ -56,8 +56,9 @@ export const auth = betterAuth({
     session: {
         cookieCache: {
             enabled: true,
-            maxAge: 5 * 60, // Cache session for 5 minutes
+            maxAge: 30 * 60, // Cache session for 30 minutes (much longer)
         },
+        freshTokenThreshold: 24 * 60 * 60, // 24 hours before refreshing tokens
     },
     emailAndPassword: {
         enabled: true,

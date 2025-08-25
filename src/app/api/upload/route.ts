@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createUpload } from "@/app/actions/upload"
+import { revalidatePath } from "next/cache"
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +30,12 @@ export async function POST(request: NextRequest) {
     })
 
     if (result.success) {
+      // Force ISR cache regeneration for the gallery page
+      // This ensures uploaded photos appear immediately without waiting for cache expiry
+      if (result.eventSlug) {
+        revalidatePath(`/gallery/${result.eventSlug}`)
+      }
+
       return NextResponse.json({
         success: true,
         upload: result.upload

@@ -42,7 +42,7 @@ export const getCachedGalleryData = unstable_cache(
   ['gallery-data'],
   {
     tags: ['gallery'],
-    revalidate: 30, // Cache for 30 seconds as fallback
+    revalidate: 600, // Cache for 10 minutes to match page cache
   }
 )
 
@@ -74,6 +74,6 @@ export const getCachedEventData = unstable_cache(
   ['event-data'],
   {
     tags: ['gallery', 'event'],
-    revalidate: 60, // Cache for 60 seconds as fallback
+    revalidate: 600, // Cache for 10 minutes to match page cache
   }
 )

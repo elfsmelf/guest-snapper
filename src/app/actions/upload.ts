@@ -5,7 +5,7 @@ import { uploads, events, guests } from '@/database/schema'
 import { eq, count, countDistinct, and, isNotNull } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { headers, cookies } from 'next/headers'
-import { revalidateTag } from 'next/cache'
+import { revalidateTag, revalidatePath } from 'next/cache'
 import { canAcceptMoreGuests } from '@/lib/feature-gates'
 
 interface UploadData {
@@ -143,6 +143,12 @@ export async function createUpload(uploadData: UploadData) {
 
     // Determine moderation status based on event settings
     const moderationStatus = !event.approveUploads
+    
+    console.log('Event approval settings:', { 
+      eventId: event.id, 
+      approveUploads: event.approveUploads, 
+      moderationStatus: moderationStatus 
+    })
 
     // Insert upload record
     const newUpload = await db
@@ -169,11 +175,18 @@ export async function createUpload(uploadData: UploadData) {
     revalidateTag('gallery')
     revalidateTag('event')
     
+    // Force ISR page cache regeneration for immediate visibility
+    const galleryPath = `/gallery/${event.slug}`
+    revalidatePath(galleryPath)
+    
     console.log('Upload created and cache invalidated:', newUpload[0].id)
+    console.log('Revalidated gallery path:', galleryPath)
+    console.log('Event details:', { id: event.id, slug: event.slug, isPublished: event.isPublished })
 
     return {
       success: true,
-      upload: newUpload[0]
+      upload: newUpload[0],
+      eventSlug: event.slug
     }
 
   } catch (error) {
@@ -195,6 +208,23 @@ export async function approveUpload(uploadId: string) {
       throw new Error('Unauthorized')
     }
 
+    // Get event information for path revalidation
+    const upload = await db
+      .select({ eventId: uploads.eventId })
+      .from(uploads)
+      .where(eq(uploads.id, uploadId))
+      .limit(1)
+
+    if (!upload.length) {
+      throw new Error('Upload not found')
+    }
+
+    const event = await db
+      .select({ slug: events.slug })
+      .from(events)
+      .where(eq(events.id, upload[0].eventId))
+      .limit(1)
+
     // Update upload approval status
     const updatedUpload = await db
       .update(uploads)
@@ -212,6 +242,11 @@ export async function approveUpload(uploadId: string) {
     // Invalidate cache tags
     revalidateTag('gallery')
     revalidateTag('event')
+    
+    // Force ISR page cache regeneration for immediate visibility
+    if (event.length > 0) {
+      revalidatePath(`/gallery/${event[0].slug}`)
+    }
     
     console.log('Upload approved and cache invalidated:', uploadId)
 
@@ -239,6 +274,23 @@ export async function rejectUpload(uploadId: string) {
       throw new Error('Unauthorized')
     }
 
+    // Get event information for path revalidation before deletion
+    const upload = await db
+      .select({ eventId: uploads.eventId })
+      .from(uploads)
+      .where(eq(uploads.id, uploadId))
+      .limit(1)
+
+    if (!upload.length) {
+      throw new Error('Upload not found')
+    }
+
+    const event = await db
+      .select({ slug: events.slug })
+      .from(events)
+      .where(eq(events.id, upload[0].eventId))
+      .limit(1)
+
     // Delete the upload
     const deletedUpload = await db
       .delete(uploads)
@@ -252,6 +304,11 @@ export async function rejectUpload(uploadId: string) {
     // Invalidate cache tags
     revalidateTag('gallery')
     revalidateTag('event')
+    
+    // Force ISR page cache regeneration for immediate visibility
+    if (event.length > 0) {
+      revalidatePath(`/gallery/${event[0].slug}`)
+    }
     
     console.log('Upload rejected and cache invalidated:', uploadId)
 

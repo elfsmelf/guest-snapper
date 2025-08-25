@@ -1,11 +1,11 @@
 import { notFound, redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import { getSession, getSessionAfterNavigation } from "@/lib/auth-session-helpers"
 import Image from "next/image"
 import { canUserAccessEvent } from "@/lib/auth-helpers"
 import { getCachedEventData, getCachedGalleryData } from "@/lib/gallery-cache"
 import { GalleryView } from "@/components/gallery/gallery-view"
 import { GalleryWithWelcome } from "@/components/gallery/gallery-with-welcome"
-import { AutoRefreshGallery } from "@/components/gallery/auto-refresh-gallery"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lock, Eye, Camera, MessageSquare, Mic } from "lucide-react"
@@ -16,6 +16,10 @@ interface GalleryPageProps {
   params: Promise<{ slug: string }>
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
+
+// Cache this page for 10 minutes to dramatically reduce lambda executions
+// New uploads will show every 10 minutes when cache expires
+export const revalidate = 600 // 10 minutes
 
 export default async function GalleryPage({ params, searchParams }: GalleryPageProps) {
   const { slug } = await params
@@ -184,18 +188,22 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
             </div>
 
             {/* Privacy Message */}
-            <Card className="max-w-md mx-auto">
+            <Card className="max-w-lg mx-auto">
               <CardHeader className="text-center pb-4">
-                <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                  <Lock className="w-8 h-8 text-gray-400" />
+                <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                  <Camera className="w-8 h-8 text-blue-600" />
                 </div>
-                <CardTitle className="text-xl text-gray-900">Gallery is Private</CardTitle>
+                <CardTitle className="text-2xl text-gray-900">Looking for photos?</CardTitle>
               </CardHeader>
-              <CardContent className="text-center space-y-4">
-                <p className="text-gray-600">
-                  The hosts have temporarily disabled public viewing of their photo gallery. 
-                  You can still contribute photos and messages to celebrate with them!
-                </p>
+              <CardContent className="text-center space-y-6">
+                <div className="space-y-3">
+                  <p className="text-gray-700 text-lg leading-relaxed">
+                    If you are seeing this message it means the album host has decided to keep the photos and videos <strong>private at this time</strong>.
+                  </p>
+                  <p className="text-gray-600">
+                    The host encourages everyone to please <strong>continue to upload all the moments</strong> they have captured and the host will decide later if and when they are going to share.
+                  </p>
+                </div>
                 
                 <div className="space-y-3">
                   <Button asChild className="w-full h-14 text-lg font-semibold bg-rose-500 hover:bg-rose-600 text-white">
@@ -205,11 +213,11 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
                     </a>
                   </Button>
                   <Button 
-                    className="w-full h-14 text-lg font-semibold bg-blue-500 hover:bg-blue-600 text-white"
-                    onClick={() => {/* Add message functionality */}}
+                    disabled
+                    className="w-full h-14 text-lg font-semibold bg-gray-400 hover:bg-gray-500 text-white opacity-50"
                   >
                     <MessageSquare className="w-6 h-6 mr-3" />
-                    Leave a Message
+                    Leave a Message (Coming Soon)
                   </Button>
                   <Button 
                     asChild
@@ -222,9 +230,12 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
                   </Button>
                 </div>
                 
-                <p className="text-sm text-gray-500 mt-4">
-                  Photos and messages you share will be visible to the hosts and may be made public later.
-                </p>
+                <div className="bg-gray-50 rounded-lg p-4 mt-6">
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    <strong>Your contributions matter!</strong> Photos and messages you share will be visible to the hosts immediately. 
+                    The hosts may choose to make the gallery public later so everyone can enjoy the memories together.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -250,9 +261,6 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
         </div>
       )}
 
-      {/* Auto-refresh component for polling */}
-      <AutoRefreshGallery interval={30000} />
-      
       <GalleryWithWelcome
         event={eventWithAlbums as any}
         uploads={galleryData.uploads as any}
