@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { X, Download, User, Calendar } from "lucide-react"
 import { CloudflareImage } from "@/components/ui/cloudflare-image"
+import { getOriginalImageUrl } from "@/lib/cloudflare-image"
 
 interface Upload {
   id: string
@@ -58,7 +59,8 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
 
   const handleDownload = () => {
     const a = document.createElement('a')
-    a.href = upload.fileUrl
+    // Use original image URL for downloads (not the optimized version)
+    a.href = getOriginalImageUrl(upload.fileUrl)
     a.download = upload.fileName
     a.target = '_blank'
     document.body.appendChild(a)

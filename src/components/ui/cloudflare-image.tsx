@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import Image from "next/image"
+import { getOptimizedImageUrl, getOriginalImageUrl } from "@/lib/cloudflare-image"
 
 interface CloudflareImageProps {
   src: string
@@ -16,15 +17,16 @@ interface CloudflareImageProps {
   onLoad?: () => void
   onClick?: () => void
   style?: React.CSSProperties
+  useOriginal?: boolean // For downloads or when you need the original
 }
 
 /**
- * CloudflareImage component that serves images directly from Cloudflare R2
- * with proper caching headers to avoid Vercel edge requests.
+ * CloudflareImage component that serves optimized images via Cloudflare Image Resizing
  * 
- * Since Next.js image optimization is disabled (unoptimized: true),
- * images are served directly from their source URLs without going through
- * Vercel's /_next/image endpoint.
+ * Strategy: ONE transformation per image
+ * - Serves WebP/AVIF automatically based on browser support
+ * - Single 1920px wide version that works for all screen sizes
+ * - Original stays in R2, optimized version cached at edge
  */
 export function CloudflareImage({
   src,
@@ -38,28 +40,19 @@ export function CloudflareImage({
   loading = "lazy",
   onLoad,
   onClick,
-  style
+  style,
+  useOriginal = false
 }: CloudflareImageProps) {
   const [imageError, setImageError] = useState(false)
   
-  // Ensure images from assets.guestsnapper.com are served with cache headers
-  const getOptimizedSrc = (url: string) => {
-    // If already from assets domain, return as-is
-    if (url.includes('assets.guestsnapper.com')) {
-      return url
-    }
-    
-    // For other domains, return as-is (Next.js will handle based on config)
-    return url
-  }
-  
-  const optimizedSrc = getOptimizedSrc(src)
+  // Get the optimized URL (or original if requested)
+  const imageSrc = useOriginal ? getOriginalImageUrl(src) : getOptimizedImageUrl(src)
   
   // Fallback to regular img tag if there's an error
   if (imageError) {
     return (
       <img
-        src={optimizedSrc}
+        src={imageSrc}
         alt={alt}
         className={className}
         loading={loading}
@@ -71,22 +64,23 @@ export function CloudflareImage({
   }
   
   // Use Next.js Image with unoptimized flag from config
-  // This bypasses Vercel's image optimization and serves directly
+  // Images are optimized by Cloudflare, not Vercel
   return (
     <Image
-      src={optimizedSrc}
+      src={imageSrc}
       alt={alt}
-      width={width}
-      height={height}
+      width={width || 1920} // Default to our optimized width
+      height={height || 1080} // Default aspect ratio
       fill={fill}
       className={className}
-      sizes={sizes}
+      sizes={sizes || "100vw"}
       priority={priority}
       loading={loading}
       onError={() => setImageError(true)}
       onLoad={onLoad}
       onClick={onClick}
       style={style}
+      unoptimized // Let Cloudflare handle optimization
     />
   )
 }
