@@ -22,16 +22,16 @@ const geistMono = Geist_Mono({
 const lora = Lora({
     variable: "--font-lora",
     subsets: ["latin"],
-    weight: ["400", "500", "600", "700"],
-    style: ["normal", "italic"],
+    weight: ["400", "700"],
+    style: ["normal"],
     display: "swap"
 })
 
 const playfairDisplay = Playfair_Display({
     variable: "--font-playfair-display",
     subsets: ["latin"],
-    weight: ["400", "500", "600", "700", "800", "900"],
-    style: ["normal", "italic"],
+    weight: ["400", "700"],
+    style: ["normal"],
     display: "swap"
 })
 
@@ -39,7 +39,7 @@ const libreBaskerville = Libre_Baskerville({
     variable: "--font-libre-baskerville",
     subsets: ["latin"],
     weight: ["400", "700"],
-    style: ["normal", "italic"],
+    style: ["normal"],
     display: "swap"
 })
 
@@ -53,14 +53,15 @@ const architectsDaughter = Architects_Daughter({
 const inter = Inter({
     variable: "--font-inter",
     subsets: ["latin"],
+    weight: ["400", "600"],
     display: "swap"
 })
 
 const sourceSerif4 = Source_Serif_4({
     variable: "--font-source-serif-4",
     subsets: ["latin"],
-    weight: ["400", "500", "600", "700"],
-    style: ["normal", "italic"],
+    weight: ["400", "700"],
+    style: ["normal"],
     display: "swap"
 })
 
