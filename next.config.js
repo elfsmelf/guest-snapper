@@ -10,12 +10,81 @@ const nextConfig = {
             '**/debug-*.js'
         ]
     },
-    // Speed up dev compilation
+    // Speed up dev compilation and optimize bundles
     experimental: {
         turbotrace: {
             logLevel: 'error'
-        }
+        },
+        // Optimize client bundles
+        optimizePackageImports: [
+            'lucide-react',
+            '@radix-ui/react-icons',
+            'date-fns',
+            'react-hook-form'
+        ]
     },
+    // Bundle optimization
+    webpack: (config, { isServer }) => {
+        if (!isServer) {
+            // Optimize chunking strategy
+            config.optimization = {
+                ...config.optimization,
+                splitChunks: {
+                    chunks: 'all',
+                    cacheGroups: {
+                        default: false,
+                        vendors: false,
+                        // Vendor chunk for large libraries
+                        vendor: {
+                            name: 'vendor',
+                            chunks: 'all',
+                            test: /node_modules/,
+                            priority: 20,
+                            minSize: 100000, // Only create vendor chunk for libs > 100KB
+                            maxSize: 250000, // Split vendor chunks larger than 250KB
+                        },
+                        // Common components chunk
+                        commons: {
+                            name: 'commons',
+                            minChunks: 2,
+                            chunks: 'all',
+                            priority: 10,
+                            reuseExistingChunk: true,
+                            enforce: true
+                        },
+                        // UI components chunk
+                        ui: {
+                            name: 'ui',
+                            test: /[\\/]components[\\/]ui[\\/]/,
+                            chunks: 'all',
+                            priority: 30,
+                            reuseExistingChunk: true,
+                            enforce: true
+                        },
+                        // Gallery specific chunk
+                        gallery: {
+                            name: 'gallery',
+                            test: /[\\/]components[\\/]gallery[\\/]/,
+                            chunks: 'all',
+                            priority: 25,
+                            reuseExistingChunk: true,
+                            enforce: true
+                        }
+                    }
+                },
+                // Use contenthash for better caching
+                moduleIds: 'deterministic',
+                runtimeChunk: 'single'
+            }
+        }
+        return config
+    },
+    // Reduce initial JS payload
+    productionBrowserSourceMaps: false,
+    // Compress output
+    compress: true,
+    // Enable SWC minification
+    swcMinify: true,
     images: {
         // Disable Next.js image optimization to serve directly from Cloudflare
         unoptimized: true,
@@ -76,6 +145,13 @@ const nextConfig = {
                 headers: [
                     { key: 'Cache-Control', value: 'public, max-age=86400, must-revalidate' },
                     { key: 'Content-Type', value: 'application/manifest+json' }
+                ]
+            },
+            {
+                // Cache static chunks for 1 year (they have hashes in filenames)
+                source: '/_next/static/:path*',
+                headers: [
+                    { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
                 ]
             }
         ]
