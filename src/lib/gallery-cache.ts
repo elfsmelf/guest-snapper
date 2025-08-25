@@ -39,14 +39,14 @@ export const getCachedGalleryData = unstable_cache(
       hasAccess,
     }
   },
-  ['gallery-data'],
+  (eventId: string, hasAccess: boolean) => [`gallery-data-${eventId}-${hasAccess}`],
   {
-    tags: ['gallery'],
-    revalidate: 600, // Cache for 10 minutes to match page cache
+    tags: (eventId: string) => [`gallery`, `gallery:${eventId}`],
+    revalidate: 600, // Cache for 10 minutes with on-demand revalidation
   }
 )
 
-// Cached function to fetch event with albums and counts using optimized prepared statements
+// Cached function to fetch event with albums and counts using optimized prepared statements  
 export const getCachedEventData = unstable_cache(
   async (slug: string, hasAccess: boolean) => {
     // Use optimized prepared statement for event lookup
@@ -71,9 +71,9 @@ export const getCachedEventData = unstable_cache(
       guestbookCount: guestbookCount,
     }
   },
-  ['event-data'],
+  (slug: string, hasAccess: boolean) => [`event-data-${slug}-${hasAccess}`],
   {
-    tags: ['gallery', 'event'],
-    revalidate: 600, // Cache for 10 minutes to match page cache
+    tags: (slug: string, hasAccess: boolean, event = null) => [`gallery`, `event`, `gallery:${slug}`, `event:${slug}`],
+    revalidate: 600, // Cache for 10 minutes with on-demand revalidation
   }
 )

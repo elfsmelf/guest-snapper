@@ -171,9 +171,10 @@ export async function createUpload(uploadData: UploadData) {
       })
       .returning()
 
-    // Invalidate cache tags to refresh gallery data
-    revalidateTag('gallery')
-    revalidateTag('event')
+    // Invalidate specific cache tags for this event
+    revalidateTag(`gallery:${event.id}`)
+    revalidateTag(`event:${event.slug}`)
+    revalidateTag('gallery') // Global gallery cache
     
     // Force ISR page cache regeneration for immediate visibility
     const galleryPath = `/gallery/${event.slug}`

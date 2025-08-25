@@ -31,12 +31,14 @@ export async function middleware(request: NextRequest) {
         const response = NextResponse.next()
         
         // Set cache headers for public gallery routes
-        // This complements the static generation with ISR
+        // This complements the static generation with ISR + on-demand revalidation
         if (request.nextUrl.pathname.startsWith('/gallery/')) {
-            // Add cache headers to complement ISR for ALL gallery requests
-            // The static page handles auth client-side
+            // Edge cache: 10 minutes with stale-while-revalidate for performance
             response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
             response.headers.set('CDN-Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
+            // Browser cache: Immediate revalidation to respect on-demand invalidation
+            response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
+            // Allow bfcache but enable pageshow handler to refresh when needed
             response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
         }
         

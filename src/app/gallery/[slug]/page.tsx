@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lock, Eye, Camera, MessageSquare, Mic } from "lucide-react"
 import { GalleryAuthWrapper } from "@/components/gallery/gallery-auth-wrapper"
+import { GalleryRefreshHandler } from "@/components/gallery/gallery-refresh-handler"
 
 interface GalleryPageProps {
   params: Promise<{ slug: string }>
@@ -218,6 +219,7 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
   // The client components will hydrate on the client side
   return (
     <div className="min-h-screen bg-background">
+      <GalleryRefreshHandler />
       <GalleryAuthWrapper 
         eventId={eventWithAlbums.id}
         eventSlug={slug}

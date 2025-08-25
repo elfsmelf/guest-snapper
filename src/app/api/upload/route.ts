@@ -33,7 +33,10 @@ export async function POST(request: NextRequest) {
       // Force ISR cache regeneration for the gallery page
       // This ensures uploaded photos appear immediately without waiting for cache expiry
       if (result.eventSlug) {
+        console.log(`🔄 Revalidating gallery page: /gallery/${result.eventSlug}`)
         revalidatePath(`/gallery/${result.eventSlug}`)
+      } else {
+        console.log('⚠️ No eventSlug returned from createUpload, skipping revalidation')
       }
 
       return NextResponse.json({

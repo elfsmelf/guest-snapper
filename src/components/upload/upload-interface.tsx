@@ -68,6 +68,8 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
       if (isOnboardingStep && onUploadComplete) {
         onUploadComplete(data.successfulUploads)
       }
+      // For regular uploads, let users manually choose to view gallery
+      // The "View Gallery" button will trigger a fresh page load to show new images
     }
   })
   const isUploading = batchUpload.isPending
@@ -214,7 +216,11 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
           <p className="text-muted-foreground mb-6">
             The upload window for this event has ended. Thank you for your interest in sharing memories!
           </p>
-          <Button onClick={() => router.push(`/gallery/${event.slug}`)}>
+          <Button onClick={() => {
+            // Use router navigation with refresh to show fresh content
+            router.push(`/gallery/${event.slug}`)
+            router.refresh()
+          }}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Gallery
           </Button>
@@ -441,7 +447,11 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
                 {!isOnboardingStep && (
                   <Button 
                     size="sm" 
-                    onClick={() => router.push(`/gallery/${event.slug}`)}
+                    onClick={() => {
+                      // Use router navigation with refresh to show newly uploaded images
+                      router.push(`/gallery/${event.slug}`)
+                      router.refresh()
+                    }}
                   >
                     View Gallery
                   </Button>
