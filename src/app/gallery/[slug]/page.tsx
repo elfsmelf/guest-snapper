@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { CloudflareImage } from "@/components/ui/cloudflare-image"
+import { getOptimizedImageUrl } from "@/lib/cloudflare-image"
 import { getCachedEventData, getCachedGalleryData } from "@/lib/gallery-cache"
 import { GalleryView } from "@/components/gallery/gallery-view"
 import { GalleryWithWelcome } from "@/components/gallery/gallery-with-welcome"
@@ -57,13 +57,11 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
             {/* Cover Image */}
             {eventWithAlbums.coverImageUrl && (
               <div className="relative mb-8 h-64 rounded-lg shadow-md overflow-hidden">
-                <CloudflareImage
-                  src={eventWithAlbums.coverImageUrl}
+                <img
+                  src={getOptimizedImageUrl(eventWithAlbums.coverImageUrl)}
                   alt={`${eventWithAlbums.coupleNames} - ${eventWithAlbums.name}`}
-                  fill
-                  className="object-cover opacity-75"
-                  sizes="(max-width: 768px) 100vw, 672px"
-                  priority
+                  className="w-full h-full object-cover opacity-75"
+                  loading="eager"
                 />
               </div>
             )}
@@ -129,13 +127,11 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
             {/* Cover Image */}
             {eventWithAlbums.coverImageUrl && (
               <div className="relative mb-8 h-64 rounded-lg shadow-md overflow-hidden">
-                <CloudflareImage
-                  src={eventWithAlbums.coverImageUrl}
+                <img
+                  src={getOptimizedImageUrl(eventWithAlbums.coverImageUrl)}
                   alt={`${eventWithAlbums.coupleNames} - ${eventWithAlbums.name}`}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 672px"
-                  priority
+                  className="w-full h-full object-cover"
+                  loading="eager"
                 />
               </div>
             )}

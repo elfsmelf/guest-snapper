@@ -10,12 +10,18 @@ const nextConfig = {
             '**/debug-*.js'
         ]
     },
-    // Speed up dev compilation and optimize bundles
+    // Speed up dev compilation with Turbopack optimizations
     experimental: {
+        // Use Turbopack for faster builds (automatically enabled in dev)
+        turbo: {
+            rules: {
+                // Let Turbopack handle optimizations automatically
+            }
+        },
         turbotrace: {
             logLevel: 'error'
         },
-        // Optimize client bundles
+        // Optimize client bundles with tree shaking
         optimizePackageImports: [
             'lucide-react',
             '@radix-ui/react-icons',
@@ -23,68 +29,8 @@ const nextConfig = {
             'react-hook-form'
         ]
     },
-    // Bundle optimization
-    webpack: (config, { isServer }) => {
-        if (!isServer) {
-            // Optimize chunking strategy
-            config.optimization = {
-                ...config.optimization,
-                splitChunks: {
-                    chunks: 'all',
-                    cacheGroups: {
-                        default: false,
-                        vendors: false,
-                        // Vendor chunk for large libraries
-                        vendor: {
-                            name: 'vendor',
-                            chunks: 'all',
-                            test: /node_modules/,
-                            priority: 20,
-                            minSize: 100000, // Only create vendor chunk for libs > 100KB
-                            maxSize: 250000, // Split vendor chunks larger than 250KB
-                        },
-                        // Common components chunk
-                        commons: {
-                            name: 'commons',
-                            minChunks: 2,
-                            chunks: 'all',
-                            priority: 10,
-                            reuseExistingChunk: true,
-                            enforce: true
-                        },
-                        // UI components chunk
-                        ui: {
-                            name: 'ui',
-                            test: /[\\/]components[\\/]ui[\\/]/,
-                            chunks: 'all',
-                            priority: 30,
-                            reuseExistingChunk: true,
-                            enforce: true
-                        },
-                        // Gallery specific chunk
-                        gallery: {
-                            name: 'gallery',
-                            test: /[\\/]components[\\/]gallery[\\/]/,
-                            chunks: 'all',
-                            priority: 25,
-                            reuseExistingChunk: true,
-                            enforce: true
-                        }
-                    }
-                },
-                // Use contenthash for better caching
-                moduleIds: 'deterministic',
-                runtimeChunk: 'single'
-            }
-        }
-        return config
-    },
-    // Reduce initial JS payload
-    productionBrowserSourceMaps: false,
-    // Compress output
-    compress: true,
-    // Enable SWC minification
-    swcMinify: true,
+    // Let Next.js handle bundling optimally
+    // Remove custom webpack config to use defaults
     images: {
         // Disable Next.js image optimization to serve directly from Cloudflare
         unoptimized: true,
