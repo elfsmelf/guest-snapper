@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm'
 import { addMonths } from 'date-fns'
 import { validateEventAccess } from '@/lib/auth-helpers'
 import { canPublishEvent } from '@/lib/feature-gates'
+import { revalidatePath, revalidateTag } from 'next/cache'
 
 export async function POST(
   request: NextRequest,
@@ -76,6 +77,12 @@ export async function POST(
       })
       .where(eq(events.id, id))
       .returning()
+
+    // Revalidate the gallery page cache when event is published
+    // This ensures the gallery immediately reflects the published status
+    revalidateTag('gallery')
+    revalidateTag('event')
+    revalidatePath(`/gallery/${event.slug}`)
 
     return NextResponse.json({
       success: true,

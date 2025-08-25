@@ -22,6 +22,16 @@ export const dynamicParams = true
 // Force this route to be statically cached
 export const fetchCache = 'force-cache'
 
+// Force static generation
+export const dynamic = 'force-static'
+
+// Generate some popular gallery paths at build time
+export async function generateStaticParams() {
+  // Return empty array to allow on-demand generation
+  // but signal to Next.js this is a static route
+  return []
+}
+
 export default async function GalleryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   // Don't use searchParams - it makes the route dynamic!

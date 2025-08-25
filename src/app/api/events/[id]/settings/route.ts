@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { validateEventAccess } from "@/lib/auth-helpers"
+import { revalidatePath, revalidateTag } from "next/cache"
 
 export async function PATCH(
   request: Request,
@@ -78,6 +79,12 @@ export async function PATCH(
       .set(updateData)
       .where(eq(events.id, id))
       .returning()
+
+    // Revalidate the gallery page cache when settings change
+    // This ensures changes to privacy settings, publish status, etc. are reflected immediately
+    revalidateTag('gallery')
+    revalidateTag('event')
+    revalidatePath(`/gallery/${event.slug}`)
 
     return Response.json({ 
       success: true, 
