@@ -100,6 +100,13 @@ export function TestImagesStep({
           isOwner={true}
           guestCanUpload={true}
           isOnboardingStep={true}
+          onUploadComplete={(uploadCount) => {
+            // Update onboarding state when uploads complete
+            onUpdate({
+              testImagesUploaded: true,
+              testImageCount: uploadCount
+            })
+          }}
         />
       )}
     </div>

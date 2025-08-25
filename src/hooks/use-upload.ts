@@ -340,7 +340,7 @@ type BatchUploadInput = {
   onOverallProgress?: (completed: number, total: number) => void;
 };
 
-export function useBatchUpload() {
+export function useBatchUpload(options?: { onSuccess?: (data: any) => void }) {
   const queryClient = useQueryClient();
   const smartUpload = useSmartUpload();
 
@@ -397,6 +397,9 @@ export function useBatchUpload() {
     onSuccess: (data, variables) => {
       // Invalidate upload count to update UI immediately
       queryClient.invalidateQueries({ queryKey: uploadKeys.count(variables.eventId) });
+      
+      // Call custom onSuccess callback if provided
+      options?.onSuccess?.(data);
     }
   });
 }

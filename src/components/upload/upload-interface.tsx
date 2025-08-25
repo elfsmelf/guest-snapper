@@ -53,15 +53,23 @@ interface UploadInterfaceProps {
   isOwner: boolean
   guestCanUpload?: boolean
   isOnboardingStep?: boolean // New prop to hide certain elements during onboarding
+  onUploadComplete?: (uploadCount: number) => void // Callback for onboarding steps
 }
 
-export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false, isOnboardingStep = false }: UploadInterfaceProps) {
+export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false, isOnboardingStep = false, onUploadComplete }: UploadInterfaceProps) {
   const [files, setFiles] = useState<UploadFile[]>([])
   const [uploaderName, setUploaderName] = useState("")
   const router = useRouter()
   
   // Use React Query batch upload hook
-  const batchUpload = useBatchUpload()
+  const batchUpload = useBatchUpload({
+    onSuccess: (data) => {
+      // Call onboarding callback when uploads complete successfully
+      if (isOnboardingStep && onUploadComplete) {
+        onUploadComplete(data.successfulUploads)
+      }
+    }
+  })
   const isUploading = batchUpload.isPending
   
   // Check client-side session
