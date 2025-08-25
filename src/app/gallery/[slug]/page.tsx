@@ -19,9 +19,12 @@ export const revalidate = 600 // 10 minutes
 // This ensures the route is statically generated and cached
 export const dynamicParams = true
 
-export default async function GalleryPage({ params, searchParams }: GalleryPageProps) {
+// Force this route to be statically cached
+export const fetchCache = 'force-cache'
+
+export default async function GalleryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const searchParamsData = await searchParams
+  // Don't use searchParams - it makes the route dynamic!
   
   // Get cached event data - NO session checks here!
   // This keeps the route static and cacheable
@@ -218,7 +221,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
             eventSlug={slug}
             isOwner={false}
             hasEventAccess={false}
-            showWelcomeOnLoad={searchParamsData.continueOnboarding === 'true'}
+            showWelcomeOnLoad={false}
             onboardingStep={3}
           />
         }

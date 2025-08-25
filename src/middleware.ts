@@ -33,17 +33,11 @@ export async function middleware(request: NextRequest) {
         // Set cache headers for public gallery routes
         // This complements the static generation with ISR
         if (request.nextUrl.pathname.startsWith('/gallery/')) {
-            const sessionCookie = getSessionCookie(request)
-            
-            // Don't set any cookies - let the route be fully static
-            // The gallery page will handle auth via client-side checks
-            if (!sessionCookie) {
-                // Add cache headers to complement ISR
-                // These ensure Edge caching even if Next.js cache expires
-                response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
-                response.headers.set('CDN-Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
-                response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
-            }
+            // Add cache headers to complement ISR for ALL gallery requests
+            // The static page handles auth client-side
+            response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
+            response.headers.set('CDN-Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
+            response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
         }
         
         return response
