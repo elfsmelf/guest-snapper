@@ -1,11 +1,12 @@
 import { betterAuth } from "better-auth"
-import { admin, organization } from "better-auth/plugins"
+import { admin, organization, emailOTP } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { stripe as stripePlugin } from "@better-auth/stripe"
+import { eq } from "drizzle-orm"
 
 import { db } from "@/database/db"
 import * as schema from "@/database/schema"
-import { sendOrganizationInvitation } from "@/lib/email"
+import { sendOrganizationInvitation, sendOTPEmail } from "@/lib/email"
 import { stripe } from "@/lib/stripe"
 import { checkAndSetAdminRole, ensureAdminUsers } from "@/lib/ensure-admin-users"
 
@@ -48,7 +49,9 @@ export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "pg",
         usePlural: true,
-        schema
+        schema,
+        // debugLogs disabled for cleaner console output
+        debugLogs: false
     }),
     session: {
         cookieCache: {
@@ -57,7 +60,8 @@ export const auth = betterAuth({
         },
     },
     emailAndPassword: {
-        enabled: true
+        enabled: true,
+        requireEmailVerification: true
     },
     deleteUser: {
         enabled: true,
@@ -76,6 +80,12 @@ export const auth = betterAuth({
         } as any,
     },
     plugins: [
+        emailOTP({
+            async sendVerificationOTP({ email, otp, type }) {
+                await sendOTPEmail({ email, otp, type });
+            },
+            disableSignUp: false  // Allow creating new users via OTP
+        }),
         admin({
             // Users with role 'admin' will have admin privileges
             // You can also use adminUserIds: ["user_id_1", "user_id_2"] for specific user IDs

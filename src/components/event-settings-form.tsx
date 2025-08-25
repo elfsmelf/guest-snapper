@@ -16,7 +16,6 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { GuestCountPricingDialog } from "./guest-count-pricing-dialog"
-import { CoverImageUpload } from "./cover-image-upload"
 import { UpgradePrompt } from "./upgrade-prompt"
 import { canPublishEvent } from "@/lib/feature-gates"
 import { toast } from "sonner"
@@ -209,11 +208,8 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
   return (
     <div className="space-y-6">
-      {/* Cover Image Upload - Outside Card */}
-      <CoverImageUpload event={event} />
-
       {/* Event Details Card */}
-      <Card>
+      <Card data-section="event-details">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
@@ -275,7 +271,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       </Card>
 
       {/* Privacy & Moderation Settings Card */}
-      <Card>
+      <Card data-section="privacy-moderation">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Shield className="w-5 h-5" />
@@ -318,7 +314,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       </Card>
 
       {/* Publication Status Card */}
-      <Card>
+      <Card data-section="event-publication-status">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Globe className="w-5 h-5" />
@@ -338,8 +334,8 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
               variant={event.isPublished ? 'default' : 'destructive'}
               className={cn(
                 event.isPublished 
-                  ? 'bg-green-100 text-green-800 border border-green-200' 
-                  : 'bg-yellow-100 text-yellow-800 border border-yellow-200 font-semibold'
+                  ? 'bg-muted text-muted-foreground border border-border' 
+                  : 'bg-secondary text-secondary-foreground border border-border font-semibold'
               )}
             >
               {event.isPublished ? 'Published' : 'Private'}
@@ -415,12 +411,12 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
           <div className={cn(
             "p-4 rounded-lg border",
             event.isPublished 
-              ? "bg-green-50 border-green-200" 
-              : "bg-pink-50 border-pink-200"
+              ? "bg-muted border-border" 
+              : "bg-secondary border-border"
           )}>
             <div className={cn(
               "text-sm",
-              event.isPublished ? "text-green-900" : "text-pink-900"
+              event.isPublished ? "text-muted-foreground" : "text-secondary-foreground"
             )}>
               {event.isPublished ? (
                 <div>
@@ -444,12 +440,12 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 <span className="text-sm font-medium">Gallery Windows</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3 rounded-lg bg-pink-50 border border-pink-200">
-                  <div className="text-sm font-medium text-pink-900 mb-1">Upload Window</div>
-                  <div className="text-xs text-pink-700">
+                <div className="p-3 rounded-lg bg-secondary border border-border">
+                  <div className="text-sm font-medium text-secondary-foreground mb-1">Upload Window</div>
+                  <div className="text-xs text-secondary-foreground">
                     {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
                   </div>
-                  <div className="text-xs text-pink-600 mt-1">3 months duration</div>
+                  <div className="text-xs text-muted-foreground mt-1">3 months duration</div>
                 </div>
                 <div className="p-3 rounded-lg bg-rose-50 border border-rose-200">
                   <div className="text-sm font-medium text-rose-900 mb-1">Download Window</div>
@@ -463,6 +459,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
           )}
         </CardContent>
       </Card>
+
 
       {/* Guest Count Pricing Dialog */}
       <GuestCountPricingDialog

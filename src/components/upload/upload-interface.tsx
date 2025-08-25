@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import React, { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { useDropzone } from "react-dropzone"
+import { useBatchUpload } from "@/hooks/use-upload"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -51,16 +52,41 @@ interface UploadInterfaceProps {
   uploadWindowOpen: boolean
   isOwner: boolean
   guestCanUpload?: boolean
+  isOnboardingStep?: boolean // New prop to hide certain elements during onboarding
 }
 
-export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false }: UploadInterfaceProps) {
+export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false, isOnboardingStep = false }: UploadInterfaceProps) {
   const [files, setFiles] = useState<UploadFile[]>([])
   const [uploaderName, setUploaderName] = useState("")
-  const [isUploading, setIsUploading] = useState(false)
   const router = useRouter()
+  
+  // Use React Query batch upload hook
+  const batchUpload = useBatchUpload()
+  const isUploading = batchUpload.isPending
   
   // Check client-side session
   const clientSession = authClient.useSession()
+
+  // Load guest name from localStorage on mount for anonymous users
+  React.useEffect(() => {
+    if (!clientSession?.data?.user) {
+      const storageKey = `guestName_${event.slug}`
+      const savedGuestName = localStorage.getItem(storageKey)
+      if (savedGuestName) {
+        setUploaderName(savedGuestName)
+      }
+    }
+  }, [clientSession?.data?.user, event.slug])
+
+
+  // Save guest name to localStorage when it changes for anonymous users
+  const handleUploaderNameChange = (name: string) => {
+    setUploaderName(name)
+    if (!clientSession?.data?.user && name.trim()) {
+      const storageKey = `guestName_${event.slug}`
+      localStorage.setItem(storageKey, name.trim())
+    }
+  }
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map(file => ({
@@ -106,88 +132,66 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
   const handleUploadAll = async () => {
     if (files.length === 0) return
 
-    setIsUploading(true)
+    const pendingFiles = files.filter(f => f.status === 'pending')
+    if (pendingFiles.length === 0) return
 
-    for (const file of files) {
-      if (file.status !== 'pending') continue
+    // Initialize all files to 0% progress before starting
+    pendingFiles.forEach(file => {
+      updateFile(file.id, { 
+        status: 'uploading', 
+        progress: 0 
+      })
+    })
 
-      updateFile(file.id, { status: 'uploading', progress: 0 })
+    const batchStartTime = Date.now();
+    console.log(`Starting batch upload of ${pendingFiles.length} files`) // Debug
 
-      try {
-        // Step 1: Get presigned URL
-        updateFile(file.id, { progress: 10 })
-        
-        const urlResponse = await fetch('/api/upload-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            eventId: event.id,
-            fileName: file.file.name,
-            fileType: file.file.type,
-            fileSize: file.file.size
+    try {
+      await batchUpload.mutateAsync({
+        eventId: event.id,
+        files: pendingFiles.map(f => ({
+          id: f.id,
+          file: f.file,
+          caption: f.caption,
+          albumId: f.albumId
+        })),
+        uploaderName: uploaderName || undefined,
+        globalConcurrency: 5, // Upload 5 small files concurrently for speed
+        onFileProgress: (fileId, progress) => {
+          console.log(`🔄 File ${fileId} progress received:`, progress) // Debug logging
+          const file = files.find(f => f.id === fileId);
+          console.log(`📁 Updating file "${file?.file?.name}" progress to ${progress.percent}%`) // Debug
+          updateFile(fileId, { 
+            status: 'uploading', 
+            progress: Math.min(99, progress.percent) // Cap at 99% until complete
           })
-        })
-
-        const urlResult = await urlResponse.json()
-        
-        if (!urlResult.success) {
-          throw new Error(urlResult.error)
+        },
+        onFileComplete: (fileId, result) => {
+          console.log(`File ${fileId} completed:`, result) // Debug logging
+          if (result.error) {
+            updateFile(fileId, { 
+              status: 'error', 
+              error: result.error,
+              progress: 0 
+            })
+          } else {
+            updateFile(fileId, { 
+              status: 'success', 
+              progress: 100 
+            })
+          }
         }
-
-        // Step 2: Upload directly to R2
-        updateFile(file.id, { progress: 50 })
-        
-        const uploadResponse = await fetch(urlResult.uploadUrl, {
-          method: 'PUT',
-          body: file.file,
-          headers: {
-            'Content-Type': file.file.type,
-          },
-        })
-
-        if (!uploadResponse.ok) {
-          throw new Error(`R2 upload failed: ${uploadResponse.status}`)
-        }
-
-        // Step 3: Save metadata to database
-        updateFile(file.id, { progress: 80 })
-        
-        const dbResponse = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            eventId: event.id,
-            albumId: file.albumId || null,
-            uploaderName: file.uploaderName || null,
-            caption: file.caption || null,
-            fileName: file.file.name,
-            fileSize: file.file.size,
-            fileType: file.file.type.startsWith('image/') ? 'image' : file.file.type.startsWith('audio/') ? 'audio' : 'video',
-            fileKey: urlResult.fileKey,
-            fileUrl: urlResult.fileUrl,
-            mimeType: file.file.type
-          })
-        })
-
-        const dbResult = await dbResponse.json()
-
-        if (dbResult.success) {
-          updateFile(file.id, { status: 'success', progress: 100 })
-        } else {
-          throw new Error(dbResult.error)
-        }
-        
-      } catch (error) {
-        updateFile(file.id, { 
-          status: 'error', 
-          error: error instanceof Error ? error.message : 'Upload failed',
-          progress: 0 
-        })
-        console.error(`Upload failed for ${file.file.name}:`, error)
-      }
+      })
+      
+      const batchTotalTime = Date.now() - batchStartTime;
+      const totalSize = pendingFiles.reduce((sum, f) => sum + f.file.size, 0);
+      const avgSpeedMBps = (totalSize / (1024 * 1024)) / (batchTotalTime / 1000);
+      console.log(`🎉 Batch upload completed: ${pendingFiles.length} files in ${batchTotalTime}ms (${avgSpeedMBps.toFixed(2)} MB/s avg)`) // Debug
+      
+    } catch (error) {
+      console.error('Batch upload failed:', error)
+      // Individual file errors are handled in onFileComplete
     }
-
-    setIsUploading(false)
   }
 
   const successCount = files.filter(f => f.status === 'success').length
@@ -212,155 +216,131 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push(`/gallery/${event.slug}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Gallery
-          </Button>
-          
-          <div>
-            <h1 className="text-2xl font-bold">{event.coupleNames}</h1>
-            <p className="text-muted-foreground">
-              Share your photos and videos from {event.name}
-            </p>
+    <div className="container mx-auto px-4 py-6">
+      <div className="max-w-2xl mx-auto">
+        {/* Compact Name Input - Hidden during onboarding */}
+        {!isOnboardingStep && (
+          <div className="mb-4 bg-card rounded-lg p-4 border border-border">
+            <Label htmlFor="uploader-name" className="text-sm font-medium text-foreground">
+              Your Name {!clientSession?.data?.user ? "(saved for next time)" : "(optional)"}
+            </Label>
+            <Input
+              id="uploader-name"
+              value={uploaderName}
+              onChange={(e) => handleUploaderNameChange(e.target.value)}
+              placeholder={!clientSession?.data?.user 
+                ? "Enter your name (we'll remember it)"
+                : "Your name (optional)"
+              }
+              disabled={isUploading}
+              className="mt-1"
+              autoComplete="off"
+            />
           </div>
-        </div>
+        )}
 
-        {/* Uploader Name */}
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Your Information</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div>
-              <Label htmlFor="uploader-name">Your Name (Optional)</Label>
-              <Input
-                id="uploader-name"
-                value={uploaderName}
-                onChange={(e) => setUploaderName(e.target.value)}
-                placeholder="Enter your name to be credited with uploads"
-                disabled={isUploading}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* File Drop Zone */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragActive 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-muted-foreground/25 hover:border-muted-foreground/50'
-              } ${!uploadWindowOpen || isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-              <input {...getInputProps()} />
-              <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                {isDragActive ? 'Drop files here' : 'Upload Photos & Videos'}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                Drag and drop files here, or click to select files
-              </p>
-              <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Camera className="h-4 w-4" />
-                  <span>Photos (JPEG, PNG, WebP, HEIC)</span>
+        {/* Modern Drop Zone with Image Grid */}
+        <div className={`bg-card rounded-xl overflow-hidden transition-colors ${
+          files.length > 0 ? 'border border-gray-200' : 'border-2 border-dashed border-gray-300 hover:border-gray-400'
+        }`}>
+          <div
+            {...getRootProps()}
+            className={`relative flex min-h-52 flex-col items-center p-6 transition-colors ${
+              isDragActive && files.length === 0
+                ? 'bg-primary/5' 
+                : ''
+            } ${files.length === 0 ? 'justify-center' : ''} ${!uploadWindowOpen || isUploading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <input {...getInputProps()} className="sr-only" aria-label="Upload files" />
+            
+            {files.length > 0 ? (
+              <div className="flex w-full flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-sm font-medium">
+                    Files to Upload ({files.length})
+                  </h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+                      fileInput?.click()
+                    }}
+                    disabled={isUploading}
+                  >
+                    <Upload className="h-3.5 w-3.5 mr-1.5 opacity-60" />
+                    Add more
+                  </Button>
                 </div>
-                <div className="flex items-center gap-1">
-                  <Video className="h-4 w-4" />
-                  <span>Videos (MP4, MOV, AVI)</span>
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">Max file size: 50MB</p>
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* File List */}
-        {files.length > 0 && (
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Files to Upload ({files.length})</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {files.map((file) => (
-                <div key={file.id} className="border rounded-lg p-4">
-                  <div className="flex items-start gap-4">
-                    {/* Preview */}
-                    <div className="flex-shrink-0">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+                  {files.map((file) => (
+                    <div key={file.id} className="relative aspect-square rounded-lg bg-card border border-border group">
                       {file.file.type.startsWith('image/') ? (
                         <img
                           src={file.preview}
                           alt={file.file.name}
-                          className="w-16 h-16 object-cover rounded"
+                          className="w-full h-full rounded-lg object-cover"
                         />
                       ) : (
-                        <div className="w-16 h-16 bg-muted rounded flex items-center justify-center">
-                          <Video className="h-6 w-6 text-muted-foreground" />
+                        <div className="w-full h-full rounded-lg bg-card flex items-center justify-center">
+                          <Video className="h-8 w-8 text-muted-foreground" />
                         </div>
                       )}
-                    </div>
-
-                    {/* File Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-medium truncate">{file.file.name}</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {(file.file.size / (1024 * 1024)).toFixed(1)} MB
-                        </Badge>
-                        {file.status === 'success' && (
-                          <Badge variant="default" className="text-xs">
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                            Uploaded
-                          </Badge>
-                        )}
-                        {file.status === 'error' && (
-                          <Badge variant="destructive" className="text-xs">
-                            <AlertCircle className="h-3 w-3 mr-1" />
-                            Failed
-                          </Badge>
-                        )}
-                        {file.status === 'uploading' && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            Uploading
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Progress */}
+                      
+                      {/* Status overlay */}
                       {file.status === 'uploading' && (
-                        <Progress value={file.progress} className="mb-2" />
+                        <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+                          <div className="text-white text-center">
+                            <Loader2 className="h-6 w-6 mx-auto mb-1 animate-spin" />
+                            <div className="text-xs font-bold">{file.progress}%</div>
+                            <div className="w-16 h-1 bg-white/20 rounded mt-1">
+                              <div 
+                                className="h-1 bg-white rounded transition-all duration-300"
+                                style={{ width: `${file.progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {file.status === 'success' && (
+                        <div className="absolute top-2 left-2">
+                          <CheckCircle className="h-4 w-4 text-primary bg-background rounded-full" />
+                        </div>
+                      )}
+                      
+                      {file.status === 'error' && (
+                        <div className="absolute inset-0 bg-destructive/20 rounded-lg flex items-center justify-center">
+                          <AlertCircle className="h-6 w-6 text-destructive" />
+                        </div>
                       )}
 
-                      {/* Error message */}
-                      {file.status === 'error' && file.error && (
-                        <p className="text-sm text-destructive mb-2">{file.error}</p>
-                      )}
+                      {/* Remove button */}
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          removeFile(file.id)
+                        }}
+                        size="icon"
+                        className="absolute -top-2 -right-2 h-6 w-6 rounded-full border-2 border-background bg-foreground hover:bg-destructive shadow-sm"
+                        disabled={isUploading}
+                      >
+                        <X className="h-3.5 w-3.5 text-white" />
+                      </Button>
 
-                      {/* Album Selection */}
-                      {file.status === 'pending' && event.albums.length > 0 && (
-                        <div className="mt-3 flex items-center gap-2">
-                          <Label htmlFor={`album-${file.id}`} className="text-xs font-medium text-muted-foreground whitespace-nowrap">
-                            Album:
-                          </Label>
+                      {/* File info on hover */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-white p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="text-xs truncate">{file.file.name}</div>
+                        <div className="text-xs text-muted-foreground">{(file.file.size / (1024 * 1024)).toFixed(1)}MB</div>
+                        {file.status === 'pending' && event.albums.length > 0 && (
                           <select
-                            id={`album-${file.id}`}
                             value={file.albumId}
                             onChange={(e) => updateFile(file.id, { albumId: e.target.value })}
-                            className="h-7 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ minWidth: '140px', maxWidth: '200px' }}
+                            className="mt-1 text-xs bg-black/50 border border-white/20 rounded px-1 py-0.5 text-white"
                             disabled={isUploading}
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <option value="">General</option>
                             {event.albums.map((album) => (
@@ -369,88 +349,95 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
                               </option>
                             ))}
                           </select>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
-
-                    {/* Remove button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFile(file.id)}
-                      disabled={isUploading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Upload Actions */}
-        {files.length > 0 && (
-          <div className="flex items-center justify-between">
-            <div className="text-sm text-muted-foreground">
-              {successCount > 0 && (
-                <span className="text-green-600">
-                  {successCount} uploaded successfully
-                </span>
-              )}
-              {errorCount > 0 && (
-                <span className="text-destructive ml-4">
-                  {errorCount} failed
-                </span>
-              )}
-            </div>
-            
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  files.forEach(file => URL.revokeObjectURL(file.preview))
-                  setFiles([])
-                }}
-                disabled={isUploading}
-              >
-                Clear All
-              </Button>
-              
-              <Button
-                onClick={handleUploadAll}
-                disabled={isUploading || files.every(f => f.status !== 'pending')}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Upload All ({files.filter(f => f.status === 'pending').length})
-                  </>
-                )}
-              </Button>
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center">
+                <div className="bg-card mb-2 flex h-11 w-11 shrink-0 items-center justify-center rounded-full border">
+                  <Camera className="h-4 w-4 opacity-60" />
+                </div>
+                <p className="mb-1.5 text-sm font-medium">Drop your photos here</p>
+                <p className="text-xs text-muted-foreground">
+                  Photos & Videos (JPEG, PNG, MP4, MOV - max 50MB)
+                </p>
+                <Button variant="outline" className="mt-4" disabled={!uploadWindowOpen || isUploading}>
+                  <Upload className="h-4 w-4 mr-2 opacity-60" />
+                  Select files
+                </Button>
+              </div>
+            )}
           </div>
-        )}
+          
+          {/* Upload Actions */}
+          {files.length > 0 && (
+            <div className="border-t bg-card p-4">
+              <div className="flex items-center justify-between gap-4">
+                {/* Status */}
+                <div className="flex items-center gap-4 text-sm">
+                  {successCount > 0 && (
+                    <span className="text-primary">{successCount} uploaded</span>
+                  )}
+                  {errorCount > 0 && (
+                    <span className="text-destructive">{errorCount} failed</span>
+                  )}
+                </div>
+                
+                {/* Actions */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      files.forEach(file => URL.revokeObjectURL(file.preview))
+                      setFiles([])
+                    }}
+                    disabled={isUploading}
+                  >
+                    Clear All
+                  </Button>
+                  
+                  <Button
+                    onClick={handleUploadAll}
+                    disabled={isUploading || files.every(f => f.status !== 'pending')}
+                    size="sm"
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Uploading...
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload ({files.filter(f => f.status === 'pending').length})
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
-        {/* Success Message */}
+        {/* Compact Success Message - Hide View Gallery button during onboarding */}
         {successCount > 0 && successCount === files.length && (
-          <Alert className="mt-6">
+          <Alert className="mt-4 bg-card border border-border">
             <CheckCircle className="h-4 w-4" />
             <AlertDescription>
-              <div className="flex items-center justify-between">
-                <span>All files uploaded successfully! They will appear in the gallery once approved.</span>
-                <Button 
-                  size="sm" 
-                  onClick={() => router.push(`/gallery/${event.slug}`)}
-                  className="ml-4"
-                >
-                  View Gallery
-                </Button>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <span className="text-sm">All files uploaded successfully!</span>
+                {!isOnboardingStep && (
+                  <Button 
+                    size="sm" 
+                    onClick={() => router.push(`/gallery/${event.slug}`)}
+                  >
+                    View Gallery
+                  </Button>
+                )}
               </div>
             </AlertDescription>
           </Alert>

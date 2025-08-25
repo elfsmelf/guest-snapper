@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono } from "next/font/google"
+import { Geist, Geist_Mono, Lora, Playfair_Display, Libre_Baskerville, Architects_Daughter, Inter, Source_Serif_4 } from "next/font/google"
 import type { ReactNode } from "react"
+import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
 import "@/styles/globals.css"
 
-import { Header } from "@/components/header"
+import { ConditionalHeader } from "@/components/conditional-header"
 import { Providers } from "./providers"
 
 const geistSans = Geist({
@@ -17,10 +18,62 @@ const geistMono = Geist_Mono({
     subsets: ["latin"]
 })
 
+// Gallery fonts for themes
+const lora = Lora({
+    variable: "--font-lora",
+    subsets: ["latin"],
+    weight: ["400", "500", "600", "700"],
+    style: ["normal", "italic"],
+    display: "swap"
+})
+
+const playfairDisplay = Playfair_Display({
+    variable: "--font-playfair-display",
+    subsets: ["latin"],
+    weight: ["400", "500", "600", "700", "800", "900"],
+    style: ["normal", "italic"],
+    display: "swap"
+})
+
+const libreBaskerville = Libre_Baskerville({
+    variable: "--font-libre-baskerville",
+    subsets: ["latin"],
+    weight: ["400", "700"],
+    style: ["normal", "italic"],
+    display: "swap"
+})
+
+const architectsDaughter = Architects_Daughter({
+    variable: "--font-architects-daughter",
+    subsets: ["latin"],
+    weight: ["400"],
+    display: "swap"
+})
+
+const inter = Inter({
+    variable: "--font-inter",
+    subsets: ["latin"],
+    display: "swap"
+})
+
+const sourceSerif4 = Source_Serif_4({
+    variable: "--font-source-serif-4",
+    subsets: ["latin"],
+    weight: ["400", "500", "600", "700"],
+    style: ["normal", "italic"],
+    display: "swap"
+})
+
 export const metadata: Metadata = {
-    title: "Better Auth Next.js Starter",
+    title: "GuestSnapper - Wedding Photo Gallery",
     description:
-        "Better Auth Next.js Starter with Postgres, Drizzle, shadcn/ui and Tanstack Query"
+        "Create beautiful wedding photo galleries that guests can easily access and contribute to. Share memories, collect photos, and preserve your special moments.",
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+        capable: true,
+        title: "GuestSnapper",
+        statusBarStyle: "default"
+    }
 }
 
 export const viewport: Viewport = {
@@ -37,13 +90,15 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body
-                className={`${geistSans.variable} ${geistMono.variable} flex min-h-svh flex-col antialiased`}
+                className={`${geistSans.variable} ${geistMono.variable} ${lora.variable} ${playfairDisplay.variable} ${libreBaskerville.variable} ${architectsDaughter.variable} ${inter.variable} ${sourceSerif4.variable} flex min-h-svh flex-col antialiased`}
             >
-                <Providers>
-                    <Header />
+                <NuqsAdapter>
+                    <Providers>
+                        <ConditionalHeader />
 
-                    {children}
-                </Providers>
+                        {children}
+                    </Providers>
+                </NuqsAdapter>
             </body>
         </html>
     )

@@ -127,8 +127,8 @@ export async function POST(req: NextRequest) {
       payment_method_types: ["card"],
       customer_email: session.user.email,
       line_items: lineItems,
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/events/${eventId}?payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/events/${eventId}?payment_cancelled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding?slug=${event.slug}&step=4&payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding?slug=${event.slug}&step=4&payment_cancelled=true`,
       metadata: sessionMetadata,
       billing_address_collection: "auto",
     });

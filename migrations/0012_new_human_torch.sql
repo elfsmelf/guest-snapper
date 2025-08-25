@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "quick_start_progress" text DEFAULT '{}' NOT NULL;

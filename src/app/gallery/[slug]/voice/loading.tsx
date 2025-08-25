@@ -2,46 +2,62 @@ import { Mic } from "lucide-react"
 
 export default function VoiceLoading() {
   return (
-    <div className="min-h-screen bg-white">
-      <div className="container mx-auto px-4 py-8">
-        {/* Back button skeleton */}
-        <div className="mb-6">
-          <div className="h-9 w-32 bg-gray-200 rounded animate-pulse" />
+    <div className="min-h-screen bg-pink-50/30">
+      {/* Compact Cover Image Header Skeleton */}
+      <div className="relative h-32 md:h-40 overflow-hidden bg-gray-300 animate-pulse">
+        <div className="absolute inset-0 bg-black/40" />
+        
+        {/* Content Overlay Skeleton */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <div className="h-6 md:h-8 w-48 md:w-64 bg-white/20 rounded mx-auto mb-1 animate-pulse" />
+            <div className="h-4 md:h-5 w-32 md:w-40 bg-white/20 rounded mx-auto animate-pulse" />
+          </div>
         </div>
-
-        {/* Voice recorder skeleton */}
-        <div className="max-w-2xl mx-auto">
-          <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-              <Mic className="w-8 h-8 text-red-300 animate-pulse" />
-            </div>
-            <div className="h-8 w-64 bg-gray-200 rounded mx-auto mb-2 animate-pulse" />
-            <div className="h-5 w-48 bg-gray-200 rounded mx-auto animate-pulse" />
-          </div>
-
-          {/* Voice recorder interface skeleton */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
-            <div className="animate-pulse space-y-6">
-              {/* Waveform placeholder */}
-              <div className="h-32 bg-gray-200 rounded-lg" />
-              
-              {/* Control buttons */}
-              <div className="flex justify-center space-x-4">
-                <div className="w-16 h-16 bg-gray-200 rounded-full" />
-                <div className="w-16 h-16 bg-gray-200 rounded-full" />
-                <div className="w-16 h-16 bg-gray-200 rounded-full" />
+      </div>
+      
+      {/* Owner badge skeleton (hidden by default, shown when needed) */}
+      <div className="bg-yellow-50 border-b border-yellow-200">
+        <div className="container mx-auto px-4 py-2">
+          <div className="h-4 w-40 bg-yellow-200 rounded mx-auto animate-pulse" />
+        </div>
+      </div>
+      
+      {/* Voice Recorder Component Skeleton */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          
+          {/* Uploader Information Card */}
+          <div className="mb-6 bg-white rounded-xl border border-gray-200 p-6">
+            <div className="space-y-4">
+              <div>
+                <div className="h-4 w-32 bg-gray-200 rounded mb-2 animate-pulse" />
+                <div className="h-10 bg-gray-100 rounded animate-pulse" />
               </div>
-              
-              {/* Message input */}
-              <div className="space-y-3">
-                <div className="h-4 bg-gray-200 rounded w-1/4" />
-                <div className="h-20 bg-gray-200 rounded" />
-              </div>
-              
-              {/* Submit button */}
-              <div className="h-12 bg-gray-200 rounded w-32 mx-auto" />
             </div>
           </div>
+
+          {/* Voice Recorder Card */}
+          <div className="mb-6 bg-white rounded-xl border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center gap-2">
+                <Mic className="h-5 w-5 text-gray-300 animate-pulse" />
+                <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="p-6">
+              {/* Recording Interface Skeleton */}
+              <div className="border rounded-lg p-4 bg-white">
+                <div className="text-center py-8">
+                  <div className="flex items-center justify-center gap-4">
+                    <div className="h-12 w-36 bg-gray-200 rounded-lg animate-pulse" />
+                  </div>
+                  <div className="h-4 w-64 bg-gray-100 rounded mt-4 mx-auto animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

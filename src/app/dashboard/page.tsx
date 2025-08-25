@@ -10,6 +10,9 @@ import {
   ExternalLink,
   LinkIcon,
   Camera,
+  ArrowRight,
+  Clock,
+  Rocket
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -24,6 +27,7 @@ import {
 } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
+import { parseOnboardingState } from "@/types/onboarding"
 
 function SectionTitle({
   title,
@@ -82,27 +86,27 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     <div className="space-y-6">
       {/* Invitation Status Messages */}
       {invitationStatus === 'accepted' && (
-        <Alert className="border-green-200 bg-green-50">
-          <CheckCircle className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
+        <Alert className="border-border bg-muted">
+          <CheckCircle className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-foreground">
             Successfully joined <strong>{orgName || 'the organization'}</strong>! You now have access to their events.
           </AlertDescription>
         </Alert>
       )}
       
       {invitationStatus === 'rejected' && (
-        <Alert className="border-yellow-200 bg-yellow-50">
-          <XCircle className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="text-yellow-800">
+        <Alert className="border-border bg-muted">
+          <XCircle className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-foreground">
             You declined the invitation to join <strong>{orgName || 'the organization'}</strong>.
           </AlertDescription>
         </Alert>
       )}
       
       {invitationStatus === 'error' && (
-        <Alert className="border-red-200 bg-red-50">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+        <Alert className="border-border bg-muted">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-foreground">
             <strong>Error:</strong> {errorMessage || 'Failed to process invitation'}
           </AlertDescription>
         </Alert>
@@ -130,8 +134,74 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             </div>
           </section>
 
+          {/* Resume Onboarding Section */}
+          {(() => {
+            const eventsWithIncompleteOnboarding = userEvents
+              .map(event => ({
+                ...event,
+                onboardingState: parseOnboardingState(event.quickStartProgress)
+              }))
+              .filter(event => 
+                event.onboardingState?.onboardingActive && 
+                !event.onboardingState.onboardingComplete &&
+                !event.onboardingState.onboardingSkipped
+              )
+
+            if (eventsWithIncompleteOnboarding.length === 0) return null
+
+            return (
+              <section className="mb-8">
+                <SectionTitle 
+                  title="Complete Your Setup"
+                  description="Finish setting up these galleries to make them ready for guests"
+                />
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {eventsWithIncompleteOnboarding.map((event) => (
+                    <Card key={event.id} className="border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-primary/10">
+                      <CardHeader>
+                        <div className="flex items-center gap-2">
+                          <Rocket className="h-5 w-5 text-primary" />
+                          <CardTitle className="text-lg">{event.name}</CardTitle>
+                        </div>
+                        <CardDescription>
+                          Step {event.onboardingState?.currentStep || 1} of 10 • 
+                          {event.onboardingState?.completedSteps.length || 0} steps completed
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="w-full bg-muted rounded-full h-2 mb-4">
+                          <div 
+                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                            style={{ 
+                              width: `${((event.onboardingState?.completedSteps.length || 0) / 10) * 100}%` 
+                            }}
+                          />
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          Continue where you left off to get your gallery ready for guests.
+                        </p>
+                      </CardContent>
+                      <CardFooter>
+                        <Button asChild className="w-full">
+                          <Link href={`/onboarding?slug=${event.slug}&step=${event.onboardingState?.currentStep || 1}`}>
+                            <ArrowRight className="mr-2 h-4 w-4" />
+                            Continue Setup
+                          </Link>
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              </section>
+            )
+          })()}
+
           {/* Events Grid */}
           <section className="mb-8">
+            <SectionTitle 
+              title="Your Galleries"
+              description="View and manage your completed events"
+            />
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {userEvents.map((event) => {
                 const eventUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/gallery/${event.slug}`
@@ -157,8 +227,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                         {/* Published Status */}
                         <div className={`px-2 py-1 rounded-full text-xs font-medium text-center ${
                           event.isPublished 
-                            ? 'bg-green-100 text-green-800 border border-green-200' 
-                            : 'bg-yellow-100 text-yellow-800 border border-yellow-200'
+                            ? 'bg-muted text-muted-foreground border border-border' 
+                            : 'bg-secondary text-secondary-foreground border border-border'
                         }`}>
                           {event.isPublished ? 'Published' : 'Private'}
                         </div>
@@ -166,8 +236,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                         {/* Member Type */}
                         <div className={`px-2 py-1 rounded-full text-xs font-medium text-center ${
                           event.isOwner
-                            ? 'bg-blue-100 text-blue-800 border border-blue-200'
-                            : 'bg-purple-100 text-purple-800 border border-purple-200'
+                            ? 'bg-accent text-accent-foreground border border-border'
+                            : 'bg-secondary text-secondary-foreground border border-border'
                         }`}>
                           {event.isOwner ? 'Owner' : 'Member'}
                         </div>

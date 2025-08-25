@@ -6,8 +6,10 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DatePickerRac } from '@/components/ui/date-picker-rac'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { CalendarDate, parseDate } from '@internationalized/date'
 
 export default function CreateGalleryPage() {
   const router = useRouter()
@@ -18,6 +20,7 @@ export default function CreateGalleryPage() {
     eventDate: '',
     venue: '',
   })
+  const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null)
 
   const generateSlug = (coupleNames: string) => {
     return coupleNames
@@ -44,7 +47,7 @@ export default function CreateGalleryPage() {
           slug,
           coupleNames: formData.coupleNames,
           venue: formData.venue,
-          date: formData.eventDate ? new Date(formData.eventDate) : null,
+          date: selectedDate ? new Date(selectedDate.year, selectedDate.month - 1, selectedDate.day) : null,
         }),
       })
 
@@ -54,7 +57,7 @@ export default function CreateGalleryPage() {
         name: formData.coupleNames,
         coupleNames: formData.coupleNames,
         venue: formData.venue,
-        eventDate: formData.eventDate || new Date().toISOString().split('T')[0],
+        eventDate: selectedDate ? selectedDate.toString() : new Date().toISOString().split('T')[0],
         slug: slug,
         isPublished: false,
         plan: 'free',
@@ -83,8 +86,18 @@ export default function CreateGalleryPage() {
         id: event.id // Use real ID
       }))
 
-      // Navigate immediately - no waiting
-      router.push(`/dashboard/events/${event.id}`)
+      // Initialize onboarding state
+      const initResponse = await fetch('/api/events/' + event.id + '/onboarding/init', {
+        method: 'POST'
+      })
+
+      if (initResponse.ok) {
+        // Redirect to dedicated onboarding page
+        router.push(`/onboarding?slug=${event.slug}&step=1`)
+      } else {
+        // Fallback to dashboard if onboarding initialization fails
+        router.push(`/dashboard/events/${event.id}`)
+      }
     } catch (error) {
       console.error('Error creating event:', error)
       alert('Failed to create event. Please try again.')
@@ -124,14 +137,11 @@ export default function CreateGalleryPage() {
             </div>
 
             <div>
-              <Label htmlFor="eventDate">Event Date</Label>
-              <Input
-                id="eventDate"
-                type="date"
-                value={formData.eventDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, eventDate: e.target.value })
-                }
+              <DatePickerRac
+                label="Event Date"
+                value={selectedDate}
+                onChange={setSelectedDate}
+                description="Select the date of your wedding or event"
               />
             </div>
 

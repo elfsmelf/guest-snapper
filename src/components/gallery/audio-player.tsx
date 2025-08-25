@@ -1,12 +1,8 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import WavesurferPlayer from '@wavesurfer/react'
 import { 
-  Play, 
-  Pause, 
   User, 
   Calendar,
   Download,
@@ -35,18 +31,6 @@ interface AudioPlayerProps {
 }
 
 export function AudioPlayer({ upload, onApprove, onReject, showApprovalButtons = false }: AudioPlayerProps) {
-  const [wavesurfer, setWavesurfer] = useState<any>(null)
-  const [isPlaying, setIsPlaying] = useState(false)
-
-  const onReady = (ws: any) => {
-    setWavesurfer(ws)
-    setIsPlaying(false)
-  }
-
-  const onPlayPause = () => {
-    wavesurfer && wavesurfer.playPause()
-  }
-
   const handleDownload = () => {
     const a = document.createElement('a')
     a.href = upload.fileUrl
@@ -84,7 +68,7 @@ export function AudioPlayer({ upload, onApprove, onReject, showApprovalButtons =
                   <Button
                     size="sm"
                     variant="default"
-                    className="h-8 w-8 p-0 bg-green-500 hover:bg-green-600"
+                    className="h-8 w-8 p-0 bg-primary hover:bg-primary/90"
                     onClick={() => onApprove(upload.id)}
                     title="Approve"
                   >
@@ -115,45 +99,19 @@ export function AudioPlayer({ upload, onApprove, onReject, showApprovalButtons =
             </div>
           </div>
 
-          {/* WaveSurfer Audio Player */}
-          <div className="space-y-3">
-            {/* Waveform */}
-            <div className="bg-white rounded-lg border p-3">
-              <WavesurferPlayer
-                height={60}
-                waveColor="#8b5cf6"
-                progressColor="#7c3aed"
-                cursorColor="#6d28d9"
-                url={upload.fileUrl}
-                onReady={onReady}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onFinish={() => setIsPlaying(false)}
-                normalize={true}
-              />
-            </div>
-            
-            {/* Play/Pause button */}
-            <div className="flex justify-center">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-10 w-10 p-0 rounded-full"
-                onClick={onPlayPause}
-                disabled={!wavesurfer}
-              >
-                {isPlaying ? (
-                  <Pause className="h-4 w-4" />
-                ) : (
-                  <Play className="h-4 w-4 ml-0.5" />
-                )}
-              </Button>
-            </div>
+          {/* HTML5 Audio Player */}
+          <div className="bg-muted rounded-lg p-3">
+            <audio
+              src={upload.fileUrl}
+              controls
+              className="w-full"
+              style={{ height: '50px' }}
+            />
           </div>
 
           {/* Caption */}
           {upload.caption && (
-            <div className="text-sm text-gray-700 bg-gray-50 p-2 rounded">
+            <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
               {upload.caption}
             </div>
           )}

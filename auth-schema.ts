@@ -15,9 +15,7 @@ export const users = pgTable("users", {
     .$defaultFn(() => /* @__PURE__ */ new Date())
     .notNull(),
   role: text("role").default("user"),
-  banned: boolean("banned"),
-  banReason: text("ban_reason"),
-  banExpires: timestamp("ban_expires"),
+  stripeCustomerId: text("stripe_customer_id"),
 });
 
 export const sessions = pgTable("sessions", {
@@ -48,7 +46,6 @@ export const accounts = pgTable("accounts", {
   accessTokenExpiresAt: timestamp("access_token_expires_at"),
   refreshTokenExpiresAt: timestamp("refresh_token_expires_at"),
   scope: text("scope"),
-  password: text("password"),
   createdAt: timestamp("created_at").notNull(),
   updatedAt: timestamp("updated_at").notNull(),
 });

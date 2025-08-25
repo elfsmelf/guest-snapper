@@ -47,7 +47,6 @@ export function CreateAlbumDialog({ eventId, isOpen, onClose, onSubmit, onAlbumC
       if (onSubmit) {
         // Use new onSubmit prop for better error handling
         await onSubmit(albumData)
-        toast.success('Album created successfully!')
         // Reset form and close dialog
         setName('')
         setDescription('')

@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -24,7 +25,9 @@ import {
   Info,
   Play,
   Check,
-  X
+  X,
+  ChevronDown,
+  Upload
 } from "lucide-react"
 import { ImageViewer } from "./image-viewer"
 import { MessageDialog } from "./message-dialog"
@@ -76,9 +79,10 @@ interface GalleryViewProps {
   eventSlug: string
   isOwner?: boolean
   hasEventAccess?: boolean
+  continuationCard?: React.ReactNode
 }
 
-export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, isOwner = false, hasEventAccess = false }: GalleryViewProps) {
+export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, isOwner = false, hasEventAccess = false, continuationCard }: GalleryViewProps) {
   const [selectedTab, setSelectedTab] = useState<'photos' | 'audio' | 'guestbook' | 'pending'>('photos')
   const [selectedAlbum, setSelectedAlbum] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -86,35 +90,22 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   const [selectedUpload, setSelectedUpload] = useState<Upload | null>(null)
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false)
   const [guestbookCount, setGuestbookCount] = useState(event.guestbookCount)
-  const [imageDimensions, setImageDimensions] = useState<Record<string, { w: number; h: number }>>({})
   const router = useRouter()
+
+  // Check if upload window is open
+  const uploadWindowOpen = event.activationDate ? 
+    new Date() >= new Date(event.activationDate) && 
+    new Date() <= new Date(event.uploadWindowEnd || event.activationDate)
+    : true
   
-  // Check client-side session
-  const clientSession = authClient.useSession()
+  // Removed dynamic theming for simplicity
   
-  // Preload image dimensions for all images
-  useEffect(() => {
-    const allImages = [...uploads, ...pendingUploads].filter(u => u.fileType === 'image')
-    
-    allImages.forEach(upload => {
-      if (!imageDimensions[upload.id]) {
-        const img = new window.Image()
-        img.src = upload.fileUrl
-        img.onload = () => {
-          setImageDimensions(prev => ({
-            ...prev,
-            [upload.id]: { w: img.naturalWidth, h: img.naturalHeight }
-          }))
-        }
-      }
-    })
-  }, [uploads, pendingUploads])
+  // Masonry layout handles responsive columns automatically
 
   const handleMessageAdded = () => {
     setGuestbookCount(prev => prev + 1)
   }
 
-  const uploadWindowOpen = new Date(event.uploadWindowEnd) > new Date()
 
   // Filter approved uploads for photos tab (exclude audio)
   const filteredUploads = selectedTab === 'photos' ? uploads.filter(upload => {
@@ -215,119 +206,171 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Cover Image Hero Section */}
+    <div className="min-h-screen relative overflow-hidden bg-background">
+      {/* Background Image Hero Section - 70vh */}
       {event.coverImageUrl && (
-        <div className="relative h-64 md:h-80 lg:h-96 overflow-hidden">
-          <img
-            src={event.coverImageUrl}
-            alt={event.coupleNames + ' - ' + event.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-black/50" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center text-white">
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-2">
-                {event.coupleNames}
-              </h1>
-              <p className="text-lg md:text-xl opacity-90">
-                {new Date(event.eventDate).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
+        <div className="h-[70vh] relative overflow-hidden">
+          {/* Background Image */}
+          <div
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url('${event.coverImageUrl}')`,
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/50" />
+          </div>
+
+          {/* Content */}
+          <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 py-16">
+            <div className="flex flex-col items-center text-center max-w-md mx-auto">
+              {/* Names */}
+              <div className="mb-6">
+                {(() => {
+                  const names =
+                    event.coupleNames.split(" & ").length > 1
+                      ? event.coupleNames.split(" & ")
+                      : event.coupleNames.split(" and ").length > 1
+                        ? event.coupleNames.split(" and ")
+                        : [event.coupleNames]
+
+                  return names.length > 1 ? (
+                    <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl gallery-serif">
+                      {names[0].trim()} & {names[1].trim()}
+                    </h1>
+                  ) : (
+                    <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight tracking-tight drop-shadow-2xl gallery-serif">
+                      {names[0].trim()}
+                    </h1>
+                  )
+                })()}
+              </div>
+
+              {/* Date */}
+              <p className="text-lg md:text-xl text-white/90 mb-12 tracking-wide drop-shadow-lg gallery-serif">
+                {new Date(event.eventDate).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
                 })}
               </p>
+
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <Button asChild size="lg" className="bg-primary/90 backdrop-blur-sm text-primary-foreground hover:bg-primary transition-all duration-300 h-14 text-base font-medium rounded-lg shadow-xl border border-white/20">
+                  <Link href={`/gallery/${eventSlug}/upload`}>
+                    <Upload className="w-5 h-5 mr-2" />
+                    Upload Media
+                  </Link>
+                </Button>
+
+                <Button
+                  size="lg"
+                  className="bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all duration-300 h-14 text-base font-medium rounded-lg shadow-xl"
+                  onClick={() => setIsMessageDialogOpen(true)}
+                >
+                  <MessageSquare className="w-5 h-5 mr-2" />
+                  Leave a Message
+                </Button>
+
+                <Button asChild size="lg" className="bg-white/20 backdrop-blur-sm border border-white/30 text-white hover:bg-white/30 transition-all duration-300 h-14 text-base font-medium rounded-lg shadow-xl">
+                  <Link href={`/gallery/${eventSlug}/voice`}>
+                    <Mic className="w-5 h-5 mr-2" />
+                    Leave a Voicemail
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+              <div className="flex flex-col items-center text-white/80">
+                <p className="text-sm font-medium mb-2 tracking-wide">Scroll to Live Feed</p>
+                <ChevronDown className="w-5 h-5 animate-bounce" />
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Action Buttons */}
-      {event.coverImageUrl && (
-        <div className="p-4 border-b bg-white">
-          <div className="flex items-center gap-2 justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/gallery/${eventSlug}/upload`)}
-              disabled={!uploadWindowOpen}
-            >
-              <Camera className="h-4 w-4 mr-2" />
-              Upload
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setIsMessageDialogOpen(true)}
-              disabled={false}
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Message
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push(`/gallery/${eventSlug}/voice`)}
-              disabled={!uploadWindowOpen}
-            >
-              <Mic className="h-4 w-4 mr-2" />
-              Voice
-            </Button>
+
+      {!event.coverImageUrl && (
+        <div className="h-[70vh] relative overflow-hidden bg-gradient-to-br from-background via-muted to-secondary/20">
+          <div className="relative z-10 flex flex-col items-center justify-center h-full px-6 py-16">
+            <div className="flex flex-col items-center text-center max-w-md mx-auto">
+              {/* Names */}
+              <div className="mb-6">
+                {(() => {
+                  const names =
+                    event.coupleNames.split(" & ").length > 1
+                      ? event.coupleNames.split(" & ")
+                      : event.coupleNames.split(" and ").length > 1
+                        ? event.coupleNames.split(" and ")
+                        : [event.coupleNames]
+
+                  return names.length > 1 ? (
+                    <h1 className="text-4xl md:text-6xl font-bold leading-tight text-foreground tracking-tight gallery-serif">
+                      {names[0].trim()} & {names[1].trim()}
+                    </h1>
+                  ) : (
+                    <h1 className="text-4xl md:text-6xl font-bold leading-tight text-foreground tracking-tight gallery-serif">
+                      {names[0].trim()}
+                    </h1>
+                  )
+                })()}
+              </div>
+
+              {/* Date */}
+              <p className="text-lg md:text-xl mb-12 tracking-wide text-muted-foreground gallery-serif">
+                {new Date(event.eventDate).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+
+              <div className="flex flex-col gap-3 w-full max-w-xs">
+                <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-300 h-14 text-base font-medium rounded-lg shadow-lg">
+                  <Link href={`/gallery/${eventSlug}/upload`}>
+                    <Upload className="w-5 h-5 mr-2" />
+                    Upload Media
+                  </Link>
+                </Button>
+
+                <Button
+                  size="lg"
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80 transition-all duration-300 h-14 text-base font-medium rounded-lg shadow-lg"
+                  onClick={() => setIsMessageDialogOpen(true)}
+                >
+                  <MessageSquare className="w-5 h-5 mr-2" />
+                  Leave a Message
+                </Button>
+
+                <Button asChild size="lg" className="border-2 border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-all duration-300 h-14 text-base font-medium rounded-lg shadow-lg bg-card/50">
+                  <Link href={`/gallery/${eventSlug}/voice`}>
+                    <Mic className="w-5 h-5 mr-2" />
+                    Leave a Voicemail
+                  </Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+              <div className="flex flex-col items-center text-muted-foreground">
+                <p className="text-sm font-medium mb-2 tracking-wide">Scroll to Live Feed</p>
+                <ChevronDown className="w-5 h-5 animate-bounce" />
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Fallback header when no cover image */}
-      {!event.coverImageUrl && (
-        <div className="p-4 border-b bg-white">
-          <div className="text-center mb-4">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              {event.coupleNames}
-            </h1>
-            <p className="text-muted-foreground">
-              {new Date(event.eventDate).toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/gallery/${eventSlug}/upload`)}
-              disabled={!uploadWindowOpen}
-            >
-              <Camera className="h-4 w-4 mr-2" />
-              Upload
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => setIsMessageDialogOpen(true)}
-              disabled={false}
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Message
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={() => router.push(`/gallery/${eventSlug}/voice`)}
-              disabled={!uploadWindowOpen}
-            >
-              <Mic className="h-4 w-4 mr-2" />
-              Voice
-            </Button>
-          </div>
+      {/* Continuation Card */}
+      {continuationCard && (
+        <div className="px-4 py-6 bg-background border-b">
+          {continuationCard}
         </div>
       )}
 
       {/* Main Content */}
-      <div className="p-4 bg-[#FFF5F5] min-h-screen">
+      <div className="p-4 min-h-screen bg-background">
         {event.guestCanViewAlbum ? (
           <>
             {/* Tabs */}
@@ -344,19 +387,19 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                 setSelectedAlbum('all')
               }
             }} className="mb-4">
-              <TabsList className="w-full justify-start bg-transparent overflow-x-auto flex-nowrap scrollbar-hide">
-                <TabsTrigger value="photos" className="data-[state=active]:bg-white flex-shrink-0">
+              <TabsList className="w-full justify-start bg-muted overflow-x-auto flex-nowrap scrollbar-hide">
+                <TabsTrigger value="photos" className="data-[state=active]:bg-background flex-shrink-0">
                   Photos ({approvedPhotoCount})
                 </TabsTrigger>
-                <TabsTrigger value="audio" className="data-[state=active]:bg-white flex-shrink-0">
+                <TabsTrigger value="audio" className="data-[state=active]:bg-background flex-shrink-0">
                   Audio Messages ({approvedAudioCount})
                 </TabsTrigger>
                 {hasEventAccess && event.approveUploads && (
-                  <TabsTrigger value="pending" className="data-[state=active]:bg-white flex-shrink-0">
+                  <TabsTrigger value="pending" className="data-[state=active]:bg-background flex-shrink-0">
                     Pending ({pendingPhotoCount + pendingAudioCount})
                   </TabsTrigger>
                 )}
-                <TabsTrigger value="guestbook" className="data-[state=active]:bg-white flex-shrink-0">
+                <TabsTrigger value="guestbook" className="data-[state=active]:bg-background flex-shrink-0">
                   Messages ({guestbookCount})
                 </TabsTrigger>
               </TabsList>
@@ -364,7 +407,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
             {/* Upload Review Notice */}
             {event.approveUploads && selectedTab === 'photos' && (
-              <Alert className="mb-4 bg-white border-gray-200">
+              <Alert className="mb-4">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
                   <strong>Upload Review:</strong> Photos and videos you upload may take some time to appear in the gallery as the host reviews all uploads before they are published.
@@ -470,7 +513,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                 {viewMode === 'grid' ? (
                   <Masonry
                     breakpointCols={{
-                      default: 5,
+                      default: 4,
                       1280: 4,
                       1024: 3,
                       640: 2
@@ -484,10 +527,14 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         className="relative cursor-pointer group overflow-hidden rounded-lg mb-3"
                         onClick={() => openImageModal(upload)}
                       >
-                        <img
+                        <Image
                           src={upload.fileUrl}
                           alt={upload.fileName}
-                          className="w-full h-auto transition-transform duration-300 group-hover:scale-105"
+                          width={400}
+                          height={600}
+                          className="w-full h-auto transition-transform duration-300 group-hover:scale-105 rounded-lg"
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                          style={{ height: 'auto' }}
                         />
                         
                         {/* Hover overlay */}
@@ -554,10 +601,12 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                               className="relative w-12 h-12 flex-shrink-0 cursor-pointer group"
                               onClick={() => openImageModal(upload)}
                             >
-                              <img
+                              <Image
                                 src={upload.fileUrl}
                                 alt={upload.fileName}
-                                className="w-full h-full object-cover rounded transition-transform group-hover:scale-110"
+                                fill
+                                className="object-cover rounded transition-transform group-hover:scale-110"
+                                sizes="48px"
                               />
                               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded" />
                               {upload.fileType === 'video' && (
@@ -689,7 +738,6 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
         upload={selectedUpload}
         isOpen={selectedUpload !== null}
         onClose={closeImageModal}
-        preloadedDimensions={selectedUpload ? imageDimensions[selectedUpload.id] : undefined}
       />
 
       {/* Message Dialog */}

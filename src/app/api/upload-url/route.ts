@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { PutObjectCommand } from "@aws-sdk/client-s3"
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner"
-import { r2Client, bucketName, publicDomain } from "@/lib/r2/client"
+import { signPutUrl, publicDomain } from "@/lib/r2/client"
 import { db } from "@/database/db"
 import { events } from "@/database/schema"
 import { eq } from "drizzle-orm"
@@ -64,25 +62,8 @@ export async function POST(request: NextRequest) {
     
     const fileKey = `events/${eventId}/media/${randomString}_${timestamp}.${fileExtension}`
 
-    // Create presigned URL with metadata
-    const putObjectCommand = new PutObjectCommand({
-      Bucket: bucketName,
-      Key: fileKey,
-      ContentType: fileType,
-      ContentLength: fileSize,
-      Metadata: {
-        'original-name': fileName.replace(/[^a-zA-Z0-9.-]/g, '_'),
-        'event-id': eventId,
-        'uploader-id': session?.user?.id || 'unknown',
-        'upload-type': 'media',
-        'file-size': fileSize.toString(),
-        'upload-timestamp': timestamp.toString()
-      }
-    })
-
-    const uploadUrl = await getSignedUrl(r2Client, putObjectCommand, { 
-      expiresIn: 3600 
-    })
+    // Create presigned URL for single-part upload (small files)
+    const uploadUrl = await signPutUrl(fileKey, fileType, 3600)
 
     const fileUrl = `https://${publicDomain}/${fileKey}`
 

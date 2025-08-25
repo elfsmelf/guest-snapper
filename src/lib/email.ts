@@ -1,5 +1,6 @@
 import { Resend } from 'resend';
 import { OrganizationInvitationTemplate } from '@/components/email-templates/organization-invitation';
+import { EmailOTPTemplate } from '@/components/email-templates/email-otp';
 
 let resend: Resend | null = null;
 
@@ -19,6 +20,12 @@ interface SendOrganizationInvitationParams {
   organizationName: string;
   inviteLink: string;
   role: string;
+}
+
+interface SendOTPEmailParams {
+  email: string;
+  otp: string;
+  type: 'sign-in' | 'email-verification' | 'forget-password';
 }
 
 export async function sendOrganizationInvitation({
@@ -59,6 +66,56 @@ export async function sendOrganizationInvitation({
     return data;
   } catch (error) {
     console.error('Error sending invitation email:', error);
+    throw error;
+  }
+}
+
+export async function sendOTPEmail({
+  email,
+  otp,
+  type
+}: SendOTPEmailParams) {
+  try {
+    console.log('Attempting to send OTP email:', {
+      to: email,
+      from: process.env.EMAIL_FROM || 'Guest Snapper <noreply@notifications.guestsnapper.com>',
+      type,
+      otp: otp.substring(0, 2) + '****' // Log partial OTP for security
+    });
+
+    const getSubject = () => {
+      switch (type) {
+        case 'sign-in':
+          return 'Your sign-in code for Guest Snapper'
+        case 'email-verification':
+          return 'Verify your email for Guest Snapper'
+        case 'forget-password':
+          return 'Reset your password for Guest Snapper'
+        default:
+          return 'Your verification code for Guest Snapper'
+      }
+    };
+
+    const { data, error } = await getResendClient().emails.send({
+      from: process.env.EMAIL_FROM || 'Guest Snapper <noreply@notifications.guestsnapper.com>',
+      to: [email],
+      subject: getSubject(),
+      react: EmailOTPTemplate({
+        otp,
+        type,
+        email
+      }),
+    });
+
+    if (error) {
+      console.error('Resend API error:', error);
+      throw new Error(`Failed to send OTP email: ${error.message || JSON.stringify(error)}`);
+    }
+
+    console.log('OTP email sent successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error sending OTP email:', error);
     throw error;
   }
 }

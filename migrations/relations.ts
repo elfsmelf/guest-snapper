@@ -1,5 +1,5 @@
 import { relations } from "drizzle-orm/relations";
-import { events, deletionEvents, organizations, members, users, sessions, accounts, invitations, guestbookEntries, uploads, albums } from "./schema";
+import { events, deletionEvents, organizations, members, users, sessions, accounts, invitations, guests, guestbookEntries, uploads, albums } from "./schema";
 
 export const deletionEventsRelations = relations(deletionEvents, ({one}) => ({
 	event: one(events, {
@@ -10,12 +10,13 @@ export const deletionEventsRelations = relations(deletionEvents, ({one}) => ({
 
 export const eventsRelations = relations(events, ({one, many}) => ({
 	deletionEvents: many(deletionEvents),
+	guests: many(guests),
+	guestbookEntries: many(guestbookEntries),
+	uploads: many(uploads),
 	organization: one(organizations, {
 		fields: [events.organizationId],
 		references: [organizations.id]
 	}),
-	guestbookEntries: many(guestbookEntries),
-	uploads: many(uploads),
 	albums: many(albums),
 }));
 
@@ -65,6 +66,13 @@ export const invitationsRelations = relations(invitations, ({one}) => ({
 	user: one(users, {
 		fields: [invitations.inviterId],
 		references: [users.id]
+	}),
+}));
+
+export const guestsRelations = relations(guests, ({one}) => ({
+	event: one(events, {
+		fields: [guests.eventId],
+		references: [events.id]
 	}),
 }));
 

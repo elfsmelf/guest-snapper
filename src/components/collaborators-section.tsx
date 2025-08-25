@@ -39,14 +39,23 @@ interface Organization {
 interface CollaboratorsSectionProps {
   eventId: string
   isOwner: boolean
+  initialData?: any // Prefetched collaborator data
+  onDataChange?: () => void // Callback when data changes
 }
 
-export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionProps) {
-  const [organization, setOrganization] = useState<Organization | null>(null)
-  const [members, setMembers] = useState<Member[]>([])
-  const [invitations, setInvitations] = useState<Invitation[]>([])
+export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChange }: CollaboratorsSectionProps) {
+  // Initialize state with prefetched data if available
+  const [organization, setOrganization] = useState<Organization | null>(
+    initialData?.organization || null
+  )
+  const [members, setMembers] = useState<Member[]>(
+    initialData?.members || []
+  )
+  const [invitations, setInvitations] = useState<Invitation[]>(
+    initialData?.invitations || []
+  )
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(!initialData) // Only loading if no initial data
   const [isCreatingOrg, setIsCreatingOrg] = useState(false)
   const [processingInvitations, setProcessingInvitations] = useState<Set<string>>(new Set())
   const [removingMembers, setRemovingMembers] = useState<Set<string>>(new Set())
@@ -71,6 +80,9 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
         setOrganization(data.organization)
         setMembers(data.members || [])
         setInvitations(data.invitations || [])
+        
+        // Notify parent of data change for onboarding progress
+        onDataChange?.()
       }
     } catch (error) {
       console.error('Error fetching organization data:', error)
@@ -94,6 +106,7 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
       if (data.success) {
         toast.success('Organization created! You can now invite collaborators.')
         await fetchOrganizationData()
+        // Data change callback will be called by fetchOrganizationData
       }
     } catch (error) {
       console.error('Error creating organization:', error)
@@ -104,7 +117,7 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
   }
 
   const handleInviteSent = () => {
-    fetchOrganizationData() // Refresh data after invite
+    fetchOrganizationData() // Refresh data after invite (will trigger callback)
   }
 
   const handleResendInvitation = async (invitationId: string, email: string, role: "member" | "admin" | "owner") => {
@@ -129,7 +142,7 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
       }
 
       toast.success(`Invitation resent to ${email}`)
-      fetchOrganizationData() // Refresh data
+      fetchOrganizationData() // Refresh data (will trigger callback)
     } catch (error: any) {
       console.error('Failed to resend invitation:', error)
       toast.error(error.message || 'Failed to resend invitation')
@@ -163,6 +176,7 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
       console.log('Refreshing organization data after cancellation...')
       await fetchOrganizationData()
       console.log('Data refreshed successfully')
+      // Data change callback will be triggered by fetchOrganizationData
       
     } catch (error: any) {
       console.error('Failed to cancel invitation:', error)
@@ -213,9 +227,12 @@ export function CollaboratorsSection({ eventId, isOwner }: CollaboratorsSectionP
     }
   }
 
+  // Only fetch data on mount if we don't have initial data
   useEffect(() => {
-    fetchOrganizationData()
-  }, [eventId])
+    if (!initialData) {
+      fetchOrganizationData()
+    }
+  }, [eventId, initialData])
 
   const getRoleIcon = (role: "member" | "admin" | "owner") => {
     switch (role.toLowerCase()) {

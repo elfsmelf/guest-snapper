@@ -38,6 +38,9 @@ export async function PATCH(
       approveUploads,
       guestCount,
       coverImageUrl,
+      themeId,
+      isPublished,
+      publishedAt,
       settings: additionalSettings = {}
     } = body
 
@@ -66,6 +69,9 @@ export async function PATCH(
     if (typeof approveUploads === 'boolean') updateData.approveUploads = approveUploads
     if (typeof guestCount === 'number') updateData.guestCount = guestCount
     if (coverImageUrl !== undefined) updateData.coverImageUrl = coverImageUrl
+    if (themeId) updateData.themeId = themeId
+    if (typeof isPublished === 'boolean') updateData.isPublished = isPublished
+    if (publishedAt !== undefined) updateData.publishedAt = publishedAt
 
     const updatedEvent = await db
       .update(events)

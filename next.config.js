@@ -1,10 +1,32 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+    // Exclude directories from file watching to prevent unnecessary recompilation
+    watchOptions: {
+        ignored: [
+            '**/better-auth-ui-main/**',
+            '**/node_modules/**',
+            '**/.git/**',
+            '**/*.txt',
+            '**/debug-*.js'
+        ]
+    },
+    // Speed up dev compilation
+    experimental: {
+        turbotrace: {
+            logLevel: 'error'
+        }
+    },
     images: {
         remotePatterns: [
             {
                 protocol: 'https',
                 hostname: 'lh3.googleusercontent.com',
+                port: '',
+                pathname: '/a/**',
+            },
+            {
+                protocol: 'https', 
+                hostname: '*.googleusercontent.com',
                 port: '',
                 pathname: '/**',
             },
@@ -44,6 +66,14 @@ const nextConfig = {
                     { key: 'Access-Control-Allow-Origin', value: 'https://www.guestsnapper.com' },
                     { key: 'Access-Control-Allow-Methods', value: 'GET,DELETE,PATCH,POST,PUT,OPTIONS' },
                     { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization' },
+                ]
+            },
+            {
+                // Cache manifest file for 24 hours
+                source: '/manifest.webmanifest',
+                headers: [
+                    { key: 'Cache-Control', value: 'public, max-age=86400, must-revalidate' },
+                    { key: 'Content-Type', value: 'application/manifest+json' }
                 ]
             }
         ]

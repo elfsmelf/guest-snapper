@@ -42,6 +42,10 @@ import { CopyButton } from "@/components/copy-button"
 import { EventSettingsForm } from "@/components/event-settings-form"
 import { PaymentSuccessHandler } from "@/components/payment-success-handler"
 import { QuickActionsClient } from "@/components/quick-actions-client"
+import { GalleryThemeManager } from "@/components/gallery-theme-manager"
+import { CoverImageUpload } from "@/components/cover-image-upload"
+import { QRCodeGeneratorClient } from "@/components/qr-code-generator-client"
+import { updateEventTheme } from "@/app/actions/update-theme"
 import dynamic from 'next/dynamic'
 
 // Dynamically import heavy client components
@@ -170,7 +174,6 @@ export default async function EventDetailPage({ params }: PageProps) {
   let event = null
   let isOwner = false
   let eventAlbums: any[] = []
-
   try {
     const [eventResult, albumsResult] = await Promise.all([
       getEventWithAccess(id, user.id),
@@ -208,7 +211,11 @@ export default async function EventDetailPage({ params }: PageProps) {
       </div>
 
       {/* Hero Section */}
-      <div className="relative overflow-hidden rounded-xl h-64 md:h-80 lg:h-96 bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900">
+      <div className={`relative overflow-hidden rounded-xl h-64 md:h-80 lg:h-96 ${
+        !event.coverImageUrl 
+          ? "bg-gradient-to-br from-primary/90 via-primary to-primary/90 dark:from-primary/70 dark:via-primary/80 dark:to-primary/70" 
+          : ""
+      }`}>
         {/* Cover Image Background */}
         {event.coverImageUrl && (
           <Image
@@ -217,70 +224,105 @@ export default async function EventDetailPage({ params }: PageProps) {
             fill
             priority
             sizes="100vw"
-            className="object-cover opacity-60"
+            className="object-cover"
             placeholder="blur"
             blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R7XTvtd0535YH9jyJ6Oz/2Q=="
           />
         )}
         
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/20" />
+        {/* Pattern overlay when no cover image */}
+        {!event.coverImageUrl && (
+          <div 
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: `radial-gradient(circle at 2px 2px, var(--primary-foreground) 1px, transparent 1px)`,
+              backgroundSize: '32px 32px'
+            }}
+          />
+        )}
+        
+        {/* Black overlay for text readability */}
+        <div className={`absolute inset-0 ${
+          event.coverImageUrl 
+            ? "bg-black/40"
+            : "bg-gradient-to-t from-black/40 via-black/20 to-transparent"
+        }`} />
         
         {/* Content */}
-        <div className="relative px-4 sm:px-8 py-8 sm:py-12">
+        <div className="relative px-6 py-10 sm:px-8 sm:py-12 h-full flex flex-col justify-center">
           <div className="max-w-4xl">
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
+            <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-white mb-2 sm:mb-4 drop-shadow-lg font-serif">
               {event.coupleNames}
             </h1>
-            <div className="space-y-2">
-              <p className="text-xl text-white/90">
+            <div className="space-y-2 sm:space-y-3">
+              <p className="text-base sm:text-xl text-white/95 font-medium drop-shadow">
                 {event.name}
               </p>
-              <p className="text-lg text-white/70">
-                {new Date(event.eventDate).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
-              {event.venue && (
-                <p className="text-white/70 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" />
-                  {event.venue}
+              <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
+                <p className="text-sm sm:text-lg text-white/90 flex items-center gap-2 drop-shadow">
+                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                  <span className="truncate">
+                    {new Date(event.eventDate).toLocaleDateString('en-US', {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </span>
                 </p>
-              )}
+                {event.venue && (
+                  <p className="text-sm sm:text-base text-white/90 flex items-center gap-2 drop-shadow">
+                    <MapPin className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                    <span className="truncate">{event.venue}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {/* Hero Action Buttons */}
+            <div className="mt-4 sm:mt-8 flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <Button asChild size="default" className="bg-white text-gray-900 hover:bg-white/90 shadow-lg w-full sm:w-auto">
+                <Link href={galleryUrl} target="_blank">
+                  <Eye className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  View Gallery
+                </Link>
+              </Button>
+              <CopyButton 
+                text={galleryUrl} 
+                variant="secondary"
+                size="default"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20 shadow-lg backdrop-blur-sm w-full sm:w-auto"
+              >
+                <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                <span className="sm:hidden">Copy Link</span>
+                <span className="hidden sm:inline">Copy Gallery Link</span>
+              </CopyButton>
+              <Button asChild variant="secondary" size="default" className="bg-white/10 text-white border-white/20 hover:bg-white/20 shadow-lg backdrop-blur-sm w-full sm:w-auto">
+                <Link href={`/gallery/${event.slug}/upload`}>
+                  <Upload className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  Upload Media
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
       </div>
+        {/* Publishing Alert for Private Galleries */}
+        {!event.isPublished && (
+          <Alert className="text-left bg-yellow-50 border-yellow-200">
+            <Info className="h-4 w-4 text-yellow-600" />
+            <AlertDescription className="text-yellow-800">
+              <strong>Gallery is Private:</strong> To make your gallery accessible to guests, go to the event settings, set an activation date, and click "Publish Event".
+            </AlertDescription>
+          </Alert>
+        )}
 
-      {/* Publishing Alert for Private Galleries */}
-      {!event.isPublished && (
-        <Alert className="text-left bg-yellow-50 border-yellow-200">
-          <Info className="h-4 w-4 text-yellow-600" />
-          <AlertDescription className="text-yellow-800">
-            <strong>Gallery is Private:</strong> To make your gallery accessible to guests, go to the event settings, set an activation date, and click "Publish Event".
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Main Grid Layout */}
-      <div className="grid gap-6 lg:grid-cols-3 xl:grid-cols-4 w-full min-w-0">
-        {/* Main Content - Takes 3 columns */}
-        <div className="lg:col-span-2 xl:col-span-3 space-y-6 min-w-0">
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Manage your gallery</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <QuickActionsClient eventSlug={event.slug} galleryUrl={galleryUrl} />
-            </CardContent>
-          </Card>
-
-          {/* Event Settings */}
+      {/* Main Grid Layout - Flexbox on mobile, Grid on desktop */}
+      <div className="flex flex-col lg:grid gap-6 lg:grid-cols-3 xl:grid-cols-4 w-full min-w-0">
+        {/* Main Content Section - but items can be reordered on mobile */}
+        <div className="contents lg:block lg:col-span-2 xl:col-span-3 lg:space-y-6 min-w-0">
+          {/* 1. Event Settings (Event Details, Privacy and Moderation) */}
+          <div className="order-1 lg:order-none" data-section="event-details">
           <Suspense fallback={<EventSettingsSkeleton />}>
             <EventSettingsForm event={event as any} calculatedGuestCount={0} />
           </Suspense>
@@ -291,44 +333,47 @@ export default async function EventDetailPage({ params }: PageProps) {
             currentPlan={event.plan}
             eventCurrency={event.currency as any}
           />
+          </div>
 
-          {/* Statistics Grid */}
+          {/* 3. Gallery Cover Image */}
+          <div className="order-3 lg:order-none" data-section="gallery-cover-image">
+            <CoverImageUpload event={event as any} />
+          </div>
+
+          {/* 4. Theme Manager */}
+          <div className="order-4 lg:order-none" data-section="gallery-theme-manager">
+          <GalleryThemeManager 
+            eventId={event.id}
+            currentThemeId={event.themeId || 'default'}
+            eventData={{
+              coupleNames: event.coupleNames,
+              eventDate: event.eventDate,
+              coverImageUrl: event.coverImageUrl || undefined
+            }}
+            onThemeChange={async (themeId: string) => {
+              "use server"
+              await updateEventTheme(event.id, themeId)
+            }}
+          />
+          </div>
+
+          {/* 7. Stats */}
+          <div className="order-7 lg:order-none" data-section="event-stats">
           <Suspense fallback={<StatsSkeleton />}>
             <EventStatsGrid eventId={event.id} guestCount={event.guestCount || 0} />
           </Suspense>
+          </div>
 
-          {/* Albums */}
-          <Suspense fallback={<AlbumsSkeleton />}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Albums</CardTitle>
-                <CardDescription>
-                  Organize photos and videos into albums
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AlbumsSection 
-                  eventId={event.id} 
-                  initialAlbums={eventAlbums} 
-                  event={{
-                    id: event.id,
-                    plan: event.plan,
-                    currency: event.currency as any,
-                    guestCount: event.guestCount || 0,
-                    isPublished: event.isPublished
-                  }}
-                />
-              </CardContent>
-            </Card>
-          </Suspense>
-
-          {/* Collaborators */}
+          {/* 9. Collaborators */}
+          <div className="order-9 lg:order-none" data-section="collaborators-section">
           <Suspense fallback={<CollaboratorsSkeleton />}>
             <CollaboratorsSection eventId={event.id} isOwner={isOwner} />
           </Suspense>
+          </div>
 
-          {/* Danger Zone - Only show to event owner */}
+          {/* 10. Danger Zone - Only show to event owner */}
           {isOwner && (
+            <div className="order-10 lg:order-none">
             <Card className="border-destructive/20">
               <CardHeader>
                 <CardTitle className="text-destructive">Danger Zone</CardTitle>
@@ -355,24 +400,24 @@ export default async function EventDetailPage({ params }: PageProps) {
                 </div>
               </CardContent>
             </Card>
+            </div>
           )}
         </div>
 
-        {/* Sidebar - Takes 1 column */}
+        {/* Sidebar - Takes 1 column, but items can be reordered on mobile */}
         <Suspense fallback={<SidebarSkeleton />}>
-          <div className="space-y-6 min-w-0 w-full">
-            {/* Gallery Info */}
-            <Card>
+          <div className="contents lg:block lg:space-y-6 min-w-0 w-full">
+            {/* 2. Publication Status */}
+            <Card className="order-2 lg:order-none" data-section="publication-status">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Upload className="mr-2 h-5 w-5" />
-                  Gallery Status
+                  Publication Status
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {/* Publication Status */}
                 <div className="flex items-center justify-between pb-3 border-b">
-                  <span className="text-sm font-medium">Publication Status:</span>
+                  <span className="text-sm font-medium">Status:</span>
                   <Badge 
                     variant={event.isPublished ? 'default' : 'destructive'}
                     className={event.isPublished ? '' : 'bg-yellow-500 hover:bg-yellow-600 text-yellow-900 font-semibold'}
@@ -398,18 +443,12 @@ export default async function EventDetailPage({ params }: PageProps) {
                     <span>Theme:</span>
                     <span className="font-medium capitalize">{event.themeId}</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span>Slideshow:</span>
-                    <span className="font-medium">
-                      {event.realtimeSlideshow ? 'Enabled' : 'Disabled'}
-                    </span>
-                  </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* QR Code & Sharing */}
-            <Card>
+            {/* 5. QR Code */}
+            <Card className="order-5 lg:order-none" data-section="qr-code-sharing">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <QrCode className="mr-2 h-5 w-5" />
@@ -431,20 +470,25 @@ export default async function EventDetailPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                <QRCodeGenerator value={galleryUrl} />
+                <QRCodeGeneratorClient 
+                  value={galleryUrl}
+                  eventId={event.id}
+                />
               </CardContent>
             </Card>
 
-            {/* Slideshow Settings */}
-            <SlideshowSettings 
-              eventId={event.id}
-              eventSlug={event.slug}
-              currentDuration={(event as any).slideDuration || 5}
-              hasPhotos={true} // Will be determined by the component itself
-            />
+            {/* 6. Slideshow */}
+            <div className="order-6 lg:order-none" data-section="slideshow-settings">
+              <SlideshowSettings 
+                eventId={event.id}
+                eventSlug={event.slug}
+                currentDuration={(event as any).slideDuration || 5}
+                hasPhotos={true} // Will be determined by the component itself
+              />
+            </div>
 
-            {/* Download All Files */}
-            <Card>
+            {/* 8. Download All Files */}
+            <Card className="order-8 lg:order-none">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Download className="mr-2 h-5 w-5" />

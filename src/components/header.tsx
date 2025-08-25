@@ -1,33 +1,84 @@
+"use client"
+
 import Link from "next/link"
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
+import { usePathname } from "next/navigation"
+import { ArrowLeft } from "lucide-react"
+import { authClient } from "@/lib/auth-client"
 
 import { Button } from "./ui/button"
 import { UserButton } from "@daveyplate/better-auth-ui"
+import { ModeToggle } from "./mode-toggle"
 
-export async function Header() {
-    // Server-side authentication check
-    const session = await auth.api.getSession({
-        headers: await headers()
-    })
+interface HeaderProps {
+    galleryTheme?: string
+    eventSlug?: string
+    showOnboardingSetup?: boolean
+    onboardingStep?: number
+}
 
-    const user = session?.user
+export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, onboardingStep = 1 }: HeaderProps) {
+    const pathname = usePathname()
+    const { data: session, isPending } = authClient.useSession()
+
+    // Check if we're on any gallery page
+    const isGalleryPage = pathname?.startsWith('/gallery/')
+    const isOnboardingPage = pathname?.startsWith('/onboarding')
+    const isUploadPage = pathname?.includes('/upload')
+    const isVoicePage = pathname?.includes('/voice')
+    
+    // Extract gallery slug from any gallery path
+    const gallerySlug = pathname?.match(/\/gallery\/([^\/]+)/)?.[1]
+
+    // Determine header classes based on gallery theme
+    const getHeaderClasses = () => {
+        if (!isGalleryPage || !galleryTheme) {
+            return "sticky top-0 z-50 flex h-12 justify-between border-b bg-background px-4 md:h-14 md:px-6"
+        }
+        
+        // Use gallery theme variables - these will be available from the gallery-app container
+        return `sticky top-0 z-50 flex h-12 justify-between border-b border-border bg-card px-4 md:h-14 md:px-6`
+    }
+
+    const getTextClasses = () => {
+        if (!isGalleryPage || !galleryTheme) {
+            return "text-xl font-bold"
+        }
+        return "text-xl font-bold text-fg gallery-serif"
+    }
 
     return (
-        <header className="sticky top-0 z-50 flex h-12 justify-between border-b bg-white px-safe-or-4 md:h-14 md:px-safe-or-6">
+        <header className={getHeaderClasses()}>
             <Link href="/" className="flex items-center">
-                <span className="text-xl font-bold">Guest Snapper</span>
+                <span className={getTextClasses()}>Guest Snapper</span>
             </Link>
 
             <div className="flex items-center gap-2">
-                {user ? (
+                <ModeToggle />
+                {(isUploadPage || isVoicePage) && gallerySlug ? (
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/gallery/${gallerySlug}`}>
+                            <ArrowLeft className="h-4 w-4 mr-2" />
+                            Back to Gallery
+                        </Link>
+                    </Button>
+                ) : !isPending && session?.user ? (
                     <>
-                        <Button asChild variant="outline" size="sm">
-                            <Link href="/dashboard">Dashboard</Link>
-                        </Button>
+                        {isOnboardingPage && eventSlug ? (
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={`/gallery/${eventSlug}`}>View Gallery</Link>
+                            </Button>
+                        ) : showOnboardingSetup && eventSlug ? (
+                            <Button asChild variant="outline" size="sm">
+                                <Link href={`/onboarding?slug=${eventSlug}&step=${onboardingStep}`}>Continue Setup</Link>
+                            </Button>
+                        ) : (
+                            <Button asChild variant="outline" size="sm">
+                                <Link href="/dashboard">Dashboard</Link>
+                            </Button>
+                        )}
                         <UserButton size="icon" />
                     </>
-                ) : (
+                ) : !isPending ? (
                     <>
                         <Button asChild variant="outline" size="sm">
                             <Link href="/auth/sign-in">Login</Link>
@@ -36,6 +87,9 @@ export async function Header() {
                             <Link href="/auth/sign-up">Create Account</Link>
                         </Button>
                     </>
+                ) : (
+                    // Loading state - show nothing to prevent flash
+                    <div className="w-32 h-8" />
                 )}
                 
             </div>

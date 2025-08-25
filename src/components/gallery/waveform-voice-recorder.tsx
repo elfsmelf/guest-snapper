@@ -1,14 +1,13 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useCallback, memo } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
-import WavesurferPlayer from '@wavesurfer/react'
+import { useReactMediaRecorder } from 'react-media-recorder'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Progress } from "@/components/ui/progress"
 import { 
   Upload, 
@@ -52,225 +51,164 @@ interface AudioMessage {
   duration: number
 }
 
+// Simple audio player component
+const AudioPlayer = memo(({ audioMessage, onRemove, isUploading }: {
+  audioMessage: AudioMessage,
+  onRemove: (id: string) => void,
+  isUploading: boolean
+}) => {
+  const handleRemove = useCallback(() => {
+    onRemove(audioMessage.id)
+  }, [onRemove, audioMessage.id])
+
+  const formatDuration = useCallback((seconds: number): string => {
+    // Handle invalid or very large numbers
+    if (!seconds || seconds <= 0 || seconds > 3600) {
+      return '0:00'
+    }
+    
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = Math.floor(seconds % 60)
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`
+  }, [])
+
+  return (
+    <div className="border rounded-lg p-4">
+      <div className="space-y-4">
+        {/* Audio Player - Full Width */}
+        <div className="bg-gray-50 rounded-lg p-3">
+          <audio
+            src={audioMessage.url}
+            controls
+            className="w-full"
+            style={{ height: '50px' }}
+          />
+        </div>
+
+        {/* Message Info and Controls */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="font-medium text-sm">
+              {formatDuration(audioMessage.duration)}
+            </span>
+            
+            {audioMessage.status === 'success' && (
+              <span className="text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded flex items-center gap-1">
+                <CheckCircle className="h-3 w-3" />
+                Uploaded
+              </span>
+            )}
+            {audioMessage.status === 'error' && (
+              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded flex items-center gap-1">
+                <AlertCircle className="h-3 w-3" />
+                Failed
+              </span>
+            )}
+            {audioMessage.status === 'uploading' && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                Uploading
+              </span>
+            )}
+          </div>
+
+          {/* Remove Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRemove}
+            disabled={isUploading}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Progress */}
+        {audioMessage.status === 'uploading' && (
+          <Progress value={audioMessage.progress} className="h-2" />
+        )}
+
+        {/* Error message */}
+        {audioMessage.status === 'error' && audioMessage.error && (
+          <p className="text-sm text-destructive">{audioMessage.error}</p>
+        )}
+        
+        {/* Name and Message */}
+        {(audioMessage.uploaderName || audioMessage.message) && (
+          <div className="text-sm space-y-1">
+            {audioMessage.uploaderName && (
+              <p className="text-muted-foreground">
+                From: <span className="font-medium">{audioMessage.uploaderName}</span>
+              </p>
+            )}
+            {audioMessage.message && (
+              <p className="text-foreground">{audioMessage.message}</p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+})
+
+const MemoizedAudioPlayer = memo(AudioPlayer)
+
 export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestCanUpload = false }: VoiceRecorderProps) {
   const [uploaderName, setUploaderName] = useState("")
   const [message, setMessage] = useState("")
   const [audioMessages, setAudioMessages] = useState<AudioMessage[]>([])
   const [isUploading, setIsUploading] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
-  const [recordingTime, setRecordingTime] = useState(0)
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null)
-  const [audioStream, setAudioStream] = useState<MediaStream | null>(null)
-  const [currentRecordingBlob, setCurrentRecordingBlob] = useState<Blob | null>(null)
-  const [audioContext, setAudioContext] = useState<AudioContext | null>(null)
-  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null)
-  const [audioLevels, setAudioLevels] = useState<number[]>(new Array(20).fill(0))
+  const [recordingStartTime, setRecordingStartTime] = useState<number>(0)
   const router = useRouter()
-  
-  const audioChunks = useRef<Blob[]>([])
-  const intervalRef = useRef<NodeJS.Timeout | null>(null)
-  const animationRef = useRef<number | null>(null)
-  const startTimeRef = useRef<number>(0)
   
   // Check session for authenticated users
   const session = authClient.useSession()
 
-  useEffect(() => {
-    return () => {
-      // Cleanup
-      if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop())
+  // Use react-media-recorder hook for audio recording
+  const {
+    status,
+    startRecording,
+    stopRecording,
+    mediaBlobUrl,
+    clearBlobUrl,
+  } = useReactMediaRecorder({ 
+    audio: true,
+    video: false,
+    onStart: () => {
+      setRecordingStartTime(Date.now())
+    },
+    onStop: (blobUrl: string, blob: Blob) => {
+      if (blob && blobUrl) {
+        const duration = Math.floor((Date.now() - recordingStartTime) / 1000)
+        addRecordingToQueue(blob, blobUrl, duration)
+        clearBlobUrl() // Clear the media recorder's blob URL since we're managing our own
       }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-      }
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current)
-      }
-      if (audioContext && audioContext.state !== 'closed') {
-        audioContext.close()
-      }
-    }
-  }, [audioStream, audioContext])
+    },
+  })
 
-  // Real-time audio level visualization
-  const visualizeAudio = () => {
-    if (!analyser || !isRecording || !audioContext || audioContext.state === 'closed') return
-
-    const bufferLength = analyser.frequencyBinCount
-    const dataArray = new Uint8Array(bufferLength)
-    
-    const animate = () => {
-      if (!isRecording || !audioContext || audioContext.state === 'closed') return
-      
-      try {
-        analyser.getByteFrequencyData(dataArray)
-        
-        // Process audio data into visual levels
-        const levels: number[] = []
-        const chunkSize = Math.floor(bufferLength / 20)
-        
-        for (let i = 0; i < 20; i++) {
-          const start = i * chunkSize
-          const end = start + chunkSize
-          const chunk = dataArray.slice(start, end)
-          const average = chunk.reduce((sum, value) => sum + value, 0) / chunk.length
-          levels.push(average / 255) // Normalize to 0-1
-        }
-        
-        setAudioLevels(levels)
-        animationRef.current = requestAnimationFrame(animate)
-      } catch (error) {
-        console.error('Audio visualization error:', error)
-        // Stop the animation if there's an error
-        return
-      }
-    }
-    
-    animate()
-  }
-
-  useEffect(() => {
-    if (isRecording && analyser) {
-      visualizeAudio()
-    }
-  }, [isRecording, analyser])
-
-  // Simple timer effect with counter
-  useEffect(() => {
-    if (isRecording) {
-      const interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1)
-      }, 1000)
-
-      return () => {
-        clearInterval(interval)
-      }
-    }
-  }, [isRecording])
-
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      })
-      
-      setAudioStream(stream)
-      audioChunks.current = []
-      
-      // Set up audio context for visualization
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const source = ctx.createMediaStreamSource(stream)
-      const analyserNode = ctx.createAnalyser()
-      
-      analyserNode.fftSize = 256
-      analyserNode.smoothingTimeConstant = 0.3
-      source.connect(analyserNode)
-      
-      setAudioContext(ctx)
-      setAnalyser(analyserNode)
-      
-      const recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4'
-      })
-      
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunks.current.push(event.data)
-        }
-      }
-      
-      recorder.onstop = () => {
-        const blob = new Blob(audioChunks.current, { 
-          type: recorder.mimeType || 'audio/webm' 
-        })
-        
-        setCurrentRecordingBlob(blob)
-        
-        // Automatically add to queue
-        const timestamp = Date.now()
-        const fileName = `voice_message_${timestamp}.webm`
-        
-        const newAudioMessage: AudioMessage = {
-          id: Math.random().toString(36).substr(2, 9),
-          blob: blob,
-          url: URL.createObjectURL(blob),
-          uploaderName: uploaderName,
-          message: message,
-          status: 'pending',
-          progress: 0,
-          fileName: fileName,
-          duration: recordingTime
-        }
-        
-        setAudioMessages(prev => [...prev, newAudioMessage])
-        setMessage("") // Clear message after adding recording
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop())
-        setAudioStream(null)
-        
-        // Clean up audio context
-        if (ctx && ctx.state !== 'closed') {
-          ctx.close()
-        }
-        setAudioContext(null)
-        setAnalyser(null)
-        setAudioLevels(new Array(20).fill(0))
-      }
-      
-      setMediaRecorder(recorder)
-      recorder.start(1000) // Collect data every second
-      setRecordingTime(0)
-      startTimeRef.current = Date.now()
-      setIsRecording(true) // Set this last to trigger the timer effect
-      
-    } catch (error) {
-      console.error('Error starting recording:', error)
-      alert('Could not access microphone. Please check permissions.')
-    }
-  }
-
-  const stopRecording = () => {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-      mediaRecorder.stop()
-    }
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current)
-      animationRef.current = null
-    }
-    setIsRecording(false) // This will trigger the useEffect cleanup
-    setMediaRecorder(null)
-  }
-
-  const addRecordingToQueue = () => {
-    if (!currentRecordingBlob) return
-
+  // Add recording to queue when recording stops
+  const addRecordingToQueue = useCallback((blob: Blob, url: string, duration: number) => {
     const timestamp = Date.now()
     const fileName = `voice_message_${timestamp}.webm`
     
     const newAudioMessage: AudioMessage = {
       id: Math.random().toString(36).substr(2, 9),
-      blob: currentRecordingBlob,
-      url: URL.createObjectURL(currentRecordingBlob),
+      blob: blob,
+      url: url,
       uploaderName: uploaderName,
       message: message,
       status: 'pending',
       progress: 0,
       fileName: fileName,
-      duration: recordingTime
+      duration: duration
     }
     
     setAudioMessages(prev => [...prev, newAudioMessage])
     setMessage("") // Clear message after adding recording
-    setCurrentRecordingBlob(null) // Clear current recording
-  }
+  }, [uploaderName, message])
 
-  const removeAudioMessage = (id: string) => {
+
+  const removeAudioMessage = useCallback((id: string) => {
     setAudioMessages(prev => {
       const audioMessage = prev.find(a => a.id === id)
       if (audioMessage) {
@@ -278,7 +216,7 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
       }
       return prev.filter(a => a.id !== id)
     })
-  }
+  }, [])
 
   const updateAudioMessage = (id: string, updates: Partial<AudioMessage>) => {
     setAudioMessages(prev => prev.map(audio => 
@@ -406,30 +344,11 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-6">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push(`/gallery/${event.slug}`)}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Gallery
-          </Button>
-          
-          <div>
-            <h1 className="text-2xl font-bold">{event.coupleNames}</h1>
-            <p className="text-muted-foreground">
-              Share your audio messages from {event.name}
-            </p>
-          </div>
-        </div>
+        
 
         {/* Uploader Information */}
         <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>Your Information</CardTitle>
-          </CardHeader>
+
           <CardContent className="space-y-4">
             <div>
               <Label htmlFor="uploader-name">Your Name (Optional)</Label>
@@ -437,8 +356,8 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
                 id="uploader-name"
                 value={uploaderName}
                 onChange={(e) => setUploaderName(e.target.value)}
-                placeholder="Enter your name to be credited with messages"
-                disabled={isUploading || isRecording}
+                placeholder="John Smith"
+                disabled={isUploading || status === 'recording'}
               />
             </div>
           </CardContent>
@@ -453,66 +372,60 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="message">Message (Optional)</Label>
-              <Textarea
-                id="message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Add a text message to go with your voice recording..."
-                disabled={isUploading || isRecording}
-                rows={3}
-              />
-            </div>
 
-            {/* Waveform Visualization */}
+            {/* Simple Recording Interface */}
             <div className="border rounded-lg p-4 bg-white">
-              {isRecording ? (
+              {status === 'recording' ? (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="text-2xl font-mono font-bold text-red-500">
-                      {formatDuration(recordingTime)}
+                    <div className="text-2xl font-mono font-bold text-red-500 animate-pulse">
+                      ● REC
                     </div>
-                    <p className="text-sm text-muted-foreground">Recording...</p>
+                    <p className="text-sm text-muted-foreground">Recording in progress...</p>
                   </div>
                   
-                  {/* Real-time Audio Visualization */}
+                  {/* Simple Recording Animation */}
                   <div className="bg-white rounded-lg p-4 flex items-center justify-center">
-                    <div className="flex items-end space-x-1" style={{ height: '60px' }}>
-                      {audioLevels.map((level, i) => (
+                    <div className="flex items-center space-x-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
                         <div
                           key={i}
-                          className="rounded-t-sm transition-all duration-75"
+                          className="w-3 h-8 bg-primary rounded-full animate-pulse"
                           style={{
-                            width: '4px',
-                            height: `${Math.max(2, level * 50 + 5)}px`,
-                            backgroundColor: level > 0.7 ? '#7c3aed' : level > 0.4 ? '#8b5cf6' : '#a855f7',
+                            animationDelay: `${i * 0.1}s`,
+                            animationDuration: '1s',
                           }}
                         />
                       ))}
                     </div>
                   </div>
+                  
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={stopRecording}
+                      size="lg"
+                      className="bg-red-500 hover:bg-red-600 text-white"
+                    >
+                      <Square className="h-5 w-5 mr-2" />
+                      Stop Recording
+                    </Button>
+                  </div>
                 </div>
-              ) : currentRecordingBlob ? (
+              ) : status === 'stopped' && mediaBlobUrl ? (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <p className="text-sm font-medium text-green-600">Recording Complete</p>
-                    <p className="text-xs text-muted-foreground">Duration: {formatDuration(recordingTime)}</p>
+                    <p className="text-sm font-medium text-primary">Recording Complete</p>
+                    <p className="text-xs text-muted-foreground">Recording automatically added to queue!</p>
                   </div>
                   
-                  {/* Recorded Waveform */}
-                  <div className="bg-white rounded-lg p-2">
-                    <WavesurferPlayer
-                      height={80}
-                      waveColor="#8b5cf6"
-                      progressColor="#7c3aed"
-                      url={URL.createObjectURL(currentRecordingBlob)}
-                      normalize={true}
+                  {/* Preview Player */}
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <audio 
+                      src={mediaBlobUrl} 
+                      controls 
+                      className="w-full" 
+                      style={{ height: '40px' }}
                     />
-                  </div>
-                  
-                  <div className="text-center text-sm text-green-600 font-medium">
-                    Recording automatically added to queue!
                   </div>
                 </div>
               ) : (
@@ -520,31 +433,22 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
                   <div className="flex items-center justify-center gap-4">
                     <Button
                       onClick={startRecording}
-                      disabled={!uploadWindowOpen || isUploading}
+                      disabled={!uploadWindowOpen || isUploading || status === 'acquiring_media'}
                       size="lg"
-                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     >
                       <Mic className="h-5 w-5 mr-2" />
-                      Start Recording
+                      {status === 'acquiring_media' ? 'Getting Permission...' : 'Start Recording'}
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground mt-4">
                     Click to start recording your voice message
                   </p>
-                </div>
-              )}
-
-              {/* Stop Recording Button */}
-              {isRecording && (
-                <div className="flex justify-center">
-                  <Button
-                    onClick={stopRecording}
-                    size="lg"
-                    className="bg-red-500 hover:bg-red-600 text-white"
-                  >
-                    <Square className="h-5 w-5 mr-2" />
-                    Stop Recording
-                  </Button>
+                  {status === 'permission_denied' && (
+                    <p className="text-sm text-red-500 mt-2">
+                      Microphone permission denied. Please allow access and try again.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -559,77 +463,12 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
             </CardHeader>
             <CardContent className="space-y-4">
               {audioMessages.map((audioMessage) => (
-                <div key={audioMessage.id} className="border rounded-lg p-4">
-                  <div className="flex items-start gap-4">
-                    {/* Waveform Player */}
-                    <div className="flex-1">
-                      <WavesurferPlayer
-                        height={60}
-                        waveColor="#8b5cf6"
-                        progressColor="#7c3aed"
-                        url={audioMessage.url}
-                        normalize={true}
-                      />
-                    </div>
-
-                    {/* Message Info */}
-                    <div className="flex-shrink-0 w-48">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-medium text-xs">
-                          {formatDuration(audioMessage.duration)}
-                        </span>
-                        {audioMessage.status === 'success' && (
-                          <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded flex items-center gap-1">
-                            <CheckCircle className="h-3 w-3" />
-                            Uploaded
-                          </span>
-                        )}
-                        {audioMessage.status === 'error' && (
-                          <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded flex items-center gap-1">
-                            <AlertCircle className="h-3 w-3" />
-                            Failed
-                          </span>
-                        )}
-                        {audioMessage.status === 'uploading' && (
-                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                            Uploading
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Progress */}
-                      {audioMessage.status === 'uploading' && (
-                        <Progress value={audioMessage.progress} className="mb-2" />
-                      )}
-
-                      {/* Error message */}
-                      {audioMessage.status === 'error' && audioMessage.error && (
-                        <p className="text-xs text-destructive mb-2">{audioMessage.error}</p>
-                      )}
-
-                      {/* Name and Message */}
-                      {audioMessage.uploaderName && (
-                        <p className="text-xs text-muted-foreground">
-                          From: {audioMessage.uploaderName}
-                        </p>
-                      )}
-                      {audioMessage.message && (
-                        <p className="text-xs mt-1">{audioMessage.message}</p>
-                      )}
-                    </div>
-
-                    {/* Remove button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeAudioMessage(audioMessage.id)}
-                      disabled={isUploading}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <MemoizedAudioPlayer
+                  key={audioMessage.id}
+                  audioMessage={audioMessage}
+                  onRemove={removeAudioMessage}
+                  isUploading={isUploading}
+                />
               ))}
             </CardContent>
           </Card>
@@ -640,7 +479,7 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
           <div className="flex items-center justify-between">
             <div className="text-sm text-muted-foreground">
               {successCount > 0 && (
-                <span className="text-green-600">
+                <span className="text-primary">
                   {successCount} uploaded successfully
                 </span>
               )}

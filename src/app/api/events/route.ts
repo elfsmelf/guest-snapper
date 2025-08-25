@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // User already exists in Better Auth users table, no need for separate profile
 
-    // Create the event - trying with minimal required fields first
+    // Create the event - database defaults handle approveUploads: false, guestCanViewAlbum: true, isPublished: false
     const [newEvent] = await db.insert(events).values({
       userId: session.user.id,
       organizationId: null, // Will be set when organizations are implemented

@@ -1,10 +1,10 @@
 'use server'
 
 import { db } from '@/database/db'
-import { uploads, events } from '@/database/schema'
-import { eq, count, countDistinct, and } from 'drizzle-orm'
+import { uploads, events, guests } from '@/database/schema'
+import { eq, count, countDistinct, and, isNotNull } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
+import { headers, cookies } from 'next/headers'
 import { revalidateTag } from 'next/cache'
 import { canAcceptMoreGuests } from '@/lib/feature-gates'
 
@@ -26,7 +26,46 @@ export async function createUpload(uploadData: UploadData) {
       headers: await headers()
     })
 
-    // Allow public uploads for now (no session required)
+    const cookieStore = await cookies()
+    let guestId: string | null = null
+    let anonId: string | null = null
+
+    // Handle anonymous guest tracking for non-authenticated users
+    if (!session?.user?.id) {
+      guestId = cookieStore.get('guest_id')?.value || null
+      
+      if (guestId) {
+        // Check if guest record already exists for this event
+        const existingGuest = await db
+          .select()
+          .from(guests)
+          .where(and(
+            eq(guests.id, guestId),
+            eq(guests.eventId, uploadData.eventId)
+          ))
+          .limit(1)
+
+        if (existingGuest.length > 0) {
+          anonId = existingGuest[0].id
+        } else {
+          // Create new guest record for this event
+          const newGuest = await db
+            .insert(guests)
+            .values({
+              id: guestId,
+              eventId: uploadData.eventId,
+              guestName: uploadData.uploaderName || null,
+              ipAddress: null, // Could add IP tracking if needed
+              userAgent: null, // Could add user agent tracking if needed
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            })
+            .returning()
+          
+          anonId = newGuest[0].id
+        }
+      }
+    }
 
     // Verify event exists and get event details for plan checking
     const eventResult = await db
@@ -41,17 +80,29 @@ export async function createUpload(uploadData: UploadData) {
 
     const event = eventResult[0]
 
-    // Get current unique guest count (by sessionId)
-    const guestCountResult = await db
+    // Get current unique guest count (authenticated users + anonymous guests)
+    const authenticatedGuestCount = await db
       .select({ count: countDistinct(uploads.sessionId) })
       .from(uploads)
-      .where(eq(uploads.eventId, uploadData.eventId))
+      .where(and(
+        eq(uploads.eventId, uploadData.eventId),
+        isNotNull(uploads.sessionId)
+      ))
 
-    const currentGuestCount = guestCountResult[0]?.count || 0
+    const anonymousGuestCount = await db
+      .select({ count: countDistinct(uploads.anonId) })
+      .from(uploads)
+      .where(and(
+        eq(uploads.eventId, uploadData.eventId),
+        isNotNull(uploads.anonId)
+      ))
 
-    // Check if this is a new guest (session not seen before)
+    const currentGuestCount = (authenticatedGuestCount[0]?.count || 0) + (anonymousGuestCount[0]?.count || 0)
+
+    // Check if this is a new guest
     let isNewGuest = true
     if (session?.user?.id) {
+      // Check authenticated user uploads
       const existingUploadsForSession = await db
         .select({ count: count() })
         .from(uploads)
@@ -61,7 +112,19 @@ export async function createUpload(uploadData: UploadData) {
         ))
       
       isNewGuest = (existingUploadsForSession[0]?.count || 0) === 0
+    } else if (anonId) {
+      // Check anonymous guest uploads
+      const existingUploadsForGuest = await db
+        .select({ count: count() })
+        .from(uploads)
+        .where(and(
+          eq(uploads.eventId, uploadData.eventId),
+          eq(uploads.anonId, anonId)
+        ))
+      
+      isNewGuest = (existingUploadsForGuest[0]?.count || 0) === 0
     }
+
     const effectiveGuestCount = isNewGuest ? currentGuestCount + 1 : currentGuestCount
 
     // Check if event can accept more guests based on plan
@@ -88,6 +151,7 @@ export async function createUpload(uploadData: UploadData) {
         eventId: uploadData.eventId,
         albumId: uploadData.albumId || null,
         sessionId: session?.user?.id || null,
+        anonId: anonId,
         fileName: uploadData.fileName,
         fileUrl: uploadData.fileUrl,
         fileType: uploadData.fileType,

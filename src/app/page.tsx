@@ -13,21 +13,21 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-background">
       <main className="relative">
-        <section className="relative overflow-hidden bg-gradient-to-b from-slate-900 to-slate-950">
+        <section className="relative overflow-hidden bg-gradient-to-b from-foreground to-muted-foreground">
           <div className="mx-auto max-w-7xl px-6 py-20 lg:py-28">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               {/* Left: Copy */}
               <div className="relative z-10">
                 {/* Trust bar */}
                 <div className="mb-4 flex items-center gap-3">
-                  <p className="text-sm font-medium text-slate-300">
+                  <p className="text-sm font-medium text-muted">
                     Trusted by 10,000+ Events
                   </p>
                   <div className="flex items-center">
                     {Array.from({ length: 5 }).map((_, i) => (
                       <svg
                         key={i}
-                        className="h-4 w-4 text-yellow-400"
+                        className="h-4 w-4 text-primary"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -37,11 +37,11 @@ export default async function HomePage() {
                   </div>
                 </div>
 
-                <h1 className="text-left text-4xl font-semibold leading-tight text-white sm:text-5xl">
+                <h1 className="text-left text-4xl font-semibold leading-tight text-background sm:text-5xl">
                   Easily Collect Photos, Videos & Messages From All Your Guests
                 </h1>
 
-                <p className="mt-6 max-w-xl text-left text-slate-200">
+                <p className="mt-6 max-w-xl text-left text-muted">
                   Create QR codes that let your wedding guests easily share photos and videos. 
                   Build a beautiful digital album with every precious moment from your special day, 
                   all stored securely in one place.
@@ -49,13 +49,13 @@ export default async function HomePage() {
 
                 <div className="mt-8 flex flex-col items-start gap-4 sm:flex-row">
                   <Button asChild size="lg" className="gap-2">
-                    <Link href="/auth/sign-up">
-                      Get Your Event QR Code
+                    <Link href="/auth/sign-in">
+                      Get Started
                       <span aria-hidden>→</span>
                     </Link>
                   </Button>
 
-                  <Button asChild size="lg" variant="secondary" className="bg-white text-slate-900 hover:bg-slate-100">
+                  <Button asChild size="lg" variant="secondary">
                     <Link href="/how-it-works">Explore How It Works</Link>
                   </Button>
                 </div>
@@ -65,29 +65,29 @@ export default async function HomePage() {
               <div className="relative">
                 {/* Decorative circles */}
                 <div className="pointer-events-none absolute -left-10 -top-8 h-40 w-40 opacity-60">
-                  <div className="h-full w-full rounded-full bg-gradient-to-br from-purple-400 to-pink-400 blur-xl" />
+                  <div className="h-full w-full rounded-full bg-gradient-to-br from-primary to-accent blur-xl" />
                 </div>
                 <div className="pointer-events-none absolute -right-6 top-10 h-32 w-32 opacity-60">
-                  <div className="h-full w-full rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 blur-xl" />
+                  <div className="h-full w-full rounded-full bg-gradient-to-br from-secondary to-accent blur-xl" />
                 </div>
                 <div className="pointer-events-none absolute -bottom-6 left-6 h-36 w-36 opacity-60">
-                  <div className="h-full w-full rounded-full bg-gradient-to-br from-green-400 to-emerald-400 blur-xl" />
+                  <div className="h-full w-full rounded-full bg-gradient-to-br from-muted to-secondary blur-xl" />
                 </div>
 
                 {/* Main QR Code visualization */}
                 <div className="relative z-10 mx-auto max-w-[720px]">
-                  <div className="relative rounded-2xl bg-white p-8 shadow-2xl ring-1 ring-white/10">
+                  <div className="relative rounded-2xl bg-card p-8 shadow-2xl ring-1 ring-border">
                     {/* Mock QR Code */}
-                    <div className="mx-auto w-48 h-48 bg-black rounded-lg p-4">
-                      <div className="w-full h-full bg-black relative">
+                    <div className="mx-auto w-48 h-48 bg-foreground rounded-lg p-4">
+                      <div className="w-full h-full bg-foreground relative">
                         {/* Simple QR pattern mockup */}
-                        <div className="absolute inset-2 bg-white rounded-sm">
+                        <div className="absolute inset-2 bg-background rounded-sm">
                           <div className="grid grid-cols-8 grid-rows-8 gap-px p-2">
                             {Array.from({ length: 64 }).map((_, i) => (
                               <div
                                 key={i}
                                 className={`aspect-square ${
-                                  Math.random() > 0.5 ? 'bg-black' : 'bg-white'
+                                  Math.random() > 0.5 ? 'bg-foreground' : 'bg-background'
                                 }`}
                               />
                             ))}
@@ -96,10 +96,10 @@ export default async function HomePage() {
                       </div>
                     </div>
                     <div className="mt-6 text-center">
-                      <h3 className="text-lg font-semibold text-slate-900">
+                      <h3 className="text-lg font-semibold text-foreground">
                         Scan & Share
                       </h3>
-                      <p className="mt-2 text-sm text-slate-600">
+                      <p className="mt-2 text-sm text-muted-foreground">
                         Your guests scan this QR code to instantly upload photos and videos
                       </p>
                     </div>
@@ -110,7 +110,7 @@ export default async function HomePage() {
           </div>
 
           {/* Subtle gradient overlay at bottom */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-950/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-muted-foreground/80 to-transparent" />
         </section>
       </main>
     </div>

@@ -1,6 +1,6 @@
 import { db } from "@/database/db"
-import { uploads, guestbookEntries } from "@/database/schema"
-import { eq, and, count, countDistinct, sql } from "drizzle-orm"
+import { uploads, guestbookEntries, guests } from "@/database/schema"
+import { eq, and, count, countDistinct, sql, isNotNull } from "drizzle-orm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Image as ImageIcon, Video, Users, MessageSquare } from "lucide-react"
 
@@ -35,10 +35,8 @@ export default async function EventStatsGrid({ eventId, guestCount }: EventStats
     db.select({ count: count() }).from(uploads).where(
       and(eq(uploads.eventId, eventId), eq(uploads.isApproved, true))
     ),
-    // Unique contributors (by sessionId from uploads)
-    db.select({ count: countDistinct(uploads.sessionId) }).from(uploads).where(
-      and(eq(uploads.eventId, eventId), sql`${uploads.sessionId} IS NOT NULL`)
-    ),
+    // Unique guests only (count from guests table, not uploads)
+    db.select({ count: count() }).from(guests).where(eq(guests.eventId, eventId)),
     // Guestbook entries
     db.select({ count: count() }).from(guestbookEntries).where(eq(guestbookEntries.eventId, eventId))
   ])

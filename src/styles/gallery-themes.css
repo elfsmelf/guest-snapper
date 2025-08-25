@@ -1,0 +1,674 @@
+/**
+ * Gallery Theme System
+ * 
+ * Eight themes available:
+ * 1. Default - Uses the main application styling from globals.css
+ * 2. Lavender - Purple/lavender theme with Lora typography
+ * 3. Vintage Paper - Warm earth tones with Libre Baskerville typography
+ * 4. Sepia Noir - Classic sepia tones with Playfair Display typography
+ * 5. Black and White - Pure monochrome with clean system typography
+ * 6. Notebook - Handwritten style with Architects Daughter typography
+ * 7. Ocean - Fresh ocean blues with modern Inter and Source Serif 4 typography
+ * 8. Sunset - Warm sunset oranges with Montserrat and Merriweather typography
+ * 
+ * Fonts are loaded via next/font in layout.tsx
+ */
+
+/* Base gallery app styles */
+.gallery-app {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans, ui-sans-serif, system-ui);
+}
+
+.gallery-app * {
+  box-sizing: border-box;
+}
+
+/* Typography utilities */
+.gallery-app .gallery-serif {
+  font-family: var(--font-serif, ui-serif, Georgia, serif) !important;
+}
+
+.gallery-app .gallery-sans {
+  font-family: var(--font-sans, ui-sans-serif, system-ui) !important;
+}
+
+.gallery-app .gallery-mono {
+  font-family: var(--font-mono, ui-monospace, 'Courier New', monospace) !important;
+}
+
+/* ===== DEFAULT THEME ===== */
+/* Uses the main application theme from globals.css */
+.gallery-theme-default {
+  /* Inherits all CSS variables from :root in globals.css */
+  /* No need to redefine - the gallery will use the app's theme */
+}
+
+/* Default theme dark mode - inherits from app dark mode */
+.gallery-theme-default[data-gallery-mode="dark"] {
+  /* Inherits dark mode variables from .dark in globals.css */
+}
+
+/* ===== LAVENDER THEME (Elegant) ===== */
+.gallery-theme-custom {
+  /* Semantic Design Tokens */
+  --background: oklch(0.9777 0.0041 301.4256);
+  --foreground: oklch(0.3651 0.0325 287.0807);
+  --card: oklch(1.0000 0 0);
+  --card-foreground: oklch(0.3651 0.0325 287.0807);
+  --popover: oklch(1.0000 0 0);
+  --popover-foreground: oklch(0.3651 0.0325 287.0807);
+  --primary: oklch(0.6104 0.0767 299.7335);
+  --primary-foreground: oklch(0.9777 0.0041 301.4256);
+  --secondary: oklch(0.8957 0.0265 300.2416);
+  --secondary-foreground: oklch(0.3651 0.0325 287.0807);
+  --muted: oklch(0.8906 0.0139 299.7754);
+  --muted-foreground: oklch(0.5288 0.0375 290.7895);
+  --accent: oklch(0.7889 0.0802 359.9375);
+  --accent-foreground: oklch(0.3394 0.0441 1.7583);
+  --destructive: oklch(0.6332 0.1578 22.6734);
+  --destructive-foreground: oklch(0.9777 0.0041 301.4256);
+  --success: oklch(0.6332 0.1578 142.4954);
+  --success-foreground: oklch(0.9777 0.0041 301.4256);
+  --warning: oklch(0.8540 0.0882 76.8292);
+  --warning-foreground: oklch(0.2166 0.0215 76.8292);
+  --border: oklch(0.8447 0.0226 300.1421);
+  --input: oklch(0.9329 0.0124 301.2783);
+  --ring: oklch(0.6104 0.0767 299.7335);
+  --shadow: oklch(0 0 0 / 0.1);
+  
+  /* Typography - Lora for elegant serif */
+  --font-serif: var(--font-lora), Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  /* Scale tokens */
+  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-lg: calc(var(--radius) + 2px);
+}
+
+/* Lavender theme dark mode */
+.gallery-theme-custom[data-gallery-mode="dark"] {
+  --background: oklch(0.2166 0.0215 292.8474);
+  --foreground: oklch(0.9053 0.0245 293.5570);
+  --card: oklch(0.2544 0.0301 292.7315);
+  --card-foreground: oklch(0.9053 0.0245 293.5570);
+  --popover: oklch(0.2544 0.0301 292.7315);
+  --popover-foreground: oklch(0.9053 0.0245 293.5570);
+  --primary: oklch(0.7058 0.0777 302.0489);
+  --primary-foreground: oklch(0.2166 0.0215 292.8474);
+  --secondary: oklch(0.4604 0.0472 295.5578);
+  --secondary-foreground: oklch(0.9053 0.0245 293.5570);
+  --muted: oklch(0.2560 0.0320 294.8380);
+  --muted-foreground: oklch(0.6974 0.0282 300.0614);
+  --accent: oklch(0.3181 0.0321 308.6149);
+  --accent-foreground: oklch(0.8391 0.0692 2.6681);
+  --destructive: oklch(0.6875 0.1420 21.4566);
+  --destructive-foreground: oklch(0.2166 0.0215 292.8474);
+  --success: oklch(0.5316 0.1409 142.4954);
+  --success-foreground: oklch(0.2166 0.0215 292.8474);
+  --warning: oklch(0.7321 0.0749 76.8292);
+  --warning-foreground: oklch(0.1548 0.0132 76.8292);
+  --border: oklch(0.3063 0.0359 293.3367);
+  --input: oklch(0.2847 0.0346 291.2726);
+  --ring: oklch(0.7058 0.0777 302.0489);
+  --shadow: oklch(0 0 0 / 0.3);
+}
+
+/* ===== VINTAGE PAPER THEME (Autumn/Warm) ===== */
+.gallery-theme-autumn {
+  /* Semantic Design Tokens - Light Mode */
+  --background: hsl(44.0000, 42.8571%, 93.1373%);
+  --foreground: hsl(28.5714, 16.5354%, 24.9020%);
+  --card: hsl(42.0000, 100.0000%, 98.0392%);
+  --card-foreground: hsl(28.5714, 16.5354%, 24.9020%);
+  --popover: hsl(42.0000, 100.0000%, 98.0392%);
+  --popover-foreground: hsl(28.5714, 16.5354%, 24.9020%);
+  --primary: hsl(30.0000, 33.8710%, 48.6275%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(40.6452, 34.8315%, 82.5490%);
+  --secondary-foreground: hsl(28.9655, 18.7097%, 30.3922%);
+  --muted: hsl(39, 34.4828%, 88.6275%);
+  --muted-foreground: hsl(32.3077, 18.4834%, 41.3725%);
+  --accent: hsl(42.8571, 32.8125%, 74.9020%);
+  --accent-foreground: hsl(28.5714, 16.5354%, 24.9020%);
+  --destructive: hsl(9.8438, 54.7009%, 45.8824%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(40.0000, 31.4286%, 79.4118%);
+  --input: hsl(40.0000, 31.4286%, 79.4118%);
+  --ring: hsl(30.0000, 33.8710%, 48.6275%);
+  --shadow: hsl(28, 13%, 20% / 0.12);
+  
+  /* Chart colors */
+  --chart-1: hsl(30.0000, 33.8710%, 48.6275%);
+  --chart-2: hsl(31.3846, 29.9539%, 42.5490%);
+  --chart-3: hsl(33.6842, 32.9480%, 33.9216%);
+  --chart-4: hsl(29.1176, 30.9091%, 56.8627%);
+  --chart-5: hsl(30, 33.6842%, 62.7451%);
+  
+  /* Typography - Libre Baskerville for elegant serif */
+  --font-serif: var(--font-libre-baskerville), "Libre Baskerville", Georgia, serif;
+  --font-sans: var(--font-libre-baskerville), "Libre Baskerville", serif;
+  --font-mono: "IBM Plex Mono", "Courier New", monospace;
+  
+  /* Scale tokens */
+  --radius: 0.25rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+}
+
+/* Vintage Paper theme dark mode */
+.gallery-theme-autumn[data-gallery-mode="dark"] {
+  --background: hsl(25.0000, 15.3846%, 15.2941%);
+  --foreground: hsl(39, 34.4828%, 88.6275%);
+  --card: hsl(25.7143, 13.7255%, 20%);
+  --card-foreground: hsl(39, 34.4828%, 88.6275%);
+  --popover: hsl(25.7143, 13.7255%, 20%);
+  --popover-foreground: hsl(39, 34.4828%, 88.6275%);
+  --primary: hsl(30, 33.6842%, 62.7451%);
+  --primary-foreground: hsl(25.0000, 15.3846%, 15.2941%);
+  --secondary: hsl(24.7059, 12.9771%, 25.6863%);
+  --secondary-foreground: hsl(39, 34.4828%, 88.6275%);
+  --muted: hsl(25.7143, 13.7255%, 20%);
+  --muted-foreground: hsl(38.4000, 17.7305%, 72.3529%);
+  --accent: hsl(24.4444, 17.8808%, 29.6078%);
+  --accent-foreground: hsl(39, 34.4828%, 88.6275%);
+  --destructive: hsl(9.8438, 54.7009%, 45.8824%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(24.7059, 12.9771%, 25.6863%);
+  --input: hsl(24.7059, 12.9771%, 25.6863%);
+  --ring: hsl(30, 33.6842%, 62.7451%);
+  --shadow: hsl(28, 13%, 20% / 0.3);
+  
+  /* Chart colors for dark mode */
+  --chart-1: hsl(30, 33.6842%, 62.7451%);
+  --chart-2: hsl(29.1176, 30.9091%, 56.8627%);
+  --chart-3: hsl(30.0000, 33.8710%, 48.6275%);
+  --chart-4: hsl(31.3846, 29.9539%, 42.5490%);
+  --chart-5: hsl(33.6842, 32.9480%, 33.9216%);
+}
+
+/* ===== SEPIA NOIR THEME (Classic) ===== */
+.gallery-theme-sepia {
+  /* Semantic Design Tokens - Light Mode */
+  --background: hsl(25.7143, 63.6364%, 97.8431%);
+  --foreground: hsl(0, 0%, 20.7843%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(0, 0%, 20.7843%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 20.7843%);
+  --primary: hsl(20.0000, 14.7982%, 56.2745%);
+  --primary-foreground: hsl(25.7143, 63.6364%, 97.8431%);
+  --secondary: hsl(30.5660, 63.8554%, 83.7255%);
+  --secondary-foreground: hsl(0, 0%, 20.7843%);
+  --muted: hsl(30, 41.1765%, 93.3333%);
+  --muted-foreground: hsl(22.1053, 9.7436%, 38.2353%);
+  --accent: hsl(30.5660, 63.8554%, 83.7255%);
+  --accent-foreground: hsl(0, 0%, 20.7843%);
+  --destructive: hsl(0, 64.9770%, 57.4510%);
+  --destructive-foreground: hsl(25.7143, 63.6364%, 97.8431%);
+  --border: hsl(27.6923, 24.0741%, 78.8235%);
+  --input: hsl(27.6923, 24.0741%, 78.8235%);
+  --ring: hsl(20.0000, 14.7982%, 56.2745%);
+  --shadow: hsl(0, 0%, 0% / 0.10);
+  
+  /* Chart colors */
+  --chart-1: hsl(20.0000, 14.7982%, 56.2745%);
+  --chart-2: hsl(20.6897, 16.3842%, 65.2941%);
+  --chart-3: hsl(21.2903, 21.6783%, 71.9608%);
+  --chart-4: hsl(27.6923, 24.0741%, 78.8235%);
+  --chart-5: hsl(26.8966, 36.7089%, 84.5098%);
+  
+  /* Sidebar colors */
+  --sidebar: hsl(30, 41.1765%, 93.3333%);
+  --sidebar-foreground: hsl(0, 0%, 20.7843%);
+  --sidebar-primary: hsl(20.0000, 14.7982%, 56.2745%);
+  --sidebar-primary-foreground: hsl(25.7143, 63.6364%, 97.8431%);
+  --sidebar-accent: hsl(20.0000, 14.7982%, 56.2745%);
+  --sidebar-accent-foreground: hsl(25.7143, 63.6364%, 97.8431%);
+  --sidebar-border: hsl(27.6923, 24.0741%, 78.8235%);
+  --sidebar-ring: hsl(20.0000, 14.7982%, 56.2745%);
+  
+  /* Typography - Playfair Display for elegant serif */
+  --font-serif: var(--font-playfair-display), "Playfair Display", Georgia, serif;
+  --font-sans: "Source Sans Pro", ui-sans-serif, system-ui;
+  --font-mono: "Source Code Pro", "Courier New", monospace;
+  
+  /* Scale tokens */
+  --radius: 0.5rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+}
+
+/* Sepia Noir theme dark mode */
+.gallery-theme-sepia[data-gallery-mode="dark"] {
+  --background: hsl(0, 0%, 20.7843%);
+  --foreground: hsl(30.5660, 63.8554%, 83.7255%);
+  --card: hsl(0, 0%, 24.7059%);
+  --card-foreground: hsl(30.5660, 63.8554%, 83.7255%);
+  --popover: hsl(0, 0%, 20.7843%);
+  --popover-foreground: hsl(30.5660, 63.8554%, 83.7255%);
+  --primary: hsl(30.5660, 63.8554%, 83.7255%);
+  --primary-foreground: hsl(0, 0%, 20.7843%);
+  --secondary: hsl(20.0000, 14.7982%, 56.2745%);
+  --secondary-foreground: hsl(0, 0%, 20.7843%);
+  --muted: hsl(0, 0%, 31.3725%);
+  --muted-foreground: hsl(24.0000, 17.4419%, 66.2745%);
+  --accent: hsl(20.0000, 14.7982%, 56.2745%);
+  --accent-foreground: hsl(0, 0%, 10.9804%);
+  --destructive: hsl(0, 51.9126%, 35.8824%);
+  --destructive-foreground: hsl(30.5660, 63.8554%, 83.7255%);
+  --border: hsl(0, 0%, 31.3725%);
+  --input: hsl(0, 0%, 31.3725%);
+  --ring: hsl(20.0000, 14.7982%, 56.2745%);
+  --shadow: hsl(0, 0%, 0% / 0.25);
+  
+  /* Chart colors for dark mode */
+  --chart-1: hsl(20.0000, 14.7982%, 56.2745%);
+  --chart-2: hsl(21.2903, 21.6783%, 71.9608%);
+  --chart-3: hsl(26.8966, 36.7089%, 84.5098%);
+  --chart-4: hsl(25.2632, 38.7755%, 90.3922%);
+  --chart-5: hsl(25.0000, 54.5455%, 95.6863%);
+  
+  /* Sidebar colors for dark mode */
+  --sidebar: hsl(0, 0%, 24.7059%);
+  --sidebar-foreground: hsl(30.5660, 63.8554%, 83.7255%);
+  --sidebar-primary: hsl(30.5660, 63.8554%, 83.7255%);
+  --sidebar-primary-foreground: hsl(0, 0%, 20.7843%);
+  --sidebar-accent: hsl(20.0000, 14.7982%, 56.2745%);
+  --sidebar-accent-foreground: hsl(0, 0%, 10.9804%);
+  --sidebar-border: hsl(0, 0%, 31.3725%);
+  --sidebar-ring: hsl(20.0000, 14.7982%, 56.2745%);
+}
+
+/* ===== BLACK AND WHITE THEME (Monochrome) ===== */
+.gallery-theme-monochrome {
+  /* Semantic Design Tokens - Light Mode */
+  --background: hsl(223.8136, -172.5242%, 100.0000%);
+  --foreground: hsl(223.8136, 0.0000%, 3.9388%);
+  --card: hsl(223.8136, -172.5242%, 100.0000%);
+  --card-foreground: hsl(223.8136, 0.0000%, 3.9388%);
+  --popover: hsl(223.8136, -172.5242%, 100.0000%);
+  --popover-foreground: hsl(223.8136, 0.0000%, 3.9388%);
+  --primary: hsl(223.8136, 0.0000%, 9.0527%);
+  --primary-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --secondary: hsl(223.8136, 0.0002%, 96.0587%);
+  --secondary-foreground: hsl(223.8136, 0.0000%, 9.0527%);
+  --muted: hsl(223.8136, 0.0002%, 96.0587%);
+  --muted-foreground: hsl(223.8136, 0.0000%, 45.1519%);
+  --accent: hsl(223.8136, 0.0002%, 96.0587%);
+  --accent-foreground: hsl(223.8136, 0.0000%, 9.0527%);
+  --destructive: hsl(351.7303, 123.6748%, 40.5257%);
+  --destructive-foreground: hsl(223.8136, -172.5242%, 100.0000%);
+  --border: hsl(223.8136, 0.0001%, 89.8161%);
+  --input: hsl(223.8136, 0.0001%, 89.8161%);
+  --ring: hsl(223.8136, 0.0000%, 63.0163%);
+  --shadow: hsl(0, 0%, 0% / 0.10);
+  
+  /* Chart colors - Monochromatic blues for contrast */
+  --chart-1: hsl(211.7880, 101.9718%, 78.6759%);
+  --chart-2: hsl(217.4076, 91.3672%, 59.5787%);
+  --chart-3: hsl(221.4336, 86.3731%, 54.0624%);
+  --chart-4: hsl(223.6587, 78.7180%, 47.8635%);
+  --chart-5: hsl(226.5426, 70.0108%, 39.9224%);
+  
+  /* Sidebar colors */
+  --sidebar: hsl(223.8136, 0.0004%, 98.0256%);
+  --sidebar-foreground: hsl(223.8136, 0.0000%, 3.9388%);
+  --sidebar-primary: hsl(223.8136, 0.0000%, 9.0527%);
+  --sidebar-primary-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --sidebar-accent: hsl(223.8136, 0.0002%, 96.0587%);
+  --sidebar-accent-foreground: hsl(223.8136, 0.0000%, 9.0527%);
+  --sidebar-border: hsl(223.8136, 0.0001%, 89.8161%);
+  --sidebar-ring: hsl(223.8136, 0.0000%, 63.0163%);
+  
+  /* Typography - Clean sans serif focus */
+  --font-serif: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  
+  /* Scale tokens */
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+}
+
+/* Black and White theme dark mode */
+.gallery-theme-monochrome[data-gallery-mode="dark"] {
+  --background: hsl(223.8136, 0.0000%, 3.9388%);
+  --foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --card: hsl(223.8136, 0.0000%, 9.0527%);
+  --card-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --popover: hsl(223.8136, 0.0000%, 14.9382%);
+  --popover-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --primary: hsl(223.8136, 0.0001%, 89.8161%);
+  --primary-foreground: hsl(223.8136, 0.0000%, 9.0527%);
+  --secondary: hsl(223.8136, 0.0000%, 14.9382%);
+  --secondary-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --muted: hsl(223.8136, 0.0000%, 14.9382%);
+  --muted-foreground: hsl(223.8136, 0.0000%, 63.0163%);
+  --accent: hsl(223.8136, 0.0000%, 25.0471%);
+  --accent-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --destructive: hsl(358.7594, 101.8439%, 69.8357%);
+  --destructive-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --border: hsl(223.8136, 0.0000%, 15.5096%);
+  --input: hsl(223.8136, 0.0000%, 20.3885%);
+  --ring: hsl(223.8136, 0.0000%, 45.1519%);
+  --shadow: hsl(0, 0%, 0% / 0.25);
+  
+  /* Chart colors for dark mode - same blues but adjusted for dark background */
+  --chart-1: hsl(211.7880, 101.9718%, 78.6759%);
+  --chart-2: hsl(217.4076, 91.3672%, 59.5787%);
+  --chart-3: hsl(221.4336, 86.3731%, 54.0624%);
+  --chart-4: hsl(223.6587, 78.7180%, 47.8635%);
+  --chart-5: hsl(226.5426, 70.0108%, 39.9224%);
+  
+  /* Sidebar colors for dark mode */
+  --sidebar: hsl(223.8136, 0.0000%, 9.0527%);
+  --sidebar-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --sidebar-primary: hsl(225.3451, 84.0953%, 48.9841%);
+  --sidebar-primary-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --sidebar-accent: hsl(223.8136, 0.0000%, 14.9382%);
+  --sidebar-accent-foreground: hsl(223.8136, 0.0004%, 98.0256%);
+  --sidebar-border: hsl(223.8136, 0.0000%, 15.5096%);
+  --sidebar-ring: hsl(223.8136, 0.0000%, 32.1993%);
+}
+
+/* ===== NOTEBOOK THEME (Handwritten) ===== */
+.gallery-theme-notebook {
+  /* Semantic Design Tokens - Light Mode */
+  --background: hsl(0, 0%, 97.6471%);
+  --foreground: hsl(0, 0%, 22.7451%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(0, 0%, 22.7451%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 22.7451%);
+  --primary: hsl(0, 0%, 37.6471%);
+  --primary-foreground: hsl(0, 0%, 94.1176%);
+  --secondary: hsl(0, 0%, 87.0588%);
+  --secondary-foreground: hsl(0, 0%, 22.7451%);
+  --muted: hsl(0, 0%, 89.0196%);
+  --muted-foreground: hsl(0, 0%, 31.3725%);
+  --accent: hsl(47.4419, 64.1791%, 86.8627%);
+  --accent-foreground: hsl(14.2105, 25.6757%, 29.0196%);
+  --destructive: hsl(0, 41.4894%, 63.1373%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(0, 0.8696%, 45.0980%);
+  --input: hsl(0, 0%, 100%);
+  --ring: hsl(0, 0%, 62.7451%);
+  --shadow: hsl(0, 0%, 0% / 0.03);
+  
+  /* Chart colors - Grayscale gradient */
+  --chart-1: hsl(0, 0%, 20%);
+  --chart-2: hsl(0, 0%, 33.3333%);
+  --chart-3: hsl(0, 0%, 46.6667%);
+  --chart-4: hsl(0, 0%, 60%);
+  --chart-5: hsl(0, 0%, 73.3333%);
+  
+  /* Sidebar colors */
+  --sidebar: hsl(0, 0%, 94.1176%);
+  --sidebar-foreground: hsl(0, 0%, 22.7451%);
+  --sidebar-primary: hsl(0, 0%, 37.6471%);
+  --sidebar-primary-foreground: hsl(0, 0%, 94.1176%);
+  --sidebar-accent: hsl(47.4419, 64.1791%, 86.8627%);
+  --sidebar-accent-foreground: hsl(14.2105, 25.6757%, 29.0196%);
+  --sidebar-border: hsl(0, 0%, 75.2941%);
+  --sidebar-ring: hsl(0, 0%, 62.7451%);
+  
+  /* Typography - Handwritten focus with sans serif fallback */
+  --font-serif: var(--font-architects-daughter), "Architects Daughter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-architects-daughter), "Architects Daughter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Courier New", ui-monospace, monospace;
+  
+  /* Scale tokens */
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  
+  /* Letter spacing for handwritten feel */
+  --tracking-normal: 0.5px;
+}
+
+/* Notebook theme dark mode */
+.gallery-theme-notebook[data-gallery-mode="dark"] {
+  --background: hsl(0, 0%, 16.8627%);
+  --foreground: hsl(0, 0%, 86.2745%);
+  --card: hsl(0, 0%, 20%);
+  --card-foreground: hsl(0, 0%, 86.2745%);
+  --popover: hsl(0, 0%, 20%);
+  --popover-foreground: hsl(0, 0%, 86.2745%);
+  --primary: hsl(0, 0%, 69.0196%);
+  --primary-foreground: hsl(0, 0%, 16.8627%);
+  --secondary: hsl(0, 0%, 35.2941%);
+  --secondary-foreground: hsl(0, 0%, 75.2941%);
+  --muted: hsl(0, 0%, 27.0588%);
+  --muted-foreground: hsl(0, 0%, 62.7451%);
+  --accent: hsl(0, 0%, 87.8431%);
+  --accent-foreground: hsl(0, 0%, 20%);
+  --destructive: hsl(0, 35.5932%, 76.8627%);
+  --destructive-foreground: hsl(0, 0%, 16.8627%);
+  --border: hsl(0, 0%, 30.9804%);
+  --input: hsl(0, 0%, 20%);
+  --ring: hsl(0, 0%, 75.2941%);
+  --shadow: hsl(0, 0%, 0% / 0.07);
+  
+  /* Chart colors for dark mode - Inverted grayscale */
+  --chart-1: hsl(0, 0%, 93.7255%);
+  --chart-2: hsl(0, 0%, 81.5686%);
+  --chart-3: hsl(0, 0%, 69.0196%);
+  --chart-4: hsl(0, 0%, 56.4706%);
+  --chart-5: hsl(0, 0%, 43.9216%);
+  
+  /* Sidebar colors for dark mode */
+  --sidebar: hsl(0, 0%, 12.9412%);
+  --sidebar-foreground: hsl(0, 0%, 86.2745%);
+  --sidebar-primary: hsl(0, 0%, 69.0196%);
+  --sidebar-primary-foreground: hsl(0, 0%, 12.9412%);
+  --sidebar-accent: hsl(0, 0%, 87.8431%);
+  --sidebar-accent-foreground: hsl(0, 0%, 20%);
+  --sidebar-border: hsl(0, 0%, 30.9804%);
+  --sidebar-ring: hsl(0, 0%, 75.2941%);
+}
+
+/* ===== OCEAN THEME (Modern Blue) ===== */
+.gallery-theme-ocean {
+  /* Semantic Design Tokens - Light Mode */
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(0, 0%, 20%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(0, 0%, 20%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(0, 0%, 20%);
+  --primary: hsl(217.2193, 91.2195%, 59.8039%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(220.0000, 14.2857%, 95.8824%);
+  --secondary-foreground: hsl(215, 13.7931%, 34.1176%);
+  --muted: hsl(210, 20.0000%, 98.0392%);
+  --muted-foreground: hsl(220, 8.9362%, 46.0784%);
+  --accent: hsl(204.0000, 93.7500%, 93.7255%);
+  --accent-foreground: hsl(224.4444, 64.2857%, 32.9412%);
+  --destructive: hsl(0, 84.2365%, 60.1961%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(220, 13.0435%, 90.9804%);
+  --input: hsl(220, 13.0435%, 90.9804%);
+  --ring: hsl(217.2193, 91.2195%, 59.8039%);
+  --shadow: hsl(0, 0%, 0% / 0.10);
+  
+  /* Chart colors - Ocean blue gradient */
+  --chart-1: hsl(217.2193, 91.2195%, 59.8039%);
+  --chart-2: hsl(221.2121, 83.1933%, 53.3333%);
+  --chart-3: hsl(224.2781, 76.3265%, 48.0392%);
+  --chart-4: hsl(225.9310, 70.7317%, 40.1961%);
+  --chart-5: hsl(224.4444, 64.2857%, 32.9412%);
+  
+  /* Sidebar colors */
+  --sidebar: hsl(210, 20.0000%, 98.0392%);
+  --sidebar-foreground: hsl(0, 0%, 20%);
+  --sidebar-primary: hsl(217.2193, 91.2195%, 59.8039%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(204.0000, 93.7500%, 93.7255%);
+  --sidebar-accent-foreground: hsl(224.4444, 64.2857%, 32.9412%);
+  --sidebar-border: hsl(220, 13.0435%, 90.9804%);
+  --sidebar-ring: hsl(217.2193, 91.2195%, 59.8039%);
+  
+  /* Typography - Modern Inter with Source Serif 4 */
+  --font-serif: var(--font-source-serif-4), "Source Serif 4", Georgia, serif;
+  --font-sans: var(--font-inter), "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  
+  /* Scale tokens */
+  --radius: 0.375rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+}
+
+/* Ocean theme dark mode */
+.gallery-theme-ocean[data-gallery-mode="dark"] {
+  --background: hsl(0, 0%, 9.0196%);
+  --foreground: hsl(0, 0%, 89.8039%);
+  --card: hsl(0, 0%, 14.9020%);
+  --card-foreground: hsl(0, 0%, 89.8039%);
+  --popover: hsl(0, 0%, 14.9020%);
+  --popover-foreground: hsl(0, 0%, 89.8039%);
+  --primary: hsl(217.2193, 91.2195%, 59.8039%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(0, 0%, 14.9020%);
+  --secondary-foreground: hsl(0, 0%, 89.8039%);
+  --muted: hsl(0, 0%, 14.9020%);
+  --muted-foreground: hsl(0, 0%, 63.9216%);
+  --accent: hsl(224.4444, 64.2857%, 32.9412%);
+  --accent-foreground: hsl(213.3333, 96.9231%, 87.2549%);
+  --destructive: hsl(0, 84.2365%, 60.1961%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(0, 0%, 25.0980%);
+  --input: hsl(0, 0%, 25.0980%);
+  --ring: hsl(217.2193, 91.2195%, 59.8039%);
+  --shadow: hsl(0, 0%, 0% / 0.25);
+  
+  /* Chart colors for dark mode */
+  --chart-1: hsl(213.1169, 93.9024%, 67.8431%);
+  --chart-2: hsl(217.2193, 91.2195%, 59.8039%);
+  --chart-3: hsl(221.2121, 83.1933%, 53.3333%);
+  --chart-4: hsl(224.2781, 76.3265%, 48.0392%);
+  --chart-5: hsl(225.9310, 70.7317%, 40.1961%);
+  
+  /* Sidebar colors for dark mode */
+  --sidebar: hsl(0, 0%, 9.0196%);
+  --sidebar-foreground: hsl(0, 0%, 89.8039%);
+  --sidebar-primary: hsl(217.2193, 91.2195%, 59.8039%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(224.4444, 64.2857%, 32.9412%);
+  --sidebar-accent-foreground: hsl(213.3333, 96.9231%, 87.2549%);
+  --sidebar-border: hsl(0, 0%, 25.0980%);
+  --sidebar-ring: hsl(217.2193, 91.2195%, 59.8039%);
+}
+
+/* ===== SUNSET THEME (Warm) ===== */
+.gallery-theme-sunset {
+  /* Semantic Design Tokens - Light Mode */
+  --background: hsl(24.0000, 100.0000%, 98.0392%);
+  --foreground: hsl(346.6667, 7.9646%, 22.1569%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(346.6667, 7.9646%, 22.1569%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(346.6667, 7.9646%, 22.1569%);
+  --primary: hsl(11.6250, 100%, 68.6275%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(8.5714, 100.0000%, 95.8824%);
+  --secondary-foreground: hsl(9.9130, 47.3251%, 47.6471%);
+  --muted: hsl(15.0000, 100.0000%, 96.0784%);
+  --muted-foreground: hsl(25.0000, 5.2632%, 44.7059%);
+  --accent: hsl(26.1069, 98.4962%, 73.9216%);
+  --accent-foreground: hsl(346.6667, 7.9646%, 22.1569%);
+  --destructive: hsl(355.4913, 77.5785%, 56.2745%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(14.6341, 100.0000%, 91.9608%);
+  --input: hsl(14.6341, 100.0000%, 91.9608%);
+  --ring: hsl(11.6250, 100%, 68.6275%);
+  --shadow: hsl(0, 0%, 0% / 0.09);
+  
+  /* Chart colors - Sunset gradient */
+  --chart-1: hsl(11.6250, 100%, 68.6275%);
+  --chart-2: hsl(26.1069, 98.4962%, 73.9216%);
+  --chart-3: hsl(23.8636, 100.0000%, 82.7451%);
+  --chart-4: hsl(16.0714, 100%, 78.0392%);
+  --chart-5: hsl(9.5798, 54.8387%, 57.4510%);
+  
+  /* Sidebar colors */
+  --sidebar: hsl(15.0000, 100.0000%, 96.0784%);
+  --sidebar-foreground: hsl(346.6667, 7.9646%, 22.1569%);
+  --sidebar-primary: hsl(11.6250, 100%, 68.6275%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(26.1069, 98.4962%, 73.9216%);
+  --sidebar-accent-foreground: hsl(346.6667, 7.9646%, 22.1569%);
+  --sidebar-border: hsl(14.6341, 100.0000%, 91.9608%);
+  --sidebar-ring: hsl(11.6250, 100%, 68.6275%);
+  
+  /* Typography - Modern Montserrat with Merriweather serif */
+  --font-serif: var(--font-merriweather), "Merriweather", Georgia, serif;
+  --font-sans: var(--font-montserrat), "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Ubuntu Mono", ui-monospace, monospace;
+  
+  /* Scale tokens */
+  --radius: 0.625rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+}
+
+/* Sunset theme dark mode */
+.gallery-theme-sunset[data-gallery-mode="dark"] {
+  --background: hsl(336, 13.5135%, 14.5098%);
+  --foreground: hsl(21.4286, 35.0000%, 92.1569%);
+  --card: hsl(324, 9.6154%, 20.3922%);
+  --card-foreground: hsl(21.4286, 35.0000%, 92.1569%);
+  --popover: hsl(324, 9.6154%, 20.3922%);
+  --popover-foreground: hsl(21.4286, 35.0000%, 92.1569%);
+  --primary: hsl(11.6250, 100%, 68.6275%);
+  --primary-foreground: hsl(0, 0%, 100%);
+  --secondary: hsl(325, 9.3750%, 25.0980%);
+  --secondary-foreground: hsl(21.4286, 35.0000%, 92.1569%);
+  --muted: hsl(324, 9.6154%, 20.3922%);
+  --muted-foreground: hsl(22.2222, 25.2336%, 79.0196%);
+  --accent: hsl(26.1069, 98.4962%, 73.9216%);
+  --accent-foreground: hsl(336, 13.5135%, 14.5098%);
+  --destructive: hsl(355.4913, 77.5785%, 56.2745%);
+  --destructive-foreground: hsl(0, 0%, 100%);
+  --border: hsl(325, 9.3750%, 25.0980%);
+  --input: hsl(325, 9.3750%, 25.0980%);
+  --ring: hsl(11.6250, 100%, 68.6275%);
+  --shadow: hsl(0, 0%, 0% / 0.22);
+  
+  /* Chart colors for dark mode */
+  --chart-1: hsl(11.6250, 100%, 68.6275%);
+  --chart-2: hsl(26.1069, 98.4962%, 73.9216%);
+  --chart-3: hsl(23.8636, 100.0000%, 82.7451%);
+  --chart-4: hsl(16.0714, 100%, 78.0392%);
+  --chart-5: hsl(9.5798, 54.8387%, 57.4510%);
+  
+  /* Sidebar colors for dark mode */
+  --sidebar: hsl(336, 13.5135%, 14.5098%);
+  --sidebar-foreground: hsl(21.4286, 35.0000%, 92.1569%);
+  --sidebar-primary: hsl(11.6250, 100%, 68.6275%);
+  --sidebar-primary-foreground: hsl(0, 0%, 100%);
+  --sidebar-accent: hsl(26.1069, 98.4962%, 73.9216%);
+  --sidebar-accent-foreground: hsl(336, 13.5135%, 14.5098%);
+  --sidebar-border: hsl(325, 9.3750%, 25.0980%);
+  --sidebar-ring: hsl(11.6250, 100%, 68.6275%);
+}
+
+
+/* Responsive font size adjustments */
+@media (max-width: 768px) {
+  .gallery-app {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .gallery-app {
+    font-size: 16px;
+  }
+}

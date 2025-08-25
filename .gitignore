@@ -45,3 +45,8 @@ yarn-error.log*
 # workspace
 .turbo
 .vscode
+
+# Exclude unnecessary directories from Next.js watching
+better-auth-ui-main/
+*.txt
+debug-*.js

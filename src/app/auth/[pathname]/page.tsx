@@ -33,6 +33,8 @@ export default async function AuthPage({
     // Get redirectTo from search params
     const redirectTo = searchParamsData.redirectTo as string | undefined
 
+    // Keep original pathnames - no redirects
+
     return (
         <main className="container flex grow flex-col items-center justify-center gap-4 self-center p-4 md:p-6">
             <AuthCard
@@ -40,7 +42,7 @@ export default async function AuthPage({
                 redirectTo={redirectTo}
             />
 
-            {["sign-in", "sign-up", "magic-link", "forgot-password"].includes(
+            {["sign-in", "sign-up", "magic-link", "email-otp", "forgot-password"].includes(
                 pathname
             ) && (
                 <p className="text-muted-foreground text-xs">

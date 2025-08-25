@@ -22,7 +22,7 @@ export const events = pgTable("events", {
   moderationSettings: text('moderation_settings').default('{"nsfw_filter":true,"auto_approve":true}').notNull(),
   coverImageUrl: text('cover_image_url'),
   guestCanViewAlbum: boolean('guest_can_view_album').default(true),
-  approveUploads: boolean('approve_uploads').default(true),
+  approveUploads: boolean('approve_uploads').default(false),
   realtimeSlideshow: boolean('realtime_slideshow').default(true),
   slideDuration: integer('slide_duration').default(5),
   revealSetting: text('reveal_setting').default('immediately'),
@@ -34,6 +34,7 @@ export const events = pgTable("events", {
   stripeSessionId: text('stripe_session_id'),
   stripePaymentIntent: text('stripe_payment_intent'),
   settings: text('settings').default('{}').notNull(), // JSON field for storing event settings
+  quickStartProgress: text('quick_start_progress').default('{}').notNull(), // JSON field for quick start progress tracking
   // Scheduled deletion fields
   status: text('status').default('active').notNull(), // 'active', 'trashed', 'deleted'
   trashedAt: timestamp('trashed_at', { mode: 'string' }),
@@ -59,7 +60,8 @@ export const uploads = pgTable("uploads", {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   albumId: text('album_id').references(() => albums.id, { onDelete: 'set null' }),
-  sessionId: text('session_id'), // for session tracking
+  sessionId: text('session_id'), // for authenticated user tracking
+  anonId: text('anon_id'), // for anonymous user tracking - will reference guests.id after migration
   fileName: text('file_name').notNull(),
   fileUrl: text('file_url').notNull(),
   fileType: text('file_type').notNull(), // 'image' | 'video' | 'audio'
@@ -72,11 +74,23 @@ export const uploads = pgTable("uploads", {
   updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
 })
 
+// Guests table for anonymous user tracking
+export const guests = pgTable("guests", {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
+  guestName: text('guest_name'), // Optional name from localStorage or user input
+  ipAddress: text('ip_address'), // For basic deduplication
+  userAgent: text('user_agent'), // For additional fingerprinting
+  createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
+  updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
+})
+
 // Guestbook entries
 export const guestbookEntries = pgTable("guestbook_entries", {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
-  sessionId: text('session_id'), // for session tracking
+  sessionId: text('session_id'), // for authenticated user tracking
+  anonId: text('anon_id'), // for anonymous user tracking - will reference guests.id after migration
   guestName: text('guest_name').notNull(),
   message: text('message').notNull(),
   isApproved: boolean('is_approved').default(true).notNull(),

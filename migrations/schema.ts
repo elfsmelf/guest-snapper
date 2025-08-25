@@ -75,9 +75,7 @@ export const users = pgTable("users", {
 	createdAt: timestamp("created_at", { mode: 'string' }).notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).notNull(),
 	role: text().default('user'),
-	banned: boolean(),
-	banReason: text("ban_reason"),
-	banExpires: timestamp("ban_expires", { mode: 'string' }),
+	stripeCustomerId: text("stripe_customer_id"),
 }, (table) => [
 	unique("users_email_unique").on(table.email),
 ]);
@@ -93,7 +91,6 @@ export const accounts = pgTable("accounts", {
 	accessTokenExpiresAt: timestamp("access_token_expires_at", { mode: 'string' }),
 	refreshTokenExpiresAt: timestamp("refresh_token_expires_at", { mode: 'string' }),
 	scope: text(),
-	password: text(),
 	createdAt: timestamp("created_at", { mode: 'string' }).notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).notNull(),
 }, (table) => [
@@ -136,48 +133,20 @@ export const invitations = pgTable("invitations", {
 		}).onDelete("cascade"),
 ]);
 
-export const events = pgTable("events", {
+export const guests = pgTable("guests", {
 	id: text().primaryKey().notNull(),
-	userId: text("user_id").notNull(),
-	organizationId: text("organization_id"),
-	name: text().notNull(),
-	coupleNames: text("couple_names").notNull(),
-	eventDate: text("event_date").notNull(),
-	activationDate: text("activation_date"),
-	isPublished: boolean("is_published").default(false).notNull(),
-	publishedAt: timestamp("published_at", { mode: 'string' }),
-	venue: text(),
-	slug: text().notNull(),
-	themeId: text("theme_id").default('default').notNull(),
-	uploadWindowEnd: timestamp("upload_window_end", { mode: 'string' }).notNull(),
-	downloadWindowEnd: timestamp("download_window_end", { mode: 'string' }).notNull(),
-	privacySettings: text("privacy_settings").default('{"allow_guest_viewing":true,"allow_guest_downloads":false}').notNull(),
-	moderationSettings: text("moderation_settings").default('{"nsfw_filter":true,"auto_approve":true}').notNull(),
-	coverImageUrl: text("cover_image_url"),
-	guestCanViewAlbum: boolean("guest_can_view_album").default(true),
-	approveUploads: boolean("approve_uploads").default(true),
-	realtimeSlideshow: boolean("realtime_slideshow").default(true),
-	slideDuration: integer("slide_duration").default(5),
-	revealSetting: text("reveal_setting").default('immediately'),
-	guestCount: integer("guest_count").default(0),
-	plan: text().default('free').notNull(),
-	currency: text().default('AUD').notNull(),
-	paidAt: timestamp("paid_at", { mode: 'string' }),
-	stripeSessionId: text("stripe_session_id"),
-	stripePaymentIntent: text("stripe_payment_intent"),
-	settings: text().default('{}').notNull(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
-	status: text().default('active').notNull(),
-	trashedAt: timestamp("trashed_at", { mode: 'string' }),
-	deleteAt: timestamp("delete_at", { mode: 'string' }),
+	eventId: text("event_id").notNull(),
+	guestName: text("guest_name"),
+	ipAddress: text("ip_address"),
+	userAgent: text("user_agent"),
+	createdAt: timestamp("created_at", { mode: 'string' }).notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).notNull(),
 }, (table) => [
 	foreignKey({
-			columns: [table.organizationId],
-			foreignColumns: [organizations.id],
-			name: "events_organization_id_organizations_id_fk"
-		}).onDelete("set null"),
-	unique("events_slug_unique").on(table.slug),
+			columns: [table.eventId],
+			foreignColumns: [events.id],
+			name: "guests_event_id_events_id_fk"
+		}).onDelete("cascade"),
 ]);
 
 export const guestbookEntries = pgTable("guestbook_entries", {
@@ -189,6 +158,7 @@ export const guestbookEntries = pgTable("guestbook_entries", {
 	isApproved: boolean("is_approved").default(true).notNull(),
 	createdAt: timestamp("created_at", { mode: 'string' }).notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).notNull(),
+	anonId: text("anon_id"),
 }, (table) => [
 	foreignKey({
 			columns: [table.eventId],
@@ -212,6 +182,7 @@ export const uploads = pgTable("uploads", {
 	uploaderName: text("uploader_name"),
 	createdAt: timestamp("created_at", { mode: 'string' }).notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).notNull(),
+	anonId: text("anon_id"),
 }, (table) => [
 	foreignKey({
 			columns: [table.eventId],
@@ -223,6 +194,51 @@ export const uploads = pgTable("uploads", {
 			foreignColumns: [albums.id],
 			name: "uploads_album_id_albums_id_fk"
 		}).onDelete("set null"),
+]);
+
+export const events = pgTable("events", {
+	id: text().primaryKey().notNull(),
+	userId: text("user_id").notNull(),
+	organizationId: text("organization_id"),
+	name: text().notNull(),
+	coupleNames: text("couple_names").notNull(),
+	eventDate: text("event_date").notNull(),
+	activationDate: text("activation_date"),
+	isPublished: boolean("is_published").default(false).notNull(),
+	publishedAt: timestamp("published_at", { mode: 'string' }),
+	venue: text(),
+	slug: text().notNull(),
+	themeId: text("theme_id").default('default').notNull(),
+	uploadWindowEnd: timestamp("upload_window_end", { mode: 'string' }).notNull(),
+	downloadWindowEnd: timestamp("download_window_end", { mode: 'string' }).notNull(),
+	privacySettings: text("privacy_settings").default('{"allow_guest_viewing":true,"allow_guest_downloads":false}').notNull(),
+	moderationSettings: text("moderation_settings").default('{"nsfw_filter":true,"auto_approve":true}').notNull(),
+	coverImageUrl: text("cover_image_url"),
+	guestCanViewAlbum: boolean("guest_can_view_album").default(true),
+	approveUploads: boolean("approve_uploads").default(false),
+	realtimeSlideshow: boolean("realtime_slideshow").default(true),
+	slideDuration: integer("slide_duration").default(5),
+	revealSetting: text("reveal_setting").default('immediately'),
+	guestCount: integer("guest_count").default(0),
+	plan: text().default('free').notNull(),
+	currency: text().default('AUD').notNull(),
+	paidAt: timestamp("paid_at", { mode: 'string' }),
+	stripeSessionId: text("stripe_session_id"),
+	stripePaymentIntent: text("stripe_payment_intent"),
+	settings: text().default('{}').notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	status: text().default('active').notNull(),
+	trashedAt: timestamp("trashed_at", { mode: 'string' }),
+	deleteAt: timestamp("delete_at", { mode: 'string' }),
+	quickStartProgress: text("quick_start_progress").default('{}').notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.organizationId],
+			foreignColumns: [organizations.id],
+			name: "events_organization_id_organizations_id_fk"
+		}).onDelete("set null"),
+	unique("events_slug_unique").on(table.slug),
 ]);
 
 export const albums = pgTable("albums", {

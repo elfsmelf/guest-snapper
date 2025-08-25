@@ -9,6 +9,7 @@ import { UpgradePrompt } from './upgrade-prompt'
 import { canCreateAlbum, type EventForFeatureGating } from '@/lib/feature-gates'
 import { getPlanFeatures } from '@/lib/pricing'
 import type { Currency } from '@/lib/pricing'
+import { useCreateAlbum, useAlbumsData } from '@/hooks/use-onboarding'
 
 interface Album {
   id: string
@@ -30,10 +31,10 @@ interface AlbumsSectionProps {
     guestCount?: number
     isPublished?: boolean
   }
+  onAlbumsChange?: (albums: Album[]) => void
 }
 
-export function AlbumsSection({ eventId, initialAlbums, event }: AlbumsSectionProps) {
-  const [albums, setAlbums] = useState<Album[]>(initialAlbums)
+export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }: AlbumsSectionProps) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isUpgradePromptOpen, setIsUpgradePromptOpen] = useState(false)
   const [albumLimitError, setAlbumLimitError] = useState<{
@@ -42,10 +43,14 @@ export function AlbumsSection({ eventId, initialAlbums, event }: AlbumsSectionPr
     currentLimit: number
   } | null>(null)
 
-  const handleAlbumCreated = (newAlbum: Album) => {
-    setAlbums(prev => [...prev, newAlbum].sort((a, b) => a.sortOrder - b.sortOrder))
-    setAlbumLimitError(null)
-  }
+  // Use TanStack Query for albums data and creation
+  const { data: albumsData } = useAlbumsData(eventId)
+  const createAlbumMutation = useCreateAlbum(eventId, onAlbumsChange)
+  
+  // Get albums from TanStack Query, fallback to initialAlbums
+  const albums = albumsData?.albums || initialAlbums
+
+  // Note: Parent will be notified via the TanStack Query mutation success callback
 
   const handleCreateAlbumClick = async () => {
     // Check if user can create another album
@@ -71,37 +76,25 @@ export function AlbumsSection({ eventId, initialAlbums, event }: AlbumsSectionPr
     }
   }
 
-  const handleCreateDialogSubmit = async (albumData: any) => {
+  const handleCreateDialogSubmit = async (albumData: { name: string; description?: string }) => {
     try {
-      const response = await fetch(`/api/events/${eventId}/albums`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(albumData)
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok) {
-        if (data.requiresUpgrade) {
-          // Handle plan limit error from API
-          setAlbumLimitError({
-            reason: data.error,
-            suggestedPlan: data.suggestedPlan,
-            currentLimit: data.currentLimit
-          })
-          setIsCreateDialogOpen(false)
-          setIsUpgradePromptOpen(true)
-        } else {
-          throw new Error(data.error || 'Failed to create album')
-        }
-        return
-      }
-      
-      handleAlbumCreated(data.album)
+      await createAlbumMutation.mutateAsync(albumData)
       setIsCreateDialogOpen(false)
-    } catch (error) {
-      console.error('Failed to create album:', error)
-      alert('Failed to create album. Please try again.')
+      setAlbumLimitError(null)
+    } catch (error: any) {
+      if (error.requiresUpgrade) {
+        // Handle plan limit error
+        setAlbumLimitError({
+          reason: error.message,
+          suggestedPlan: error.suggestedPlan,
+          currentLimit: error.currentLimit
+        })
+        setIsCreateDialogOpen(false)
+        setIsUpgradePromptOpen(true)
+      } else {
+        console.error('Failed to create album:', error)
+        // Error toast is handled by the mutation
+      }
     }
   }
 
@@ -140,7 +133,7 @@ export function AlbumsSection({ eventId, initialAlbums, event }: AlbumsSectionPr
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {albums.map((album) => (
+            {albums.map((album: Album) => (
               <div
                 key={album.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow"

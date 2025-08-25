@@ -8,9 +8,11 @@ import { Download, Printer, FileImage } from 'lucide-react'
 interface QRCodeGeneratorProps {
   value: string
   size?: number
+  eventId?: string
+  onDownload?: () => void
 }
 
-export function QRCodeGenerator({ value, size = 192 }: QRCodeGeneratorProps) {
+export function QRCodeGenerator({ value, size = 192, eventId, onDownload }: QRCodeGeneratorProps) {
   const qrRef = useRef<HTMLDivElement>(null)
 
   const downloadSVG = () => {
@@ -30,6 +32,11 @@ export function QRCodeGenerator({ value, size = 192 }: QRCodeGeneratorProps) {
     a.download = 'gallery-qr-code.svg'
     a.click()
     URL.revokeObjectURL(svgUrl)
+    
+    // Track download for Quick Start Guide
+    if (eventId && onDownload) {
+      onDownload()
+    }
   }
 
   const downloadPNG = () => {
@@ -78,6 +85,11 @@ export function QRCodeGenerator({ value, size = 192 }: QRCodeGeneratorProps) {
       a.click()
 
       URL.revokeObjectURL(svgUrl)
+      
+      // Track download for Quick Start Guide
+      if (eventId && onDownload) {
+        onDownload()
+      }
     }
     img.src = svgUrl
   }

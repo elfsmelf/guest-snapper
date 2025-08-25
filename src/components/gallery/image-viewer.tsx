@@ -5,6 +5,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { X, Download, User, Calendar } from "lucide-react"
+import Image from "next/image"
 
 interface Upload {
   id: string
@@ -22,49 +23,20 @@ interface ImageViewerProps {
   upload: Upload | null
   isOpen: boolean
   onClose: () => void
-  preloadedDimensions?: { w: number; h: number }
 }
 
-export function ImageViewer({ upload, isOpen, onClose, preloadedDimensions }: ImageViewerProps) {
-  const [imageSize, setImageSize] = useState<{ w: number; h: number } | null>(null)
+export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
+  const [shouldLoadImage, setShouldLoadImage] = useState(false)
   
   useEffect(() => {
-    if (!isOpen || !upload || upload.fileType === 'video') {
-      setImageSize(null)
+    if (!isOpen || !upload) {
+      setShouldLoadImage(false)
       return
     }
     
-    // Use preloaded dimensions if available
-    if (preloadedDimensions) {
-      const vw = window.innerWidth
-      const vh = window.innerHeight
-      const maxW = vw * 0.9
-      const maxH = vh * 0.85
-      
-      const scale = Math.min(maxW / preloadedDimensions.w, maxH / preloadedDimensions.h, 1)
-      const w = Math.floor(preloadedDimensions.w * scale)
-      const h = Math.floor(preloadedDimensions.h * scale)
-      
-      setImageSize({ w, h })
-    } else {
-      // Fallback to loading dimensions
-      const img = new window.Image()
-      img.src = upload.fileUrl
-      img.onload = () => {
-        const vw = window.innerWidth
-        const vh = window.innerHeight
-        const maxW = vw * 0.9
-        const maxH = vh * 0.85
-        
-        const scale = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight, 1)
-        const w = Math.floor(img.naturalWidth * scale)
-        const h = Math.floor(img.naturalHeight * scale)
-        
-        setImageSize({ w, h })
-      }
-      img.onerror = () => setImageSize({ w: 300, h: 400 }) // fallback
-    }
-  }, [isOpen, upload, preloadedDimensions])
+    // Only start loading the image when modal opens
+    setShouldLoadImage(true)
+  }, [isOpen, upload])
   
   if (!upload) return null
 
@@ -80,18 +52,10 @@ export function ImageViewer({ upload, isOpen, onClose, preloadedDimensions }: Im
     document.body.removeChild(a)
   }
 
-  const dialogStyle = imageSize && !isVideo ? {
-    width: `${imageSize.w}px`,
-    maxWidth: '90vw',
-    height: 'auto',
-    maxHeight: '90vh'
-  } : {}
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="p-0 bg-white border-0 shadow-2xl overflow-hidden"
-        style={dialogStyle}
+        className="p-0 bg-white border-0 shadow-2xl overflow-hidden max-w-[90vw] max-h-[90vh]"
       >
         <div className="relative flex flex-col h-full">
           {/* Close button */}
@@ -107,20 +71,36 @@ export function ImageViewer({ upload, isOpen, onClose, preloadedDimensions }: Im
           {/* Media container */}
           <div className="relative bg-gray-100 flex-shrink-0">
             {isVideo ? (
-              <video
-                src={upload.fileUrl}
-                controls
-                className="w-full max-h-[70vh] object-contain"
-                autoPlay
-                muted
-              />
+              shouldLoadImage ? (
+                <video
+                  src={upload.fileUrl}
+                  controls
+                  className="w-full max-h-[70vh] object-contain"
+                  autoPlay
+                  muted
+                />
+              ) : (
+                <div className="w-full h-[50vh] bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading video...</span>
+                </div>
+              )
             ) : (
-              <img
-                src={upload.fileUrl}
-                alt={upload.fileName}
-                className="w-full h-auto object-contain"
-                style={imageSize ? { maxHeight: `${imageSize.h}px` } : {}}
-              />
+              shouldLoadImage ? (
+                <div className="relative w-full h-[70vh]">
+                  <Image
+                    src={upload.fileUrl}
+                    alt={upload.fileName}
+                    fill
+                    className="object-contain"
+                    sizes="90vw"
+                    priority
+                  />
+                </div>
+              ) : (
+                <div className="w-full h-[50vh] bg-gray-200 animate-pulse flex items-center justify-center">
+                  <span className="text-gray-500">Loading image...</span>
+                </div>
+              )
             )}
           </div>
 
