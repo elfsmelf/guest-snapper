@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
-import { authClient } from "@/lib/auth-client"
+import { useSession } from "@/components/auth-session-provider"
 
 import { Button } from "./ui/button"
 import { UserButton } from "@daveyplate/better-auth-ui"
@@ -18,7 +18,7 @@ interface HeaderProps {
 
 export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, onboardingStep = 1 }: HeaderProps) {
     const pathname = usePathname()
-    const { data: session, isPending } = authClient.useSession()
+    const { data: session, isPending } = useSession()
 
     // Check if we're on any gallery page
     const isGalleryPage = pathname?.startsWith('/gallery/')

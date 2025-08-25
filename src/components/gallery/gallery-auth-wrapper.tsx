@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { authClient } from '@/lib/auth-client'
+import { useSession } from '@/components/auth-session-provider'
 import { GalleryWithWelcome } from "@/components/gallery/gallery-with-welcome"
 import { ContinueSetupCard } from "@/components/onboarding/continue-setup-card"
 import { parseOnboardingState } from "@/types/onboarding"
@@ -21,7 +21,7 @@ export function GalleryAuthWrapper({
   galleryData,
   defaultContent 
 }: GalleryAuthWrapperProps) {
-  const { data: session, isPending } = authClient.useSession()
+  const { data: session, isPending } = useSession()
   const [hasEventAccess, setHasEventAccess] = useState(false)
   const [checkingAccess, setCheckingAccess] = useState(true)
 
