@@ -3,7 +3,7 @@ import { adminClient, organizationClient, inferAdditionalFields, emailOTPClient 
 import { stripeClient } from "@better-auth/stripe/client"
 import type { auth } from "./auth"
 
-// Create the auth client with proper type inference
+// Create the auth client with proper type inference and caching
 const client = createAuthClient({
     baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
     plugins: [
@@ -12,7 +12,14 @@ const client = createAuthClient({
         organizationClient(),
         inferAdditionalFields<typeof auth>(),
         (stripeClient as any)()
-    ]
+    ],
+    // Add fetch options to reduce duplicate session calls
+    fetchOptions: {
+        // Add caching headers to requests
+        headers: {
+            'Cache-Control': 'max-age=60'
+        }
+    }
 })
 
 // Export with proper typing
