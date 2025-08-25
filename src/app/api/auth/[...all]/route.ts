@@ -1,12 +1,12 @@
 import { toNextJsHandler } from "better-auth/next-js"
 import { auth } from "@/lib/auth"
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 
 const handlers = toNextJsHandler(auth)
 
 // Add caching headers for GET requests (session checks)
-export async function GET(req: NextRequest, context: any) {
-  const response = await handlers.GET(req, context)
+export async function GET(req: NextRequest) {
+  const response = await handlers.GET(req)
   
   // Add cache headers for session-related GET requests
   const url = new URL(req.url)
