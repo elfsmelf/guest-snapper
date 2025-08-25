@@ -39,9 +39,9 @@ export const getCachedGalleryData = unstable_cache(
       hasAccess,
     }
   },
-  (eventId: string, hasAccess: boolean) => [`gallery-data-${eventId}-${hasAccess}`],
+  [`gallery-data`],
   {
-    tags: (eventId: string) => [`gallery`, `gallery:${eventId}`],
+    tags: [`gallery`],
     revalidate: 600, // Cache for 10 minutes with on-demand revalidation
   }
 )
@@ -71,9 +71,9 @@ export const getCachedEventData = unstable_cache(
       guestbookCount: guestbookCount,
     }
   },
-  (slug: string, hasAccess: boolean) => [`event-data-${slug}-${hasAccess}`],
+  [`event-data`],
   {
-    tags: (slug: string, hasAccess: boolean, event = null) => [`gallery`, `event`, `gallery:${slug}`, `event:${slug}`],
+    tags: [`gallery`, `event`],
     revalidate: 600, // Cache for 10 minutes with on-demand revalidation
   }
 )
