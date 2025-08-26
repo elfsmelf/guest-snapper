@@ -2,10 +2,12 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Menu, X } from "lucide-react"
 import type { User } from "better-auth/types"
+import { logoutAction } from "@/app/actions/logout"
 
 interface MobileNavProps {
   user: User | null
@@ -13,6 +15,25 @@ interface MobileNavProps {
 
 export function MobileNav({ user }: MobileNavProps) {
   const [open, setOpen] = useState(false)
+  const router = useRouter()
+
+  const handleSignOut = async () => {
+    setOpen(false)
+    try {
+      // Call server action to properly invalidate caches
+      await logoutAction()
+      
+      // Force router refresh to get fresh server components
+      router.refresh()
+      
+      // Redirect to home page
+      router.push("/")
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Fallback redirect in case of error
+      window.location.href = "/"
+    }
+  }
 
   return (
     <>
@@ -106,9 +127,12 @@ export function MobileNav({ user }: MobileNavProps) {
                     <MobileLink href="/auth/settings" onClick={() => setOpen(false)}>
                       Settings
                     </MobileLink>
-                    <MobileLink href="/auth/sign-out" onClick={() => setOpen(false)}>
+                    <button 
+                      onClick={handleSignOut}
+                      className="rounded-md px-2 py-2 text-base font-medium text-foreground/90 hover:bg-muted text-left w-full"
+                    >
                       Sign Out
-                    </MobileLink>
+                    </button>
                   </div>
                 </>
               ) : (

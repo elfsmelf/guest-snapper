@@ -2,6 +2,8 @@
 
 import { User, LogOut } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { logoutAction } from "@/app/actions/logout"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -22,9 +24,23 @@ interface UserButtonProps {
 }
 
 export function UserButton({ size = "icon", user }: UserButtonProps) {
+  const router = useRouter()
+
   const handleSignOut = async () => {
-    // For now, redirect to sign out page
-    window.location.href = "/auth/sign-out"
+    try {
+      // Call server action to properly invalidate caches
+      await logoutAction()
+      
+      // Force router refresh to get fresh server components
+      router.refresh()
+      
+      // Redirect to home page
+      router.push("/")
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Fallback redirect in case of error
+      window.location.href = "/"
+    }
   }
 
   return (

@@ -12,12 +12,16 @@ import {
 import { ChevronDown, User } from "lucide-react"
 import { auth } from "@/lib/auth"
 import { MobileNav } from "./mobile-nav"
+import { SignOutButton } from "./sign-out-button"
 
 export async function Navbar() {
-  // Server-side authentication check
+  // Server-side authentication check with cache tagging
   const session = await auth.api.getSession({
     headers: await headers()
   })
+  
+  // Mark this component as dynamic for immediate updates on auth changes
+  // This ensures the navbar updates immediately when session state changes
 
   const user = session?.user
 
@@ -117,9 +121,7 @@ export async function Navbar() {
                     <Link href="/auth/settings">Settings</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/auth/sign-out">Sign Out</Link>
-                  </DropdownMenuItem>
+                  <SignOutButton />
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

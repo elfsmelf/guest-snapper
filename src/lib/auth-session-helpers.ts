@@ -1,18 +1,32 @@
 import { cache } from "react"
+import { unstable_cache } from "next/cache"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 
 /**
- * Cached session lookup using React's cache() for request-level deduplication.
- * This prevents duplicate session calls within a single request.
+ * Cached session lookup with Next.js cache tags for invalidation.
+ * This prevents duplicate session calls within a single request and
+ * allows proper cache invalidation on logout.
  */
 const getCachedSession = cache(async (fresh: boolean = false) => {
-  return auth.api.getSession({
-    headers: await headers(),
-    ...(fresh && {
-      query: { disableCookieCache: true }
-    })
-  })
+  // Use unstable_cache with tags for server-side invalidation
+  const cachedSessionLookup = unstable_cache(
+    async () => {
+      return auth.api.getSession({
+        headers: await headers(),
+        ...(fresh && {
+          query: { disableCookieCache: true }
+        })
+      })
+    },
+    ['session-lookup'],
+    {
+      tags: ['session'],
+      revalidate: fresh ? 0 : 60 // Cache for 60 seconds unless fresh
+    }
+  )
+  
+  return cachedSessionLookup()
 })
 
 /**

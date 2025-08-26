@@ -15,9 +15,11 @@ const client = createAuthClient({
     ],
     // Removed fetch caching to ensure session updates properly
     fetchOptions: {
-        // Don't cache requests to ensure fresh session data
+        // Don't cache requests to ensure fresh session data, especially for sign-out
         headers: {
-            'Cache-Control': 'no-cache'
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0'
         }
     }
 })

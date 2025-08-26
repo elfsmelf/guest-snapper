@@ -2,6 +2,9 @@ import { redirect } from "next/navigation"
 import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 
+// Force dynamic rendering for auth-dependent layout
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardLayout({
   children,
 }: {
