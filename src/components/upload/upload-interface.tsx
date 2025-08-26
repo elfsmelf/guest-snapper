@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Upload, 
   X, 
@@ -32,7 +33,8 @@ interface Event {
   slug: string
   userId: string
   uploadWindowEnd: string
-  albums: { id: string; name: string; sortOrder: number }[]
+  albums: { id: string; name: string; sortOrder: number; uploadsCount?: number }[]
+  generalUploadsCount?: number
 }
 
 interface UploadFile {
@@ -59,6 +61,7 @@ interface UploadInterfaceProps {
 export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false, isOnboardingStep = false, onUploadComplete }: UploadInterfaceProps) {
   const [files, setFiles] = useState<UploadFile[]>([])
   const [uploaderName, setUploaderName] = useState("")
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string>("")
   const router = useRouter()
   
   // Use React Query batch upload hook
@@ -105,13 +108,13 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
       preview: URL.createObjectURL(file),
       uploaderName: uploaderName,
       caption: "",
-      albumId: event.albums[0]?.id || "",
+      albumId: selectedAlbumId,
       status: 'pending' as const,
       progress: 0
     }))
     
     setFiles(prev => [...prev, ...newFiles])
-  }, [uploaderName, event.albums])
+  }, [uploaderName, selectedAlbumId])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -253,6 +256,33 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
           </div>
         )}
 
+        {/* Album Selection */}
+        {event.albums.length > 0 && (
+          <div className="mb-4">
+            <Label className="text-sm font-medium text-foreground mb-3 block">
+              Upload to Album
+            </Label>
+            <Tabs value={selectedAlbumId} onValueChange={(value) => {
+              setSelectedAlbumId(value)
+              // Update all pending files to use the new album
+              setFiles(prev => prev.map(file => 
+                file.status === 'pending' ? { ...file, albumId: value } : file
+              ))
+            }} className="w-full">
+              <TabsList className="grid w-full bg-muted" style={{ gridTemplateColumns: `repeat(${event.albums.length + 1}, minmax(0, 1fr))` }}>
+                <TabsTrigger value="" className="text-xs">
+                  General ({event.generalUploadsCount || 0})
+                </TabsTrigger>
+                {event.albums.map((album) => (
+                  <TabsTrigger key={album.id} value={album.id} className="text-xs">
+                    {album.name} ({album.uploadsCount || 0})
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </div>
+        )}
+
         {/* Modern Drop Zone with Image Grid */}
         <div className={`bg-card rounded-xl overflow-hidden transition-colors ${
           files.length > 0 ? 'border border-gray-200' : 'border-2 border-dashed border-gray-300 hover:border-gray-400'
@@ -348,21 +378,10 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
                       <div className="absolute bottom-0 left-0 right-0 bg-black/75 text-white p-2 rounded-b-lg opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="text-xs truncate">{file.file.name}</div>
                         <div className="text-xs text-muted-foreground">{(file.file.size / (1024 * 1024)).toFixed(1)}MB</div>
-                        {file.status === 'pending' && event.albums.length > 0 && (
-                          <select
-                            value={file.albumId}
-                            onChange={(e) => updateFile(file.id, { albumId: e.target.value })}
-                            className="mt-1 text-xs bg-black/50 border border-white/20 rounded px-1 py-0.5 text-white"
-                            disabled={isUploading}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <option value="">General</option>
-                            {event.albums.map((album) => (
-                              <option key={album.id} value={album.id}>
-                                {album.name}
-                              </option>
-                            ))}
-                          </select>
+                        {file.albumId && event.albums.length > 0 && (
+                          <div className="text-xs text-white/80 mt-1">
+                            Album: {event.albums.find(a => a.id === file.albumId)?.name || 'General'}
+                          </div>
                         )}
                       </div>
                     </div>

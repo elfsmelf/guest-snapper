@@ -82,11 +82,20 @@ export function OnboardingWizard({
   eventName,
   startAtStep = 1
 }: OnboardingWizardProps) {
+  console.log('🧙‍♂️ OnboardingWizard RENDER:', { eventId, eventSlug, eventName, startAtStep })
+  
   const router = useRouter()
   const [showSkipModal, setShowSkipModal] = useState(false)
   
   // TanStack Query hooks for data management
   const { data: onboardingData, isLoading, error } = useOnboardingState(eventId)
+  
+  console.log('🧙‍♂️ OnboardingWizard STATE:', {
+    onboardingData,
+    isLoading,
+    error: error?.message,
+    hasData: !!onboardingData
+  })
   const updateStep = useUpdateOnboardingStep(eventId)
   const completeStep = useCompleteOnboardingStep(eventId)
   const skipStep = useSkipOnboardingStep(eventId)
@@ -201,40 +210,39 @@ export function OnboardingWizard({
       skipStep.mutate(currentStepData.id)
       
       if (!isLastStep) {
-        // After step 2 (cover photo), redirect to gallery view with onboarding continuation
-        if (currentStep === 2) {
-          router.replace(`/gallery/${eventSlug}?continueOnboarding=true&w=true&ws=3`)
-          setTimeout(() => {
-            setNavParams({ step: 3 })
-            updateStep.mutate(3)
-          }, 100)
-        } else {
-          const nextStep = currentStep + 1
-          setNavParams({ step: nextStep })
-          updateStep.mutate(nextStep)
-        }
+        const nextStep = currentStep + 1
+        setNavParams({ step: nextStep })
+        updateStep.mutate(nextStep)
       }
     }
   }
 
   const renderStepContent = () => {
+    console.log('🧙‍♂️ renderStepContent called for step:', currentStep)
+    
     const props = {
       eventId,
       eventSlug,
       eventName,
       state: onboardingData,
       onUpdate: (updates: Partial<OnboardingState>) => {
+        console.log('🧙‍♂️ onUpdate called with:', updates)
         updateProgress.mutate(updates)
       },
       onComplete: async () => {
+        console.log('🧙‍♂️ onComplete called for step:', currentStepData?.id)
         const result = await completeStep.mutateAsync(currentStepData.id)
         return result
       }
     }
 
+    console.log('🧙‍♂️ Step props:', props)
+
     switch (currentStep) {
       case 1: return <TestImagesStep {...props} />
-      case 2: return <CoverPhotoStep {...props} />
+      case 2: 
+        console.log('🧙‍♂️ Rendering CoverPhotoStep with state:', onboardingData)
+        return <CoverPhotoStep {...props} />
       case 3: return <PrivacyStep {...props} />
       case 4: return <GuestCountStep {...props} />
       case 5: return <PublishStep {...props} />
@@ -249,7 +257,7 @@ export function OnboardingWizard({
 
   const isStepComplete = (stepId: string) => {
     // Check if step is in completed array first
-    if (onboardingData.completedSteps.includes(stepId)) {
+    if (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(stepId)) {
       return true
     }
     
@@ -264,7 +272,7 @@ export function OnboardingWizard({
       case ONBOARDING_STEPS.GUEST_COUNT:
         return onboardingData.guestCountSet || onboardingData.paymentCompleted
       case ONBOARDING_STEPS.PUBLISH:
-        return onboardingData.eventPublished || onboardingData.completedSteps.includes(ONBOARDING_STEPS.PUBLISH)
+        return onboardingData.eventPublished || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PUBLISH))
       case ONBOARDING_STEPS.ALBUMS:
         return onboardingData.albumsCreated > 0
       case ONBOARDING_STEPS.QR_CODE:
@@ -281,7 +289,7 @@ export function OnboardingWizard({
   }
 
   const isStepSkipped = (stepId: string) => {
-    return onboardingData.skippedSteps.includes(stepId)
+    return (Array.isArray(onboardingData?.skippedSteps) && (onboardingData.skippedSteps as string[]).includes(stepId)) || false
   }
 
   // Check if current step's required action is completed
@@ -290,15 +298,15 @@ export function OnboardingWizard({
     
     switch (currentStepData.id) {
       case ONBOARDING_STEPS.TEST_IMAGES:
-        return (onboardingData.testImagesUploaded && onboardingData.testImageCount > 0) || onboardingData.completedSteps.includes(ONBOARDING_STEPS.TEST_IMAGES)
+        return (onboardingData.testImagesUploaded && onboardingData.testImageCount > 0) || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.TEST_IMAGES))
       case ONBOARDING_STEPS.COVER_PHOTO:
-        return onboardingData.coverPhotoSet || onboardingData.completedSteps.includes(ONBOARDING_STEPS.COVER_PHOTO)
+        return onboardingData.coverPhotoSet || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.COVER_PHOTO))
       case ONBOARDING_STEPS.PRIVACY:
         return onboardingData.privacyConfigured
       case ONBOARDING_STEPS.GUEST_COUNT:
         return onboardingData.guestCountSet || onboardingData.paymentCompleted
       case ONBOARDING_STEPS.PUBLISH:
-        return onboardingData.eventPublished || onboardingData.completedSteps.includes(ONBOARDING_STEPS.PUBLISH)
+        return onboardingData.eventPublished || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PUBLISH))
       case ONBOARDING_STEPS.ALBUMS:
         return onboardingData.albumsCreated > 0
       case ONBOARDING_STEPS.QR_CODE:
@@ -421,51 +429,22 @@ export function OnboardingWizard({
             
             {/* Next button - show when action is complete, OR for optional steps, OR for the last step */}
             {(isCurrentStepActionComplete() || !currentStepData?.required || isLastStep) && (
-              <>
-                {/* Step 2: Navigate to gallery and mark step 2 complete */}
-                {currentStep === 2 ? (
-                  <Button 
-                    disabled={isUpdating || isCompleting}
-                    onClick={async (e) => {
-                      e.preventDefault()
-                      
-                      try {
-                        // Mark step 2 as complete and advance to step 3
-                        // This ensures "Continue Setup" goes to step 3
-                        await completeStep.mutateAsync('cover-photo')
-                        await updateStep.mutateAsync(3)
-                        
-                        // Navigate after mutations complete
-                        window.location.href = `/gallery/${eventSlug}`
-                      } catch (error) {
-                        console.error('Failed to update onboarding state:', error)
-                        // Navigate anyway
-                        window.location.href = `/gallery/${eventSlug}`
-                      }
-                    }}
-                  >
-                    View Your Gallery
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
+              <Button
+                onClick={handleNext}
+                disabled={isUpdating || isCompleting}
+              >
+                {isLastStep ? (
+                  <>
+                    Complete Setup
+                    <Check className="h-4 w-4 ml-2" />
+                  </>
                 ) : (
-                  <Button
-                    onClick={handleNext}
-                    disabled={isUpdating || isCompleting}
-                  >
-                    {isLastStep ? (
-                      <>
-                        Complete Setup
-                        <Check className="h-4 w-4 ml-2" />
-                      </>
-                    ) : (
-                      <>
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                      </>
-                    )}
-                  </Button>
+                  <>
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </>
                 )}
-              </>
+              </Button>
             )}
             
             {/* Show a hint when action is not complete for required steps only */}

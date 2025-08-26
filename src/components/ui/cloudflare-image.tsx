@@ -1,7 +1,5 @@
 "use client"
 
-import { useState } from "react"
-import Image from "next/image"
 import { getOptimizedImageUrl, getOriginalImageUrl } from "@/lib/cloudflare-image"
 
 interface CloudflareImageProps {
@@ -43,44 +41,20 @@ export function CloudflareImage({
   style,
   useOriginal = false
 }: CloudflareImageProps) {
-  const [imageError, setImageError] = useState(false)
-  
   // Get the optimized URL (or original if requested)
   const imageSrc = useOriginal ? getOriginalImageUrl(src) : getOptimizedImageUrl(src)
   
-  // Fallback to regular img tag if there's an error
-  if (imageError) {
-    return (
-      <img
-        src={imageSrc}
-        alt={alt}
-        className={className}
-        loading={loading}
-        style={style}
-        onClick={onClick}
-        onLoad={onLoad}
-      />
-    )
-  }
-  
-  // Use Next.js Image with unoptimized flag from config
-  // Images are optimized by Cloudflare, not Vercel
+  // FIXED: Use regular img tag since Cloudflare handles optimization
+  // This avoids Next.js Image conflicts and is more performant
   return (
-    <Image
+    <img
       src={imageSrc}
       alt={alt}
-      width={width || 1920} // Default to our optimized width
-      height={height || 1080} // Default aspect ratio
-      fill={fill}
       className={className}
-      sizes={sizes || "100vw"}
-      priority={priority}
       loading={loading}
-      onError={() => setImageError(true)}
-      onLoad={onLoad}
-      onClick={onClick}
       style={style}
-      unoptimized // Let Cloudflare handle optimization
+      onClick={onClick}
+      onLoad={onLoad}
     />
   )
 }

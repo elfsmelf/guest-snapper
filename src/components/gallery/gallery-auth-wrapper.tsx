@@ -25,52 +25,105 @@ export function GalleryAuthWrapper({
   const { data: session, isPending } = authClient.useSession()
   const [hasEventAccess, setHasEventAccess] = useState(false)
   const [checkingAccess, setCheckingAccess] = useState(true)
+  const [checkedSessionId, setCheckedSessionId] = useState<string | null>(null)
+
+  console.log(`🎬 GalleryAuthWrapper render - Session: ${!!session?.user}, SessionPending: ${isPending}, CheckingAccess: ${checkingAccess}, HasAccess: ${hasEventAccess}, CheckedSessionId: ${checkedSessionId}`)
 
   useEffect(() => {
     async function checkAccess() {
-      if (!session?.user?.id) {
+      const sessionId = session?.user?.id || null
+      console.log(`🔄 Starting access check for session: ${sessionId}`)
+      
+      // If we've already checked this session, don't check again
+      if (sessionId && checkedSessionId === sessionId) {
+        console.log(`✅ Already checked session ${sessionId}, skipping`)
+        return
+      }
+      
+      setCheckingAccess(true)
+      
+      if (!sessionId) {
+        console.log(`❌ No session user, setting hasEventAccess: false`)
         setHasEventAccess(false)
         setCheckingAccess(false)
+        setCheckedSessionId(null)
         return
       }
 
       try {
         // Check if user has access to this event (owner or org member)
+        console.log(`🔍 Checking access for user ${sessionId} to event ${eventId}`)
         const response = await fetch(`/api/events/${eventId}/access`, {
           credentials: 'include'
         })
         
         if (response.ok) {
           const data = await response.json()
+          console.log(`✅ Access check result:`, data)
           setHasEventAccess(data.hasAccess)
         } else {
+          console.log(`❌ Access check failed with status: ${response.status}`)
           setHasEventAccess(false)
         }
       } catch (error) {
-        console.error('Error checking event access:', error)
+        console.error('💥 Error checking event access:', error)
         setHasEventAccess(false)
       } finally {
+        console.log(`🏁 Access check complete for session ${sessionId}`)
         setCheckingAccess(false)
+        setCheckedSessionId(sessionId)
       }
     }
 
     checkAccess()
-  }, [session?.user?.id, eventId])
+  }, [session?.user?.id, eventId, checkedSessionId])
 
-  // Show default content while checking auth
-  if (isPending || checkingAccess) {
+  // Show default content while checking auth OR while session is loading
+  // Also wait for access check to complete if we have a session
+  if (isPending || (session?.user && checkingAccess)) {
+    console.log(`⏳ Showing loading state - isPending: ${isPending}, sessionUser: ${!!session?.user}, checkingAccess: ${checkingAccess}`)
+    // Show a loading overlay instead of the default content for authenticated users
+    if (session?.user && checkingAccess) {
+      console.log(`🌀 Showing loading spinner for authenticated user`)
+      return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading gallery...</p>
+          </div>
+        </div>
+      )
+    }
+    console.log(`📄 Showing default content during loading`)
     return defaultContent
   }
 
-  // No session or no access - show default public view
-  if (!session?.user || !hasEventAccess) {
+  // No session - show default public view
+  if (!session?.user) {
+    console.log(`🚫 No session user - showing default content`)
+    return defaultContent
+  }
+
+  // Session exists but no access - show default public view  
+  if (!hasEventAccess) {
+    console.log(`🚫 Session exists but no access (hasEventAccess: ${hasEventAccess}) - showing default content`)
     return defaultContent
   }
 
   // User has access - show enhanced view with owner/member features
+  console.log(`🎉 User has access! Showing enhanced view`)
   const isOwner = eventData?.userId === session.user.id
+  console.log(`👑 IsOwner: ${isOwner} (eventData.userId: ${eventData?.userId}, session.user.id: ${session.user.id})`)
 
   // If we have full event and gallery data, show the enhanced view
+  if (eventData && galleryData) {
+    console.log(`📊 Have eventData and galleryData - showing full enhanced view`)
+  
+  
+  } else {
+    console.log(`⚠️  Missing data - eventData: ${!!eventData}, galleryData: ${!!galleryData}`)
+  }
+  
   if (eventData && galleryData) {
     // Parse onboarding state for owner
     let onboardingState = null

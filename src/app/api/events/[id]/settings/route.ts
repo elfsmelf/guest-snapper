@@ -44,6 +44,11 @@ export async function PATCH(
       publishedAt,
       settings: additionalSettings = {}
     } = body
+    
+    console.log(`📝 Settings update request for event ${id}:`, {
+      guestCanViewAlbum,
+      currentValue: event.guestCanViewAlbum
+    })
 
     // Get current settings
     const currentSettings = event.settings
@@ -66,7 +71,20 @@ export async function PATCH(
     // Update individual fields if provided
     if (eventDate) updateData.eventDate = eventDate
     if (activationDate !== undefined) updateData.activationDate = activationDate
-    if (typeof guestCanViewAlbum === 'boolean') updateData.guestCanViewAlbum = guestCanViewAlbum
+    if (typeof guestCanViewAlbum === 'boolean') {
+      updateData.guestCanViewAlbum = guestCanViewAlbum
+      
+      // ALSO update the privacySettings JSON to keep them in sync
+      const currentPrivacySettings = event.privacySettings ? JSON.parse(event.privacySettings) : {}
+      const updatedPrivacySettings = {
+        ...currentPrivacySettings,
+        allow_guest_viewing: guestCanViewAlbum
+      }
+      updateData.privacySettings = JSON.stringify(updatedPrivacySettings)
+      
+      console.log(`🔄 Updating guestCanViewAlbum from ${event.guestCanViewAlbum} to ${guestCanViewAlbum}`)
+      console.log(`🔄 Also updating privacySettings JSON: allow_guest_viewing=${guestCanViewAlbum}`)
+    }
     if (typeof approveUploads === 'boolean') updateData.approveUploads = approveUploads
     if (typeof guestCount === 'number') updateData.guestCount = guestCount
     if (coverImageUrl !== undefined) updateData.coverImageUrl = coverImageUrl
@@ -74,17 +92,24 @@ export async function PATCH(
     if (typeof isPublished === 'boolean') updateData.isPublished = isPublished
     if (publishedAt !== undefined) updateData.publishedAt = publishedAt
 
+    console.log(`💾 About to update event with data:`, updateData)
+
     const updatedEvent = await db
       .update(events)
       .set(updateData)
       .where(eq(events.id, id))
       .returning()
+      
+    console.log(`✅ Event updated successfully:`, updatedEvent[0])
 
     // Revalidate the gallery page cache when settings change
     // This ensures changes to privacy settings, publish status, etc. are reflected immediately
     revalidateTag('gallery')
     revalidateTag('event')
+    revalidateTag(`event-${event.slug}`) // Invalidate event-specific cache
     revalidatePath(`/gallery/${event.slug}`)
+    
+    console.log(`🗄️ Cache invalidated for event ${event.slug}: guestCanViewAlbum=${updateData.guestCanViewAlbum}`)
 
     return Response.json({ 
       success: true, 

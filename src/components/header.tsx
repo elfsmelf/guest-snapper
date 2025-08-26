@@ -19,9 +19,6 @@ interface HeaderProps {
 export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, onboardingStep = 1 }: HeaderProps) {
     const pathname = usePathname()
     const { data: session, isPending } = authClient.useSession()
-    
-    // Debug logging
-    console.log('Header render - session:', !!session?.user, 'isPending:', isPending)
 
     // Check if we're on any gallery page
     const isGalleryPage = pathname?.startsWith('/gallery/')

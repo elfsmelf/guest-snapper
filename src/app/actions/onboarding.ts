@@ -37,14 +37,32 @@ async function validateEventAccess(eventId: string) {
   return { user: session.user, event: event[0] }
 }
 
-// Get current onboarding state
-export async function getOnboardingState(eventId: string): Promise<OnboardingState | null> {
+// Get current onboarding state - updated to fix server action hash
+export async function getOnboardingState(eventId: string): Promise<OnboardingState> {
+  console.log('🏁 getOnboardingState called with eventId:', eventId)
+  
   try {
     const { event } = await validateEventAccess(eventId)
-    return parseOnboardingState(event.quickStartProgress)
+    console.log('Event found:', event.id, 'quickStartProgress:', event.quickStartProgress)
+    
+    const state = parseOnboardingState(event.quickStartProgress)
+    console.log('Parsed state:', state)
+    
+    // If no onboarding state exists, create a default one
+    if (!state) {
+      const defaultState = createInitialOnboardingState()
+      console.log('Creating default state:', defaultState)
+      return defaultState
+    }
+    
+    console.log('Returning existing state:', state)
+    return state
   } catch (error) {
     console.error('Error getting onboarding state:', error)
-    return null
+    // Return default state instead of null
+    const defaultState = createInitialOnboardingState()
+    console.log('Error fallback - returning default state:', defaultState)
+    return defaultState
   }
 }
 

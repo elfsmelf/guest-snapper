@@ -4,7 +4,7 @@ import { NextRequest } from "next/server"
 
 const handlers = toNextJsHandler(auth)
 
-// Handle GET requests with minimal caching for auth operations
+// Handle GET requests with optimized caching for auth operations
 export async function GET(req: NextRequest) {
   const response = await handlers.GET(req)
   
@@ -15,12 +15,9 @@ export async function GET(req: NextRequest) {
     // Use stale-while-revalidate for better performance
     response.headers.set('Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=300')
     response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=1800, stale-while-revalidate=300')
-  } else if (url.pathname.includes('get-session')) {
-    // No caching for session endpoints to ensure immediate sign-out detection
-    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-    response.headers.set('Pragma', 'no-cache')
-    response.headers.set('Expires', '0')
   }
+  // Let Better Auth's cookie cache handle session caching
+  // No explicit cache headers for get-session endpoints
   
   return response
 }

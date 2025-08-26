@@ -23,6 +23,14 @@ export function CoverImageUpload({ event }: CoverImageUploadProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const router = useRouter()
 
+  // Debug logging
+  console.log('=== COVER IMAGE UPLOAD DEBUG ===')
+  console.log('event prop:', event)
+  console.log('event.coverImageUrl:', event.coverImageUrl)
+  console.log('initial preview:', preview)
+  console.log('selectedFile:', selectedFile)
+  console.log('=================================')
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
     if (!file) return

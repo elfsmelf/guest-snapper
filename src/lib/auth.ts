@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth"
 import { admin, organization, emailOTP } from "better-auth/plugins"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { stripe as stripePlugin } from "@better-auth/stripe"
+import { nextCookies } from "better-auth/next-js"
 import { eq } from "drizzle-orm"
 
 import { db } from "@/database/db"
@@ -24,26 +25,18 @@ export const auth = betterAuth({
     onSuccessRedirect: (request: any) => {
         // Get redirectTo from the URL or default to dashboard
         const url = new URL(request.url);
-        console.log('onSuccessRedirect called with URL:', url.toString());
-        console.log('URL pathname:', url.pathname);
-        console.log('URL search params:', Object.fromEntries(url.searchParams.entries()));
-        
         const redirectTo = url.searchParams.get('redirectTo') || '/dashboard';
-        console.log('Resolved redirectTo:', redirectTo);
         
         // Handle invitation acceptance specifically
         if (url.pathname.includes('accept-invitation')) {
-            console.log('Handling invitation acceptance, redirecting to:', redirectTo);
             return redirectTo;
         }
         
         // Prevent redirect loops to auth pages
         if (redirectTo.startsWith('/auth/')) {
-            console.log('Preventing auth loop, redirecting to dashboard');
             return '/dashboard';
         }
         
-        console.log('Final redirect target:', redirectTo);
         return redirectTo;
     },
     database: drizzleAdapter(db, {
@@ -124,6 +117,8 @@ export const auth = betterAuth({
             stripeClient: stripe,
             stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET!,
             createCustomerOnSignUp: true,
-        })] : [])
+        })] : []),
+        // Next.js cookie handling - must be last plugin
+        nextCookies()
     ]
 })

@@ -83,6 +83,15 @@ interface GalleryViewProps {
 }
 
 export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, isOwner = false, hasEventAccess = false, continuationCard }: GalleryViewProps) {
+  // Debug privacy logic
+  console.log(`🎭 GalleryView privacy debug:`, {
+    guestCanViewAlbum: event.guestCanViewAlbum,
+    hasEventAccess,
+    isOwner,
+    shouldShowGallery: event.guestCanViewAlbum || hasEventAccess,
+    eventId: event.id
+  })
+  
   const [selectedTab, setSelectedTab] = useState<'photos' | 'audio' | 'guestbook' | 'pending'>('photos')
   const [selectedAlbum, setSelectedAlbum] = useState<string>('all')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
@@ -371,7 +380,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
       {/* Main Content */}
       <div className="p-4 min-h-screen bg-background">
-        {event.guestCanViewAlbum ? (
+        {(event.guestCanViewAlbum || hasEventAccess) ? (
           <>
             {/* Tabs */}
             <Tabs value={selectedTab} onValueChange={(value) => {
@@ -460,17 +469,19 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         size="sm"
                         onClick={() => setSelectedAlbum('all')}
                       >
-                        All Photos ({displayUploads.length})
+                        All Photos ({selectedTab === 'pending' ? pendingUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length : uploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length})
                       </Button>
                       <Button
                         variant={selectedAlbum === 'unassigned' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setSelectedAlbum('unassigned')}
                       >
-                        Unassigned ({displayUploads.filter(u => !u.albumId).length})
+                        General ({selectedTab === 'pending' ? pendingUploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && !u.albumId).length : uploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && !u.albumId).length})
                       </Button>
                       {event.albums.map((album) => {
-                        const albumUploads = displayUploads.filter(u => u.albumId === album.id)
+                        const albumUploads = selectedTab === 'pending' 
+                          ? pendingUploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && u.albumId === album.id)
+                          : uploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && u.albumId === album.id)
                         return (
                           <Button
                             key={album.id}

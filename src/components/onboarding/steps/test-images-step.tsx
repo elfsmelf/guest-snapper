@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Check, Eye } from "lucide-react"
+import { Check } from "lucide-react"
 import { type OnboardingState } from "@/types/onboarding"
 import { UploadInterface } from "@/components/upload/upload-interface"
 
@@ -79,18 +79,6 @@ export function TestImagesStep({
               </div>
             </CardContent>
           </Card>
-
-          {/* View Gallery Button */}
-          <div className="flex justify-center">
-            <Button 
-              size="lg" 
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-              onClick={() => router.push(`/gallery/${eventSlug}`)}
-            >
-              <Eye className="h-4 w-4 mr-2" />
-              View Gallery
-            </Button>
-          </div>
         </div>
       ) : (
         /* Upload Interface */

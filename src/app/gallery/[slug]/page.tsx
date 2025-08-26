@@ -8,23 +8,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Lock, Eye, Camera, MessageSquare, Mic } from "lucide-react"
 import { GalleryAuthWrapper } from "@/components/gallery/gallery-auth-wrapper"
 import { GalleryRefreshHandler } from "@/components/gallery/gallery-refresh-handler"
+import { GalleryPageWrapper } from "@/components/gallery/gallery-page-wrapper"
+import { auth } from "@/lib/auth"
+import { headers } from "next/headers"
+import { canUserAccessEvent } from "@/lib/auth-helpers"
 
 interface GalleryPageProps {
   params: Promise<{ slug: string }>
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-// Make this route static with ISR - revalidate every 10 minutes
-export const revalidate = 600 // 10 minutes
+// Dynamic route for authenticated users, static for public
+export const dynamic = 'auto'
 
-// This ensures the route is statically generated and cached
+// This ensures the route is statically generated and cached for public users
 export const dynamicParams = true
 
-// Force this route to be statically cached
-export const fetchCache = 'force-cache'
+// Force cache for public users
+export const fetchCache = 'default-cache'
 
-// Force static generation
-export const dynamic = 'force-static'
+// Revalidate static pages every 10 minutes  
+export const revalidate = 600
 
 // Generate some popular gallery paths at build time
 export async function generateStaticParams() {
@@ -35,23 +39,42 @@ export async function generateStaticParams() {
 
 export default async function GalleryPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  // Don't use searchParams - it makes the route dynamic!
   
-  // Get cached event data - NO session checks here!
-  // This keeps the route static and cacheable
+  // Server-side auth check - Better Auth best practice
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
+
+  // Get event data
   const eventWithAlbums = await getCachedEventData(slug, false)
   
   if (!eventWithAlbums) {
     notFound()
   }
 
-  // Get cached gallery data - assuming public access for static generation
-  const galleryData = await getCachedGalleryData(eventWithAlbums.id, false)
+  // Server-side access check for authenticated users
+  let hasEventAccess = false
+  let isOwner = false
+  
+  if (session?.user) {
+    hasEventAccess = await canUserAccessEvent(eventWithAlbums.id, session.user.id)
+    isOwner = eventWithAlbums.userId === session.user.id
+  }
 
-  // If gallery is not published, show draft message
-  if (!eventWithAlbums.isPublished) {
+  console.log(`🔍 Gallery access check: guestCanViewAlbum=${eventWithAlbums.guestCanViewAlbum}, hasEventAccess=${hasEventAccess}, isOwner=${isOwner}, session=${!!session?.user}`)
+
+  // Get gallery data with proper access level
+  const galleryData = await getCachedGalleryData(eventWithAlbums.id, hasEventAccess)
+
+  // If gallery is not published and user doesn't have access, show draft message
+  console.log(`📝 Publish check: !isPublished=${!eventWithAlbums.isPublished} && !hasEventAccess=${!hasEventAccess} = ${!eventWithAlbums.isPublished && !hasEventAccess}`)
+  if (!eventWithAlbums.isPublished && !hasEventAccess) {
+    console.log(`📝 Showing draft message`)
     return (
-      <div className="min-h-screen bg-pink-50/30">
+      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
+        <div className="min-h-screen bg-background">
+          <GalleryRefreshHandler />
+              <div className="min-h-screen bg-pink-50/30">
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto text-center">
             {/* Cover Image */}
@@ -115,46 +138,49 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
       </div>
+        </div>
+      </GalleryPageWrapper>
     )
   }
 
-  // If guest viewing is disabled, show privacy message
-  if (!eventWithAlbums.guestCanViewAlbum) {
+  // If guest viewing is disabled and user doesn't have access, show privacy message
+  console.log(`🔒 Privacy check: !guestCanViewAlbum=${!eventWithAlbums.guestCanViewAlbum} && !hasEventAccess=${!hasEventAccess} = ${!eventWithAlbums.guestCanViewAlbum && !hasEventAccess}`)
+  if (!eventWithAlbums.guestCanViewAlbum && !hasEventAccess) {
+    console.log(`📵 TRIGGERED: Showing privacy message (Route 1)`)
     return (
-      <div className="min-h-screen bg-pink-50/30">
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-2xl mx-auto text-center">
-            {/* Cover Image */}
-            {eventWithAlbums.coverImageUrl && (
-              <div className="relative mb-8 h-64 rounded-lg shadow-md overflow-hidden">
-                <img
-                  src={getOptimizedImageUrl(eventWithAlbums.coverImageUrl)}
-                  alt={`${eventWithAlbums.coupleNames} - ${eventWithAlbums.name}`}
-                  className="w-full h-full object-cover"
-                  loading="eager"
-                />
-              </div>
-            )}
-            
-            {/* Event Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{eventWithAlbums.coupleNames}</h1>
-              <p className="text-lg text-gray-600 mb-4">{eventWithAlbums.name}</p>
-              <p className="text-gray-500">
-                {new Date(eventWithAlbums.eventDate).toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-              </p>
-            </div>
+      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
+        <div className="min-h-screen bg-background">
+          <GalleryRefreshHandler />
+          <div className="min-h-screen bg-pink-50/30">
+            <div className="container mx-auto px-4 py-8">
+              <div className="max-w-2xl mx-auto text-center">
+                {/* Cover Image */}
+                {eventWithAlbums.coverImageUrl && (
+                  <div className="relative mb-8 h-64 rounded-lg shadow-md overflow-hidden">
+                    <img
+                      src={getOptimizedImageUrl(eventWithAlbums.coverImageUrl)}
+                      alt={`${eventWithAlbums.coupleNames} - ${eventWithAlbums.name}`}
+                      className="w-full h-full object-cover"
+                      loading="eager"
+                    />
+                  </div>
+                )}
+                
+                {/* Event Header */}
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{eventWithAlbums.coupleNames}</h1>
+                  <p className="text-lg text-gray-600 mb-4">{eventWithAlbums.name}</p>
+                  <p className="text-gray-500">
+                    {new Date(eventWithAlbums.eventDate).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
+                  </p>
+                </div>
 
-            {/* Privacy Message with Auth Wrapper for privileged users */}
-            <GalleryAuthWrapper 
-              eventId={eventWithAlbums.id}
-              eventSlug={slug}
-              defaultContent={
+                {/* Privacy Message */}
                 <Card className="max-w-lg mx-auto">
                   <CardHeader className="text-center pb-4">
                     <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -205,37 +231,68 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
                     </div>
                   </CardContent>
                 </Card>
-              }
-            />
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </GalleryPageWrapper>
     )
   }
 
-  // Public gallery view - wrapped with auth component for owner/member features
-  // The client components will hydrate on the client side
+  // Final return - only show gallery if guests can view OR user has access
+  console.log(`🎭 Final gallery render: guestCanViewAlbum=${eventWithAlbums.guestCanViewAlbum}, hasEventAccess=${hasEventAccess}`)
+  
+  // CRITICAL: If guests can't view and user has no access, don't show gallery at all
+  if (!eventWithAlbums.guestCanViewAlbum && !hasEventAccess) {
+    console.log(`🚨 TRIGGERED: Final privacy check (Route 2) - This should never happen!`)
+    // This should never happen - all privacy checks should have caught this earlier
+    // But as a fallback, show a generic message
+    return (
+      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
+        <div className="min-h-screen bg-background">
+          <GalleryRefreshHandler />
+          <div className="min-h-screen bg-pink-50/30">
+            <div className="container mx-auto px-4 py-8">
+              <div className="max-w-2xl mx-auto text-center">
+                <p>Gallery is private</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </GalleryPageWrapper>
+    )
+  }
+  
   return (
-    <div className="min-h-screen bg-background">
-      <GalleryRefreshHandler />
-      <GalleryAuthWrapper 
-        eventId={eventWithAlbums.id}
-        eventSlug={slug}
-        eventData={eventWithAlbums}
-        galleryData={galleryData}
-        defaultContent={
-          <GalleryWithWelcome
-            event={eventWithAlbums as any}
-            uploads={galleryData.uploads as any}
-            pendingUploads={[]} // Don't show pending for public users
-            eventSlug={slug}
-            isOwner={false}
-            hasEventAccess={false}
-            showWelcomeOnLoad={false}
-            onboardingStep={3}
-          />
-        }
-      />
-    </div>
+    <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
+      <div className="min-h-screen bg-background">
+        <GalleryRefreshHandler />
+        
+        {/* Show owner/member badge for authenticated users with access */}
+        {hasEventAccess && (
+          <div className={`border-b ${isOwner ? 'bg-secondary border-border' : 'bg-accent border-border'}`}>
+            <div className="container mx-auto px-4 py-2">
+              <p className={`text-sm ${isOwner ? 'text-secondary-foreground' : 'text-accent-foreground'} flex items-center justify-center gap-2`}>
+                <span className="text-primary">
+                  {isOwner ? '👑' : '🤝'}
+                </span>
+                <strong>{isOwner ? 'Gallery Owner:' : 'Organization Member:'}</strong> You can view and manage this gallery even when public viewing is disabled.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <GalleryWithWelcome
+          event={eventWithAlbums as any}
+          uploads={galleryData.uploads as any}
+          pendingUploads={hasEventAccess ? galleryData.pendingUploads : []}
+          eventSlug={slug}
+          isOwner={isOwner}
+          hasEventAccess={hasEventAccess}
+          showWelcomeOnLoad={false}
+          onboardingStep={3}
+        />
+      </div>
+    </GalleryPageWrapper>
   )
 }

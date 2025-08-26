@@ -57,8 +57,58 @@ export const collaboratorKeys = {
 export function useOnboardingState(eventId: string) {
   return useQuery({
     queryKey: onboardingKeys.state(eventId),
-    queryFn: () => getOnboardingState(eventId),
+    queryFn: async () => {
+      console.log('🔍 useOnboardingState queryFn called with eventId:', eventId)
+      
+      try {
+        const result = await getOnboardingState(eventId)
+        console.log('🔍 useOnboardingState - query result:', result)
+        console.log('🔍 useOnboardingState - result type:', typeof result)
+        console.log('🔍 useOnboardingState - result keys:', result ? Object.keys(result) : 'no keys')
+        
+        // Absolute safety check - should never happen but just in case
+        if (result === undefined || result === null) {
+          console.error('🔍 getOnboardingState returned null/undefined, creating fallback')
+          const fallback = {
+            onboardingActive: true,
+            onboardingComplete: false,
+            onboardingSkipped: false,
+            onboardingStartedAt: new Date().toISOString(),
+            currentStep: 1,
+            lastActiveStep: 1,
+            completedSteps: [],
+            skippedSteps: [],
+            testImagesUploaded: false,
+            testImageCount: 0,
+            coverPhotoUploaded: false,
+            coverPhotoSet: false,
+            privacyConfigured: false,
+            themeSelected: false,
+            guestCountSet: false,
+            paymentCompleted: false,
+            eventPublished: false,
+            albumsCreated: 0,
+            albumIds: [],
+            qrDownloaded: false,
+            slideshowTested: false,
+            collaboratorsInvited: 0,
+            collaboratorEmails: [],
+            lastUpdated: new Date().toISOString()
+          }
+          console.log('🔍 Returning fallback state:', fallback)
+          return fallback
+        }
+        
+        console.log('🔍 Returning actual result:', result)
+        return result
+      } catch (error) {
+        console.error('🔍 useOnboardingState queryFn error:', error)
+        throw error
+      }
+    },
     ...baseQueryOptions,
+    retry: 3,
+    retryDelay: 1000,
   })
 }
 

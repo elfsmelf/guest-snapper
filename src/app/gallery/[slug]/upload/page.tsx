@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { db } from "@/database/db"
-import { events, albums } from "@/database/schema"
-import { eq } from "drizzle-orm"
+import { events, albums, uploads } from "@/database/schema"
+import { eq, and, count, isNull } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import Image from "next/image"
@@ -52,9 +52,41 @@ export default async function UploadPage({ params }: UploadPageProps) {
     .where(eq(albums.eventId, event.id))
     .orderBy(albums.sortOrder)
 
+  // Get upload counts for each album
+  const albumsWithCounts = await Promise.all(
+    albumsResult.map(async (album) => {
+      const uploadCount = await db
+        .select({ count: count() })
+        .from(uploads)
+        .where(and(
+          eq(uploads.eventId, event.id),
+          eq(uploads.albumId, album.id),
+          eq(uploads.isApproved, true)
+        ))
+        .then(result => result[0]?.count || 0)
+
+      return {
+        ...album,
+        uploadsCount: uploadCount
+      }
+    })
+  )
+
+  // Get general (unassigned) photos count
+  const generalCount = await db
+    .select({ count: count() })
+    .from(uploads)
+    .where(and(
+      eq(uploads.eventId, event.id),
+      isNull(uploads.albumId),
+      eq(uploads.isApproved, true)
+    ))
+    .then(result => result[0]?.count || 0)
+
   const eventWithAlbums = {
     ...event,
-    albums: albumsResult,
+    albums: albumsWithCounts,
+    generalUploadsCount: generalCount,
   }
 
   // Check if user is authenticated (for ownership detection)

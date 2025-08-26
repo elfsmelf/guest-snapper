@@ -65,6 +65,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
   const updateEventSettings = useCallback(async (updates: any) => {
     setIsUpdating(true)
+    console.log(`🔧 Frontend: Updating event settings:`, updates)
     try {
       const response = await fetch(`/api/events/${event.id}/settings`, {
         method: 'PATCH',
@@ -74,14 +75,18 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
         body: JSON.stringify(updates),
       })
 
+      console.log(`📡 Frontend: API response status:`, response.status)
+      
       if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`❌ Frontend: API error:`, errorText)
         throw new Error('Failed to update settings')
       }
 
       const result = await response.json()
-      console.log('Settings updated successfully:', result)
+      console.log('✅ Frontend: Settings updated successfully:', result)
     } catch (error) {
-      console.error('Failed to update settings:', error)
+      console.error('❌ Frontend: Failed to update settings:', error)
       toast.error('Failed to update settings')
     } finally {
       setIsUpdating(false)

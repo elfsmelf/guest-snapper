@@ -71,9 +71,21 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="p-0 bg-white border-0 shadow-2xl overflow-hidden max-w-[90vw] max-h-[90vh]"
+        showCloseButton={false}
+        className="
+          p-0
+          overflow-auto
+          bg-white border-0 shadow-2xl
+        "
+        style={{
+          width: 'auto',
+          height: 'auto',
+          maxWidth: '90vw',
+          maxHeight: '90vh',
+          minWidth: '0'
+        }}
       >
-        <div className="relative flex flex-col h-full">
+        <div className="relative flex flex-col max-h-full">
           {/* Close button */}
           <Button
             variant="ghost"
@@ -84,14 +96,24 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
             <X className="h-4 w-4" />
           </Button>
           
-          {/* Media container */}
-          <div className="relative bg-gray-100 flex-shrink-0">
+          {/* Media container with intrinsic sizing */}
+          <div className="
+            grid place-items-center
+            bg-black
+            overflow-auto
+            flex-1 min-h-0
+          ">
             {isVideo ? (
               shouldLoadImage ? (
                 <video
                   src={upload.fileUrl}
                   controls
-                  className="w-full max-h-[70vh] object-contain"
+                  className="
+                    block
+                    h-auto w-auto
+                    max-w-[85vw]
+                    object-contain
+                  "
                   autoPlay
                   muted
                   preload="metadata"
@@ -103,16 +125,18 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
               )
             ) : (
               shouldLoadImage ? (
-                <div className="relative w-full h-[70vh]">
-                  <CloudflareImage
-                    src={upload.fileUrl}
-                    alt={upload.fileName}
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 80vw"
-                    priority
-                  />
-                </div>
+                <CloudflareImage
+                  src={upload.fileUrl}
+                  alt={upload.fileName}
+                  className="
+                    block
+                    h-auto w-auto
+                    max-w-[85vw] sm:max-w-[60vw]
+                    max-h-[75vh]
+                    object-contain
+                    [image-rendering:auto]
+                  "
+                />
               ) : (
                 <div className="w-full h-[50vh] bg-gray-200 animate-pulse flex items-center justify-center">
                   <span className="text-gray-500">Loading image...</span>

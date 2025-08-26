@@ -1,14 +1,17 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import React, { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Upload, Camera, X, CheckCircle, Loader2, Sparkles, Image as ImageIcon } from "lucide-react"
+import { Upload, Image as ImageIcon, X, Camera, Loader2, Eye } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
+import { CheckCircle } from "lucide-react"
 import { type OnboardingState } from "@/types/onboarding"
 import { updateOnboardingProgress } from "@/app/actions/onboarding"
+import { useEventData, eventKeys } from "@/hooks/use-onboarding"
+import { useQueryClient } from "@tanstack/react-query"
 
 interface CoverPhotoStepProps {
   eventId: string
@@ -19,19 +22,25 @@ interface CoverPhotoStepProps {
   onComplete: () => Promise<any>
 }
 
-export function CoverPhotoStep({
-  eventId,
-  eventSlug,
-  eventName,
-  state,
-  onUpdate,
-  onComplete
-}: CoverPhotoStepProps) {
+// Onboarding-specific cover image upload component
+function OnboardingCoverImageUpload({ event, eventId }: { event: any, eventId: string }) {
+  console.log('🖼️ OnboardingCoverImageUpload RENDER:', {
+    event,
+    eventId,
+    coverImageUrl: event?.coverImageUrl
+  })
+  
   const [isUploading, setIsUploading] = useState(false)
-  const [preview, setPreview] = useState<string | null>(null)
+  const [preview, setPreview] = useState<string | null>(event.coverImageUrl || null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [currentCoverImage, setCurrentCoverImage] = useState<string | null>(null)
-  const isComplete = state.coverPhotoSet || state.completedSteps.includes('cover-photo')
+  const queryClient = useQueryClient()
+  
+  console.log('🖼️ OnboardingCoverImageUpload STATE:', {
+    isUploading,
+    preview,
+    hasSelectedFile: !!selectedFile,
+    selectedFileName: selectedFile?.name
+  })
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]
@@ -74,7 +83,7 @@ export function CoverPhotoStep({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          eventId: eventId,
+          eventId: event.id,
           fileName: selectedFile.name,
           fileType: selectedFile.type,
           fileSize: selectedFile.size
@@ -101,7 +110,7 @@ export function CoverPhotoStep({
       }
 
       // Step 3: Update database with new cover image URL
-      const updateResponse = await fetch(`/api/events/${eventId}/settings`, {
+      const updateResponse = await fetch(`/api/events/${event.id}/settings`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -112,24 +121,10 @@ export function CoverPhotoStep({
       const updateResult = await updateResponse.json()
 
       if (updateResult.success) {
-        toast.success('Cover image uploaded successfully!')
+        toast.success('Cover image updated successfully!')
         setSelectedFile(null)
-        setCurrentCoverImage(urlResult.fileUrl)
-        
-        // Optimistically update URL state first
-        await onUpdate({
-          coverPhotoSet: true,
-          completedSteps: [...state.completedSteps.filter(s => s !== 'cover-photo'), 'cover-photo']
-        })
-        
-        // Then update database
-        const result = await updateOnboardingProgress(eventId, {
-          coverPhotoSet: true
-        })
-        
-        if (result.success) {
-          await onComplete()
-        }
+        // Invalidate React Query cache to refresh data
+        queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId) })
       } else {
         throw new Error(updateResult.error)
       }
@@ -141,12 +136,213 @@ export function CoverPhotoStep({
     }
   }
 
+  const removeCoverImage = async () => {
+    console.log('🖼️ OnboardingCoverImageUpload: REMOVING cover image')
+    setIsUploading(true)
+    
+    try {
+      const response = await fetch(`/api/events/${event.id}/settings`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          coverImageUrl: null
+        })
+      })
+
+      const result = await response.json()
+      console.log('🖼️ Remove response:', result)
+
+      if (result.success) {
+        toast.success('Cover image removed successfully!')
+        setPreview(null)
+        setSelectedFile(null)
+        console.log('🖼️ Invalidating React Query cache:', eventKeys.detail(eventId))
+        // Invalidate React Query cache to refresh data
+        queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId) })
+      } else {
+        throw new Error(result.error)
+      }
+    } catch (error) {
+      console.error('🖼️ Cover image removal failed:', error)
+      toast.error('Failed to remove cover image')
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const clearSelection = () => {
-    if (selectedFile && preview && !currentCoverImage) {
+    setSelectedFile(null)
+    setPreview(event.coverImageUrl || null)
+    if (selectedFile && preview) {
       URL.revokeObjectURL(preview)
     }
-    setSelectedFile(null)
-    setPreview(currentCoverImage)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label className="text-sm font-medium flex items-center">
+          <ImageIcon className="mr-2 h-5 w-5" />
+          Gallery Cover Image
+        </Label>
+          
+          {preview ? (
+            <div className="relative">
+              <img
+                src={preview}
+                alt="Cover preview"
+                className="w-full h-48 object-cover rounded-lg border"
+              />
+              <div className="absolute top-2 right-2 flex gap-2">
+                {selectedFile ? (
+                  // Show clear selection button when a new file is selected
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={clearSelection}
+                    disabled={isUploading}
+                    title="Cancel selection"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  // Show remove button only for existing cover images (not new selections)
+                  event.coverImageUrl && (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={removeCoverImage}
+                      disabled={isUploading}
+                      title="Remove cover image"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )
+                )}
+              </div>
+            </div>
+          ) : (
+            <div
+              {...getRootProps()}
+              className={`
+                border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
+                ${isDragActive 
+                  ? 'border-primary bg-primary/5' 
+                  : 'border-border hover:border-border/80'
+                }
+                ${isUploading ? 'pointer-events-none opacity-50' : ''}
+              `}
+            >
+              <input {...getInputProps()} />
+              <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-4" />
+              {isDragActive ? (
+                <p className="text-primary">Drop your cover image here!</p>
+              ) : (
+                <div>
+                  <p className="text-foreground mb-2">
+                    Drag & drop a cover image here
+                  </p>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    or click to browse your device
+                  </p>
+                  <Button variant="outline">
+                    <Camera className="w-4 h-4 mr-2" />
+                    Choose Image
+                  </Button>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-4">
+                JPG, PNG, WebP up to 10MB
+              </p>
+            </div>
+          )}
+        </div>
+
+        {selectedFile && (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium">{selectedFile.name}</p>
+              <p className="text-xs text-muted-foreground">
+                {(selectedFile.size / 1024 / 1024).toFixed(1)}MB
+              </p>
+            </div>
+            <Button onClick={handleUpload} disabled={isUploading}>
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
+      <p className="text-xs text-muted-foreground">
+        This image will be displayed as the header/hero image in your gallery.
+      </p>
+    </div>
+  )
+}
+
+export function CoverPhotoStep({
+  eventId,
+  eventSlug,
+  eventName,
+  state,
+  onUpdate,
+  onComplete
+}: CoverPhotoStepProps) {
+  console.log('📸 CoverPhotoStep RENDER:', {
+    eventId,
+    eventSlug,
+    eventName,
+    state,
+    hasOnUpdate: !!onUpdate,
+    hasOnComplete: !!onComplete
+  })
+  
+  const router = useRouter()
+  const { data: eventData, isLoading, error } = useEventData(eventId)
+  const isComplete = state.coverPhotoSet || state.completedSteps.includes('cover-photo')
+  
+  console.log('📸 CoverPhotoStep EVENT DATA:', {
+    eventData,
+    isLoading,
+    error: error?.message,
+    coverImageUrl: eventData?.coverImageUrl,
+    isComplete,
+    coverPhotoSet: state?.coverPhotoSet,
+    completedSteps: state?.completedSteps
+  })
+
+  // Use React Query reactive state updates
+  const hasCoverImage = !!eventData?.coverImageUrl
+  
+  console.log('📸 CoverPhotoStep REACTIVE STATE:', {
+    hasCoverImage,
+    isComplete,
+    shouldMarkComplete: hasCoverImage && !isComplete,
+    shouldMarkIncomplete: !hasCoverImage && isComplete && state.coverPhotoSet
+  })
+
+  // Pure reactive updates - let React Query handle the reactivity
+  if (hasCoverImage && !isComplete) {
+    console.log('📸 CoverPhotoStep: Marking step as COMPLETE')
+    onUpdate({
+      coverPhotoSet: true,
+      completedSteps: [...state.completedSteps.filter(s => s !== 'cover-photo'), 'cover-photo']
+    })
+  } else if (!hasCoverImage && isComplete && state.coverPhotoSet) {
+    console.log('📸 CoverPhotoStep: Marking step as INCOMPLETE')
+    onUpdate({
+      coverPhotoSet: false,
+      completedSteps: state.completedSteps.filter(s => s !== 'cover-photo')
+    })
   }
 
   return (
@@ -165,120 +361,54 @@ export function CoverPhotoStep({
         <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
-      {isComplete ? (
-        <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium text-green-900 dark:text-green-100">
-                    Perfect! Your cover photo is set
-                  </p>
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    Your gallery now has a beautiful header image that guests will love!
-                  </p>
-                </div>
-              </div>
-              {preview && (
-                <img
-                  src={preview}
-                  alt="Cover photo"
-                  className="w-full h-64 object-cover rounded-lg border"
-                />
-              )}
+      {/* Use Onboarding-specific Cover Image Upload Component */}
+      {(() => {
+        console.log('📸 CoverPhotoStep RENDER DECISION:', {
+          hasEventData: !!eventData,
+          isLoading,
+          hasError: !!error,
+          eventDataKeys: eventData ? Object.keys(eventData) : []
+        })
+        
+        if (eventData) {
+          return (
+            <OnboardingCoverImageUpload 
+              event={eventData}
+              eventId={eventId}
+            />
+          )
+        } else if (isLoading) {
+          return (
+            <div className="flex items-center justify-center p-8">
+              <div className="text-muted-foreground">Loading event data...</div>
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          {/* Upload Interface */}
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Gallery Cover Image</Label>
-            
-            {preview ? (
-              <div className="relative">
-                <img
-                  src={preview}
-                  alt="Cover preview"
-                  className="w-full h-64 object-cover rounded-lg border"
-                />
-                <div className="absolute top-2 right-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={clearSelection}
-                    disabled={isUploading}
-                    title="Clear selection"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <div
-                {...getRootProps()}
-                className={`
-                  border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer
-                  ${isDragActive 
-                    ? 'border-primary bg-primary/5' 
-                    : 'border-gray-300 hover:border-gray-400'
-                  }
-                  ${isUploading ? 'pointer-events-none opacity-50' : ''}
-                `}
-              >
-                <input {...getInputProps()} />
-                <div className="flex flex-col items-center">
-                  <div className="bg-card mb-4 flex h-16 w-16 items-center justify-center rounded-full border">
-                    <Camera className="h-8 w-8 text-muted-foreground" />
-                  </div>
-                  {isDragActive ? (
-                    <p className="text-primary font-medium">Drop your cover image here!</p>
-                  ) : (
-                    <div>
-                      <p className="font-medium mb-2">
-                        Drag & drop a cover image here
-                      </p>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        or click to browse your device
-                      </p>
-                      <Button variant="outline">
-                        <ImageIcon className="w-4 h-4 mr-2" />
-                        Choose Image
-                      </Button>
-                    </div>
-                  )}
-                  <p className="text-xs text-muted-foreground mt-4">
-                    JPG, PNG, WebP up to 10MB
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+          )
+        } else if (error) {
+          return (
+            <div className="flex items-center justify-center p-8">
+              <div className="text-red-500">Error loading event data: {error.message}</div>
+            </div>
+          )
+        } else {
+          return (
+            <div className="flex items-center justify-center p-8">
+              <div className="text-muted-foreground">No event data available</div>
+            </div>
+          )
+        }
+      })()}
 
-          {selectedFile && (
-            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-lg border">
-              <div>
-                <p className="text-sm font-medium">{selectedFile.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {(selectedFile.size / 1024 / 1024).toFixed(1)}MB
-                </p>
-              </div>
-              <Button onClick={handleUpload} disabled={isUploading} size="sm">
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Uploading...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Set Cover Photo
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
+      {/* Show View Gallery button when cover image exists */}
+      {eventData?.coverImageUrl && (
+        <div className="flex justify-center">
+          <Button 
+            size="lg" 
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={() => router.push(`/gallery/${eventSlug}`)}
+          >
+            <Eye className="h-4 w-4 mr-2" />
+            View Gallery
+          </Button>
         </div>
       )}
 

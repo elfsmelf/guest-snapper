@@ -47,33 +47,38 @@ export const getCachedGalleryData = unstable_cache(
 )
 
 // Cached function to fetch event with albums and counts using optimized prepared statements  
-export const getCachedEventData = unstable_cache(
-  async (slug: string, hasAccess: boolean) => {
-    // Use optimized prepared statement for event lookup
-    const event = await getOptimizedEventBySlug(slug)
-    
-    if (!event) {
-      return null
-    }
+export const getCachedEventData = async (slug: string, hasAccess: boolean) => {
+  // Create cache function with dynamic key based on slug
+  const cachedFn = unstable_cache(
+    async (slug: string, hasAccess: boolean) => {
+      // Use optimized prepared statement for event lookup
+      const event = await getOptimizedEventBySlug(slug)
+      
+      if (!event) {
+        return null
+      }
 
-    // Use parallel queries with prepared statements for better performance
-    const [albumsResult, uploadsCount, guestbookCount] = await Promise.all([
-      getOptimizedAlbumsByEventId(event.id),
-      getOptimizedUploadCountByEventId(event.id),
-      getOptimizedGuestbookCountByEventId(event.id)
-    ])
+      // Use parallel queries with prepared statements for better performance
+      const [albumsResult, uploadsCount, guestbookCount] = await Promise.all([
+        getOptimizedAlbumsByEventId(event.id),
+        getOptimizedUploadCountByEventId(event.id),
+        getOptimizedGuestbookCountByEventId(event.id)
+      ])
 
-    return {
-      ...event,
-      albums: albumsResult,
-      uploadsCount: uploadsCount,
-      approvedUploadsCount: uploadsCount, // Using same count since we only query approved
-      guestbookCount: guestbookCount,
+      return {
+        ...event,
+        albums: albumsResult,
+        uploadsCount: uploadsCount,
+        approvedUploadsCount: uploadsCount, // Using same count since we only query approved
+        guestbookCount: guestbookCount,
+      }
+    },
+    [`event-data-${slug}`], // Make cache key specific to the event
+    {
+      tags: [`gallery`, `event`, `event-${slug}`], // Add event-specific tag
+      revalidate: 600, // Cache for 10 minutes with on-demand revalidation
     }
-  },
-  [`event-data`],
-  {
-    tags: [`gallery`, `event`],
-    revalidate: 600, // Cache for 10 minutes with on-demand revalidation
-  }
-)
+  )
+  
+  return cachedFn(slug, hasAccess)
+}

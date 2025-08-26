@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { useQueryClient } from '@tanstack/react-query'
+import { useEventData } from '@/hooks/use-onboarding'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -72,18 +74,48 @@ export function GuestCountStep({
   onUpdate,
   onComplete
 }: GuestCountStepProps) {
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency>('AUD')
-  const [selectedGuestCount, setSelectedGuestCount] = useState<number>(8)
+  const queryClient = useQueryClient()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  
+  // Use React Query to fetch event data
+  const { data: eventData } = useEventData(eventId)
+  
+  // Initialize state based on event data
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(
+    (eventData?.currency as Currency) || 'AUD'
+  )
+  const [selectedGuestCount, setSelectedGuestCount] = useState<number>(
+    eventData?.guestCount || 8
+  )
   const [loading, setLoading] = useState(false)
-  const [currentPlan, setCurrentPlan] = useState<string>('free')
-  const [eventCurrency, setEventCurrency] = useState<Currency>('AUD')
+  const [currentPlan, setCurrentPlan] = useState<string>(
+    eventData?.plan || 'free'
+  )
+  const [eventCurrency, setEventCurrency] = useState<Currency>(
+    (eventData?.currency as Currency) || 'AUD'
+  )
   const [paymentSuccess, setPaymentSuccess] = useState(false)
   const [paymentData, setPaymentData] = useState<any>(null)
   const [processingPayment, setProcessingPayment] = useState(false)
   const isComplete = state.guestCountSet || paymentSuccess
 
-  const searchParams = useSearchParams()
-  const router = useRouter()
+  // Update state when event data changes
+  useEffect(() => {
+    if (eventData) {
+      if (eventData.plan && eventData.plan !== 'free') {
+        setCurrentPlan(eventData.plan)
+        // Set guest count from database if already set
+        if (eventData.guestCount && eventData.guestCount > 0) {
+          setSelectedGuestCount(eventData.guestCount)
+        }
+      }
+      if (eventData.currency) {
+        setEventCurrency(eventData.currency as Currency)
+        setSelectedCurrency(eventData.currency as Currency)
+      }
+    }
+  }, [eventData])
 
   // Handle payment success/cancel from URL params
   const paymentSuccessParam = searchParams.get('payment_success')
@@ -127,6 +159,18 @@ export function GuestCountStep({
         // Update the current plan immediately for UI consistency
         if (data.metadata?.plan) {
           setCurrentPlan(data.metadata.plan)
+          
+          // Update guest count based on the plan purchased
+          const planToGuestCount: Record<string, number> = {
+            'starter': 10,
+            'small': 25,
+            'medium': 50,
+            'large': 100,
+            'xlarge': 200,
+            'unlimited': 999999
+          }
+          const guestCount = planToGuestCount[data.metadata.plan] || 50
+          setSelectedGuestCount(guestCount)
         }
 
         // Update onboarding state 
@@ -134,6 +178,10 @@ export function GuestCountStep({
           guestCountSet: true, 
           paymentCompleted: true 
         })
+        
+        // Invalidate queries to refresh the UI
+        queryClient.invalidateQueries({ queryKey: ['onboarding', eventId] })
+        queryClient.invalidateQueries({ queryKey: ['events', eventId] })
       } else {
         throw new Error('Payment verification failed')
       }
@@ -185,6 +233,9 @@ export function GuestCountStep({
         if (response.ok) {
           toast.success('Free plan selected!')
           onUpdate({ guestCountSet: true })
+          // Invalidate queries to refresh the UI
+          queryClient.invalidateQueries({ queryKey: ['onboarding', eventId] })
+          queryClient.invalidateQueries({ queryKey: ['events', eventId] })
         } else {
           throw new Error('Failed to update settings')
         }
