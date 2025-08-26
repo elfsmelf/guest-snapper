@@ -2,6 +2,12 @@ import { getSessionCookie } from "better-auth/cookies"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function middleware(request: NextRequest) {
+    // Block Vercel's automated requests to reduce edge function usage
+    const userAgent = request.headers.get('user-agent') || ''
+    if (userAgent.includes('vercel-favicon') || userAgent.includes('vercel-screenshot')) {
+        return new NextResponse('Blocked', { status: 403 })
+    }
+
     // Handle www redirect first
     if (request.nextUrl.hostname === 'guestsnapper.com') {
         return NextResponse.redirect(
