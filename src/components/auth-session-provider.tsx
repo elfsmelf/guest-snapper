@@ -1,7 +1,8 @@
 "use client"
 
-import { createContext, useContext, ReactNode, useMemo } from 'react'
+import { createContext, useContext, ReactNode, useMemo, useEffect } from 'react'
 import { authClient } from '@/lib/auth-client'
+import { setCachedSession, getCachedSessionFromCookie } from '@/lib/cookie-session-cache'
 
 interface SessionProviderProps {
   children: ReactNode
@@ -17,10 +18,21 @@ export function SessionProvider({ children, initialSession }: SessionProviderPro
   // All child components will share this single hook instance
   const session = authClient.useSession()
   
+  // Cache session data locally for faster subsequent reads
+  useEffect(() => {
+    if (session.data?.user && session.data?.session) {
+      setCachedSession({
+        user: session.data.user,
+        session: session.data.session
+      })
+    } else if (session.data === null) {
+      // Clear cache when logged out
+      setCachedSession(null)
+    }
+  }, [session.data])
+  
   // Memoize the session value to prevent unnecessary re-renders
   const sessionValue = useMemo(() => {
-    // If we have initial session from cookie cache and the hook hasn't loaded yet,
-    // we could merge them, but Better Auth's nanostore should handle this
     return session
   }, [session])
 
@@ -39,4 +51,31 @@ export function useSession() {
     throw new Error('useSession must be used within SessionProvider')
   }
   return context
+}
+
+// Optimized hook for read-only session checks (no API calls)
+// Use this for simple authentication checks in UI components
+export function useOptimizedSession() {
+  // First try to get from cookie cache (instant, no API call)
+  const cookieSession = getCachedSessionFromCookie()
+  
+  // Fallback to the main session context if cookie cache is empty
+  const mainSession = useContext(SessionContext)
+  
+  if (cookieSession) {
+    return {
+      data: cookieSession,
+      isLoading: false,
+      isPending: false,
+      error: null
+    }
+  }
+  
+  // Use main session as fallback
+  return mainSession || {
+    data: null,
+    isLoading: true,
+    isPending: true,
+    error: null
+  }
 }

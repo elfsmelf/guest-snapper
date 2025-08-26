@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { useSession } from '@/components/auth-session-provider'
+import { useSession, useOptimizedSession } from '@/components/auth-session-provider'
 import { GalleryWithWelcome } from "@/components/gallery/gallery-with-welcome"
 import { ContinueSetupCard } from "@/components/onboarding/continue-setup-card"
 import { parseOnboardingState } from "@/types/onboarding"
@@ -21,13 +21,18 @@ export function GalleryAuthWrapper({
   galleryData,
   defaultContent 
 }: GalleryAuthWrapperProps) {
+  // Use optimized session for initial check (no API call)
+  const { data: optimizedSession } = useOptimizedSession()
+  // Use full session only when we need to make API calls
   const { data: session, isPending } = useSession()
   const [hasEventAccess, setHasEventAccess] = useState(false)
   const [checkingAccess, setCheckingAccess] = useState(true)
 
   useEffect(() => {
     async function checkAccess() {
-      if (!session?.user?.id) {
+      // Use optimized session first to avoid API calls when possible
+      const currentSession = session || optimizedSession
+      if (!currentSession?.user?.id) {
         setHasEventAccess(false)
         setCheckingAccess(false)
         return
@@ -54,7 +59,7 @@ export function GalleryAuthWrapper({
     }
 
     checkAccess()
-  }, [session?.user?.id, eventId])
+  }, [session?.user?.id, optimizedSession?.user?.id, eventId])
 
   // Show default content while checking auth
   if (isPending || checkingAccess) {
@@ -62,12 +67,13 @@ export function GalleryAuthWrapper({
   }
 
   // No session or no access - show default public view
-  if (!session?.user || !hasEventAccess) {
+  const currentSession = session || optimizedSession
+  if (!currentSession?.user || !hasEventAccess) {
     return defaultContent
   }
 
   // User has access - show enhanced view with owner/member features
-  const isOwner = eventData?.userId === session.user.id
+  const isOwner = eventData?.userId === currentSession.user.id
 
   // If we have full event and gallery data, show the enhanced view
   if (eventData && galleryData) {

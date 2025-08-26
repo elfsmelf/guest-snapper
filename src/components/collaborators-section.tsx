@@ -9,6 +9,7 @@ import { UserPlus, Users, Crown, Shield, User, Trash2, Loader2, Mail, X } from '
 import { InviteCollaboratorDialog } from './invite-collaborator-dialog'
 import { toast } from 'sonner'
 import { authClient } from '@/lib/auth-client'
+import { fetchOrganizationData, clearOrganizationCache } from '@/lib/organization-cache'
 
 interface Member {
   id: string
@@ -60,15 +61,12 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
   const [processingInvitations, setProcessingInvitations] = useState<Set<string>>(new Set())
   const [removingMembers, setRemovingMembers] = useState<Set<string>>(new Set())
 
-  const fetchOrganizationData = async () => {
+  const refreshOrganizationData = async (forceRefresh = false) => {
     try {
-      console.log('Fetching organization data for event:', eventId)
-      const response = await fetch(`/api/events/${eventId}/organization`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch organization data')
-      }
+      console.log('Refreshing organization data for event:', eventId, 'forceRefresh:', forceRefresh)
       
-      const data = await response.json()
+      // Use the cached/deduplicated fetch function
+      const data = await fetchOrganizationData(eventId, forceRefresh)
       console.log('Fetched organization data:', data)
       
       if (data.success) {
@@ -77,7 +75,7 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
           members: data.members?.length || 0,
           invitations: data.invitations?.length || 0
         })
-        setOrganization(data.organization)
+        setOrganization(data.organization || null)
         setMembers(data.members || [])
         setInvitations(data.invitations || [])
         
@@ -105,8 +103,10 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
       const data = await response.json()
       if (data.success) {
         toast.success('Organization created! You can now invite collaborators.')
-        await fetchOrganizationData()
-        // Data change callback will be called by fetchOrganizationData
+        // Clear cache and force refresh
+        clearOrganizationCache(eventId)
+        await refreshOrganizationData(true)
+        // Data change callback will be called by refreshOrganizationData
       }
     } catch (error) {
       console.error('Error creating organization:', error)
@@ -117,7 +117,9 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
   }
 
   const handleInviteSent = () => {
-    fetchOrganizationData() // Refresh data after invite (will trigger callback)
+    // Clear cache and refresh data after invite
+    clearOrganizationCache(eventId)
+    refreshOrganizationData(true) // Force refresh (will trigger callback)
   }
 
   const handleResendInvitation = async (invitationId: string, email: string, role: "member" | "admin" | "owner") => {
@@ -142,7 +144,9 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
       }
 
       toast.success(`Invitation resent to ${email}`)
-      fetchOrganizationData() // Refresh data (will trigger callback)
+      // Clear cache and refresh data
+      clearOrganizationCache(eventId)
+      refreshOrganizationData(true) // Force refresh (will trigger callback)
     } catch (error: any) {
       console.error('Failed to resend invitation:', error)
       toast.error(error.message || 'Failed to resend invitation')
@@ -174,9 +178,10 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
       
       // Force a refresh of the data
       console.log('Refreshing organization data after cancellation...')
-      await fetchOrganizationData()
+      clearOrganizationCache(eventId)
+      await refreshOrganizationData(true)
       console.log('Data refreshed successfully')
-      // Data change callback will be triggered by fetchOrganizationData
+      // Data change callback will be triggered by refreshOrganizationData
       
     } catch (error: any) {
       console.error('Failed to cancel invitation:', error)
@@ -230,7 +235,7 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
   // Only fetch data on mount if we don't have initial data
   useEffect(() => {
     if (!initialData) {
-      fetchOrganizationData()
+      refreshOrganizationData()
     }
   }, [eventId, initialData])
 
