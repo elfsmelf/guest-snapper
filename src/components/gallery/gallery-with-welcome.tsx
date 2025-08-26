@@ -6,6 +6,8 @@ import { galleryParams, galleryUrlKeys } from "@/lib/gallery-params"
 import { GalleryView } from "./gallery-view"
 import { WelcomeDialog } from "./welcome-dialog"
 
+type UIMode = 'GUEST_UI' | 'OWNER_UI' | 'AUTH_UI'
+
 interface GalleryWithWelcomeProps {
   event: any
   uploads: any[]
@@ -16,6 +18,10 @@ interface GalleryWithWelcomeProps {
   continuationCard?: React.ReactNode
   showWelcomeOnLoad?: boolean
   onboardingStep?: number
+  forcePublicView?: boolean
+  guestbookEntries?: any[]
+  isGuestOwnContent?: boolean
+  uiMode?: UIMode
 }
 
 export function GalleryWithWelcome({
@@ -27,7 +33,11 @@ export function GalleryWithWelcome({
   hasEventAccess,
   continuationCard,
   showWelcomeOnLoad = false,
-  onboardingStep = 3
+  onboardingStep = 3,
+  forcePublicView = false,
+  guestbookEntries = [],
+  isGuestOwnContent = false,
+  uiMode = 'GUEST_UI'
 }: GalleryWithWelcomeProps) {
   const [galleryState, setGalleryState] = useQueryStates(galleryParams, {
     urlKeys: galleryUrlKeys,
@@ -61,6 +71,10 @@ export function GalleryWithWelcome({
         isOwner={isOwner}
         hasEventAccess={hasEventAccess}
         continuationCard={continuationCard}
+        forcePublicView={forcePublicView}
+        guestbookEntries={guestbookEntries}
+        isGuestOwnContent={isGuestOwnContent}
+        uiMode={uiMode}
       />
       
       <WelcomeDialog

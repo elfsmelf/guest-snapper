@@ -34,6 +34,31 @@ export async function middleware(request: NextRequest) {
     const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
     
     if (isPublicRoute) {
+        // Handle view=public parameter persistence for gallery routes
+        if (request.nextUrl.pathname.startsWith('/gallery/')) {
+            const viewParam = request.nextUrl.searchParams.get('view')
+            const referer = request.headers.get('referer')
+            
+            // If this is a gallery navigation without view=public but referer has it, redirect with parameter
+            if (!viewParam && referer) {
+                try {
+                    const refererUrl = new URL(referer)
+                    const refererView = refererUrl.searchParams.get('view')
+                    
+                    if (refererView === 'public' && 
+                        refererUrl.pathname.startsWith('/gallery/') &&
+                        refererUrl.hostname === request.nextUrl.hostname) {
+                        
+                        const url = request.nextUrl.clone()
+                        url.searchParams.set('view', 'public')
+                        return NextResponse.redirect(url)
+                    }
+                } catch (e) {
+                    // Invalid referer URL, ignore
+                }
+            }
+        }
+        
         const response = NextResponse.next()
         
         // Set cache headers for public gallery routes

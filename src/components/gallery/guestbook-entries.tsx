@@ -17,9 +17,10 @@ interface GuestbookEntry {
 interface GuestbookEntriesProps {
   eventId: string
   onMessageAdded?: () => void
+  customEntries?: GuestbookEntry[] // For guest's own content view
 }
 
-export function GuestbookEntries({ eventId, onMessageAdded }: GuestbookEntriesProps) {
+export function GuestbookEntries({ eventId, onMessageAdded, customEntries }: GuestbookEntriesProps) {
   const [entries, setEntries] = useState<GuestbookEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -43,6 +44,13 @@ export function GuestbookEntries({ eventId, onMessageAdded }: GuestbookEntriesPr
   }, [])
 
   useEffect(() => {
+    // If custom entries are provided, use them instead of fetching
+    if (customEntries) {
+      setEntries(customEntries)
+      setLoading(false)
+      return
+    }
+
     const fetchEntries = async () => {
       try {
         const response = await fetch(`/api/guestbook/${eventId}`)
@@ -58,7 +66,7 @@ export function GuestbookEntries({ eventId, onMessageAdded }: GuestbookEntriesPr
     }
 
     fetchEntries()
-  }, [eventId])
+  }, [eventId, customEntries])
 
   if (loading) {
     return (

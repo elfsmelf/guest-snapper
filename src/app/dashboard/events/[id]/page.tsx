@@ -21,6 +21,7 @@ import {
   Settings,
   Upload,
   Eye,
+  EyeOff,
   MessageSquare,
   Plus,
   Info,
@@ -39,6 +40,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CopyButton } from "@/components/copy-button"
+import { ViewAsPublicButton } from "@/components/view-as-public-button"
 import { EventSettingsForm } from "@/components/event-settings-form"
 import { PaymentSuccessHandler } from "@/components/payment-success-handler"
 import { QuickActionsClient } from "@/components/quick-actions-client"
@@ -287,6 +289,12 @@ export default async function EventDetailPage({ params }: PageProps) {
                   View Gallery
                 </Link>
               </Button>
+              <ViewAsPublicButton 
+                galleryUrl={galleryUrl}
+                variant="secondary"
+                size="default"
+                className="bg-white/10 text-white border-white/20 hover:bg-white/20 shadow-lg backdrop-blur-sm w-full sm:w-auto"
+              />
               <CopyButton 
                 text={galleryUrl} 
                 variant="secondary"

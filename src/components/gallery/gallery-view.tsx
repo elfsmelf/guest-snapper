@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { GalleryLink } from "./gallery-link"
 import { CloudflareImage } from "@/components/ui/cloudflare-image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -27,7 +28,8 @@ import {
   Check,
   X,
   ChevronDown,
-  Upload
+  Upload,
+  Loader2
 } from "lucide-react"
 import { ImageViewer } from "./image-viewer"
 import { MessageDialog } from "./message-dialog"
@@ -72,6 +74,8 @@ interface Upload {
   [key: string]: any // Allow extra properties from database
 }
 
+type UIMode = 'GUEST_UI' | 'OWNER_UI' | 'AUTH_UI'
+
 interface GalleryViewProps {
   event: Event
   uploads: Upload[]
@@ -80,17 +84,13 @@ interface GalleryViewProps {
   isOwner?: boolean
   hasEventAccess?: boolean
   continuationCard?: React.ReactNode
+  forcePublicView?: boolean
+  guestbookEntries?: any[]
+  isGuestOwnContent?: boolean
+  uiMode?: UIMode
 }
 
-export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, isOwner = false, hasEventAccess = false, continuationCard }: GalleryViewProps) {
-  // Debug privacy logic
-  console.log(`🎭 GalleryView privacy debug:`, {
-    guestCanViewAlbum: event.guestCanViewAlbum,
-    hasEventAccess,
-    isOwner,
-    shouldShowGallery: event.guestCanViewAlbum || hasEventAccess,
-    eventId: event.id
-  })
+export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, isOwner = false, hasEventAccess = false, continuationCard, forcePublicView = false, guestbookEntries = [], isGuestOwnContent = false, uiMode = 'GUEST_UI' }: GalleryViewProps) {
   
   const [selectedTab, setSelectedTab] = useState<'photos' | 'audio' | 'guestbook' | 'pending'>('photos')
   const [selectedAlbum, setSelectedAlbum] = useState<string>('all')
@@ -99,7 +99,22 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   const [selectedUpload, setSelectedUpload] = useState<Upload | null>(null)
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false)
   const [guestbookCount, setGuestbookCount] = useState(event.guestbookCount)
+  
+  // Optimistic updates state
+  const [optimisticActions, setOptimisticActions] = useState<Map<string, 'approving' | 'rejecting' | 'approved' | 'rejected'>>(new Map())
+  
   const router = useRouter()
+
+  // Derive display data from props + optimistic actions
+  const displayPendingUploads = pendingUploads.filter(upload => {
+    const action = optimisticActions.get(upload.id)
+    return !action || action === 'approving' || action === 'rejecting'
+  })
+  
+  const displayApprovedUploads = [
+    ...uploads,
+    ...pendingUploads.filter(upload => optimisticActions.get(upload.id) === 'approved')
+  ]
 
   // Check if upload window is open
   const uploadWindowOpen = event.activationDate ? 
@@ -117,7 +132,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
 
   // Filter approved uploads for photos tab (exclude audio)
-  const filteredUploads = selectedTab === 'photos' ? uploads.filter(upload => {
+  const filteredUploads = selectedTab === 'photos' ? displayApprovedUploads.filter(upload => {
     const isPhotoOrVideo = upload.fileType === 'image' || upload.fileType === 'video'
     const matchesSearch = searchQuery === '' || 
       upload.uploaderName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -132,7 +147,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   }) : []
 
   // Filter audio uploads for audio tab
-  const filteredAudioUploads = selectedTab === 'audio' ? uploads.filter(upload => {
+  const filteredAudioUploads = selectedTab === 'audio' ? displayApprovedUploads.filter(upload => {
     const isAudio = upload.fileType === 'audio'
     const matchesSearch = searchQuery === '' || 
       upload.uploaderName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -142,7 +157,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   }) : []
 
   // Filter pending uploads for pending tab (exclude audio)
-  const filteredPendingUploads = selectedTab === 'pending' && hasEventAccess ? pendingUploads.filter(upload => {
+  const filteredPendingUploads = selectedTab === 'pending' && uiMode === 'OWNER_UI' ? displayPendingUploads.filter(upload => {
     const isPhotoOrVideo = upload.fileType === 'image' || upload.fileType === 'video'
     const matchesSearch = searchQuery === '' || 
       upload.uploaderName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -157,7 +172,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   }) : []
 
   // Filter pending audio uploads for pending tab
-  const filteredPendingAudioUploads = selectedTab === 'pending' && hasEventAccess ? pendingUploads.filter(upload => {
+  const filteredPendingAudioUploads = selectedTab === 'pending' && uiMode === 'OWNER_UI' ? displayPendingUploads.filter(upload => {
     const isAudio = upload.fileType === 'audio'
     const matchesSearch = searchQuery === '' || 
       upload.uploaderName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -171,10 +186,10 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   const displayAudioUploads = selectedTab === 'pending' ? filteredPendingAudioUploads : filteredAudioUploads
 
   // Calculate counts
-  const pendingPhotoCount = pendingUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length
-  const pendingAudioCount = pendingUploads.filter(u => u.fileType === 'audio').length
-  const approvedPhotoCount = uploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length
-  const approvedAudioCount = uploads.filter(u => u.fileType === 'audio').length
+  const pendingPhotoCount = displayPendingUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length
+  const pendingAudioCount = displayPendingUploads.filter(u => u.fileType === 'audio').length
+  const approvedPhotoCount = displayApprovedUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length
+  const approvedAudioCount = displayApprovedUploads.filter(u => u.fileType === 'audio').length
 
   const openImageModal = (upload: Upload) => {
     setSelectedUpload(upload)
@@ -185,31 +200,69 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   }
 
   const handleApprove = async (uploadId: string) => {
+    // Optimistic update - immediately show as approving
+    setOptimisticActions(prev => new Map(prev.set(uploadId, 'approving')))
+    
     try {
       const result = await approveUpload(uploadId)
       
       if (result.success) {
+        // Show as approved and remove from pending
+        setOptimisticActions(prev => new Map(prev.set(uploadId, 'approved')))
         toast.success('Upload approved successfully')
-        router.refresh()
+        
+        // Refresh data in background without blocking UI
+        setTimeout(() => router.refresh(), 100)
       } else {
+        // Revert optimistic update on error
+        setOptimisticActions(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(uploadId)
+          return newMap
+        })
         toast.error(result.error || 'Failed to approve upload')
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setOptimisticActions(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(uploadId)
+        return newMap
+      })
       toast.error('Failed to approve upload')
     }
   }
 
   const handleReject = async (uploadId: string) => {
+    // Optimistic update - immediately show as rejecting
+    setOptimisticActions(prev => new Map(prev.set(uploadId, 'rejecting')))
+    
     try {
       const result = await rejectUpload(uploadId)
       
       if (result.success) {
+        // Show as rejected and remove from pending
+        setOptimisticActions(prev => new Map(prev.set(uploadId, 'rejected')))
         toast.success('Upload rejected')
-        router.refresh()
+        
+        // Refresh data in background without blocking UI
+        setTimeout(() => router.refresh(), 100)
       } else {
+        // Revert optimistic update on error
+        setOptimisticActions(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(uploadId)
+          return newMap
+        })
         toast.error(result.error || 'Failed to reject upload')
       }
     } catch (error) {
+      // Revert optimistic update on error
+      setOptimisticActions(prev => {
+        const newMap = new Map(prev)
+        newMap.delete(uploadId)
+        return newMap
+      })
       toast.error('Failed to reject upload')
     }
   }
@@ -380,9 +433,8 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
       {/* Main Content */}
       <div className="p-4 min-h-screen bg-background">
-        {(event.guestCanViewAlbum || hasEventAccess) ? (
-          <>
-            {/* Tabs */}
+        <>
+          {/* Tabs */}
             <Tabs value={selectedTab} onValueChange={(value) => {
               if (value === 'guestbook') {
                 setSelectedTab('guestbook')
@@ -403,7 +455,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                 <TabsTrigger value="audio" className="data-[state=active]:bg-background flex-shrink-0">
                   Audio Messages ({approvedAudioCount})
                 </TabsTrigger>
-                {hasEventAccess && event.approveUploads && (
+                {uiMode === 'OWNER_UI' && event.approveUploads && (
                   <TabsTrigger value="pending" className="data-[state=active]:bg-background flex-shrink-0">
                     Pending ({pendingPhotoCount + pendingAudioCount})
                   </TabsTrigger>
@@ -414,8 +466,18 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               </TabsList>
             </Tabs>
 
+            {/* Guest Own Content Notice */}
+            {isGuestOwnContent && (
+              <Alert className="mb-4 bg-primary/5 border-primary/20">
+                <Heart className="h-4 w-4 text-primary" />
+                <AlertDescription>
+                  <strong>Your Memories:</strong> This shows only the photos and messages you've shared. The gallery is currently private, but your contributions are safely stored and the hosts can see them. Keep uploading more memories!
+                </AlertDescription>
+              </Alert>
+            )}
+
             {/* Upload Review Notice */}
-            {event.approveUploads && selectedTab === 'photos' && (
+            {event.approveUploads && selectedTab === 'photos' && !isGuestOwnContent && (
               <Alert className="mb-4">
                 <Info className="h-4 w-4" />
                 <AlertDescription>
@@ -469,14 +531,14 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         size="sm"
                         onClick={() => setSelectedAlbum('all')}
                       >
-                        All Photos ({selectedTab === 'pending' ? pendingUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length : uploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length})
+                        All Photos {!isGuestOwnContent && `(${selectedTab === 'pending' ? pendingUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length : uploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length})`}
                       </Button>
                       <Button
                         variant={selectedAlbum === 'unassigned' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setSelectedAlbum('unassigned')}
                       >
-                        General ({selectedTab === 'pending' ? pendingUploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && !u.albumId).length : uploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && !u.albumId).length})
+                        General {!isGuestOwnContent && `(${selectedTab === 'pending' ? pendingUploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && !u.albumId).length : uploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && !u.albumId).length})`}
                       </Button>
                       {event.albums.map((album) => {
                         const albumUploads = selectedTab === 'pending' 
@@ -489,7 +551,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                             size="sm"
                             onClick={() => setSelectedAlbum(album.id)}
                           >
-                            {album.name} ({albumUploads.length})
+                            {album.name} {!isGuestOwnContent && `(${albumUploads.length})`}
                           </Button>
                         )
                       })}
@@ -563,34 +625,47 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         )}
 
                         {/* Approval buttons for pending tab */}
-                        {selectedTab === 'pending' && hasEventAccess && (
-                          <div className="absolute top-2 left-2 flex gap-1">
-                            <Button
-                              size="sm"
-                              variant="default"
-                              className="h-8 w-8 p-0 bg-green-500 hover:bg-green-600"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleApprove(upload.id)
-                              }}
-                              title="Approve"
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              className="h-8 w-8 p-0"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleReject(upload.id)
-                              }}
-                              title="Reject"
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        )}
+                        {selectedTab === 'pending' && uiMode === 'OWNER_UI' && (() => {
+                          const action = optimisticActions.get(upload.id)
+                          const isProcessing = action === 'approving' || action === 'rejecting'
+                          
+                          return (
+                            <div className="absolute top-2 left-2 flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="h-8 w-8 p-0 bg-green-500 hover:bg-green-600 disabled:opacity-50"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleApprove(upload.id)
+                                }}
+                                disabled={isProcessing}
+                                title={action === 'approving' ? 'Approving...' : 'Approve'}
+                              >
+                                {action === 'approving' ? 
+                                  <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                  <Check className="h-4 w-4" />
+                                }
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-8 w-8 p-0 disabled:opacity-50"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleReject(upload.id)
+                                }}
+                                disabled={isProcessing}
+                                title={action === 'rejecting' ? 'Rejecting...' : 'Reject'}
+                              >
+                                {action === 'rejecting' ? 
+                                  <Loader2 className="h-4 w-4 animate-spin" /> : 
+                                  <X className="h-4 w-4" />
+                                }
+                              </Button>
+                            </div>
+                          )
+                        })()}
                         
                         {/* Name overlay at bottom */}
                         {upload.uploaderName && (
@@ -687,18 +762,25 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                   <div className="text-center py-12">
                     <Camera className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium mb-2">
-                      {selectedTab === 'pending' ? 'No pending uploads' : 'No photos yet'}
+                      {selectedTab === 'pending' 
+                        ? 'No pending uploads' 
+                        : isGuestOwnContent 
+                        ? 'Start sharing your memories!' 
+                        : 'No photos yet'
+                      }
                     </h3>
                     <p className="text-muted-foreground mb-4">
                       {selectedTab === 'pending' 
                         ? 'All uploads have been reviewed.' 
+                        : isGuestOwnContent
+                        ? 'Upload your favorite photos and moments from this special event. Your memories matter!'
                         : 'Be the first to share a photo from this event!'
                       }
                     </p>
                     {uploadWindowOpen && selectedTab !== 'pending' && (
                       <Button onClick={() => router.push(`/gallery/${eventSlug}/upload`)}>
                         <Camera className="h-4 w-4 mr-2" />
-                        Upload Photos
+                        {isGuestOwnContent ? 'Share Your Photos' : 'Upload Photos'}
                       </Button>
                     )}
                   </div>
@@ -712,37 +794,14 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               </div>
             ) : (
               <div>
-                <GuestbookEntries eventId={event.id} onMessageAdded={handleMessageAdded} />
+                <GuestbookEntries 
+                  eventId={event.id} 
+                  onMessageAdded={handleMessageAdded}
+                  customEntries={isGuestOwnContent ? guestbookEntries : undefined}
+                />
               </div>
             )}
-          </>
-        ) : (
-          /* Private Gallery Message */
-          <div className="max-w-2xl mx-auto text-center py-12 px-6">
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold mb-4">Looking for photos?</h2>
-              <div className="space-y-4 text-muted-foreground">
-                <p>
-                  If you are seeing this message it means the album host has decided to keep the photos and videos private at this time.
-                </p>
-                <p>
-                  The host encourages everyone to please continue to upload all the moments they have captured and the host will decide later if and when they are going to share.
-                </p>
-              </div>
-            </div>
-            
-            {uploadWindowOpen && (
-              <Button
-                size="lg"
-                onClick={() => router.push(`/gallery/${eventSlug}/upload`)}
-                className="px-8"
-              >
-                <Camera className="h-5 w-5 mr-2" />
-                Upload Photos
-              </Button>
-            )}
-          </div>
-        )}
+        </>
       </div>
 
       {/* Image Viewer Modal */}

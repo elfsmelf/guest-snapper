@@ -5,14 +5,21 @@ import { eq, and, count, isNull } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import Image from "next/image"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft } from "lucide-react"
 import { UploadInterface } from "@/components/upload/upload-interface"
+import { GuestTrackingProvider } from "@/components/guest-tracking-provider"
 
 interface UploadPageProps {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-export default async function UploadPage({ params }: UploadPageProps) {
+export default async function UploadPage({ params, searchParams }: UploadPageProps) {
   const { slug } = await params
+  const search = await searchParams
+  const forcePublicView = search?.view === 'public'
 
   // Get event details by slug
   const eventResult = await db
@@ -52,10 +59,20 @@ export default async function UploadPage({ params }: UploadPageProps) {
     .where(eq(albums.eventId, event.id))
     .orderBy(albums.sortOrder)
 
-  // Get upload counts for each album
+  // Check if user is authenticated (for ownership detection) 
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
+
+  const isOwner = session?.user?.id === event.userId
+  
+  // Determine if user should see album counts (only for public galleries or owners/members)
+  const shouldShowCounts = event.guestCanViewAlbum || (isOwner && !forcePublicView)
+
+  // Get upload counts for each album (only if authorized)
   const albumsWithCounts = await Promise.all(
     albumsResult.map(async (album) => {
-      const uploadCount = await db
+      const uploadCount = shouldShowCounts ? await db
         .select({ count: count() })
         .from(uploads)
         .where(and(
@@ -63,7 +80,7 @@ export default async function UploadPage({ params }: UploadPageProps) {
           eq(uploads.albumId, album.id),
           eq(uploads.isApproved, true)
         ))
-        .then(result => result[0]?.count || 0)
+        .then(result => result[0]?.count || 0) : 0
 
       return {
         ...album,
@@ -72,8 +89,8 @@ export default async function UploadPage({ params }: UploadPageProps) {
     })
   )
 
-  // Get general (unassigned) photos count
-  const generalCount = await db
+  // Get general (unassigned) photos count (only if authorized)
+  const generalCount = shouldShowCounts ? await db
     .select({ count: count() })
     .from(uploads)
     .where(and(
@@ -81,7 +98,7 @@ export default async function UploadPage({ params }: UploadPageProps) {
       isNull(uploads.albumId),
       eq(uploads.isApproved, true)
     ))
-    .then(result => result[0]?.count || 0)
+    .then(result => result[0]?.count || 0) : 0
 
   const eventWithAlbums = {
     ...event,
@@ -89,18 +106,13 @@ export default async function UploadPage({ params }: UploadPageProps) {
     generalUploadsCount: generalCount,
   }
 
-  // Check if user is authenticated (for ownership detection)
-  const session = await auth.api.getSession({
-    headers: await headers()
-  })
-
-  const isOwner = session?.user?.id === event.userId
   const uploadWindowOpen = isOwner || new Date(event.uploadWindowEnd) > new Date()
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Compact Cover Image Header with Nav Overlay */}
-    {event.coverImageUrl && (
+    <GuestTrackingProvider forcePublicView={forcePublicView}>
+      <div className="min-h-screen bg-background">
+        {/* Compact Cover Image Header with Nav Overlay */}
+      {event.coverImageUrl && (
       <div className="relative h-32 md:h-40 overflow-hidden">
         <Image
           src={event.coverImageUrl}
@@ -112,6 +124,20 @@ export default async function UploadPage({ params }: UploadPageProps) {
         />
         <div className="absolute inset-0 bg-black/40" />
         
+        {/* Back Button */}
+        <div className="absolute top-4 left-4 z-10">
+          <Button
+            asChild
+            variant="secondary"
+            size="sm"
+            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-white/20"
+          >
+            <Link href={`/gallery/${slug}`}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Gallery
+            </Link>
+          </Button>
+        </div>
         
         {/* Content Overlay */}
         <div className="absolute inset-0 flex items-center justify-center">
@@ -127,8 +153,8 @@ export default async function UploadPage({ params }: UploadPageProps) {
       </div>
     )}
     
-    {/* Owner badge - more compact */}
-    {isOwner && (
+    {/* Owner badge - more compact (hide when forcing public view) */}
+    {isOwner && !forcePublicView && (
       <div className="bg-secondary border-b border-border">
         <div className="container mx-auto px-4 py-2">
           <p className="text-xs text-secondary-foreground flex items-center justify-center gap-1">
@@ -139,12 +165,15 @@ export default async function UploadPage({ params }: UploadPageProps) {
       </div>
     )}
     
-      <UploadInterface 
-        event={eventWithAlbums}
-        uploadWindowOpen={uploadWindowOpen}
-        isOwner={isOwner}
-        guestCanUpload={event.guestCanViewAlbum ?? false}
-      />
-    </div>
+        <UploadInterface 
+          event={eventWithAlbums}
+          uploadWindowOpen={uploadWindowOpen}
+          isOwner={isOwner}
+          guestCanUpload={event.guestCanViewAlbum ?? false}
+          forcePublicView={forcePublicView}
+          shouldShowCounts={shouldShowCounts}
+        />
+      </div>
+    </GuestTrackingProvider>
   )
 }

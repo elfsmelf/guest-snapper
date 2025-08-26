@@ -56,9 +56,11 @@ interface UploadInterfaceProps {
   guestCanUpload?: boolean
   isOnboardingStep?: boolean // New prop to hide certain elements during onboarding
   onUploadComplete?: (uploadCount: number) => void // Callback for onboarding steps
+  forcePublicView?: boolean
+  shouldShowCounts?: boolean
 }
 
-export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false, isOnboardingStep = false, onUploadComplete }: UploadInterfaceProps) {
+export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false, isOnboardingStep = false, onUploadComplete, forcePublicView = false, shouldShowCounts = false }: UploadInterfaceProps) {
   const [files, setFiles] = useState<UploadFile[]>([])
   const [uploaderName, setUploaderName] = useState("")
   const [selectedAlbumId, setSelectedAlbumId] = useState<string>("")
@@ -220,7 +222,6 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
             The upload window for this event has ended. Thank you for your interest in sharing memories!
           </p>
           <Button onClick={() => {
-            // Use router navigation with refresh to show fresh content
             router.push(`/gallery/${event.slug}`)
             router.refresh()
           }}>
@@ -271,11 +272,11 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
             }} className="w-full">
               <TabsList className="grid w-full bg-muted" style={{ gridTemplateColumns: `repeat(${event.albums.length + 1}, minmax(0, 1fr))` }}>
                 <TabsTrigger value="" className="text-xs">
-                  General ({event.generalUploadsCount || 0})
+                  General {shouldShowCounts && `(${event.generalUploadsCount || 0})`}
                 </TabsTrigger>
                 {event.albums.map((album) => (
                   <TabsTrigger key={album.id} value={album.id} className="text-xs">
-                    {album.name} ({album.uploadsCount || 0})
+                    {album.name} {shouldShowCounts && `(${album.uploadsCount || 0})`}
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -467,7 +468,6 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
                   <Button 
                     size="sm" 
                     onClick={() => {
-                      // Use router navigation with refresh to show newly uploaded images
                       router.push(`/gallery/${event.slug}`)
                       router.refresh()
                     }}

@@ -4,17 +4,19 @@ import { authClient } from "@/lib/auth-client"
 import { Header } from "@/components/header"
 import { PublicGalleryHeader } from "@/components/public-gallery-header"
 import { parseOnboardingState } from "@/types/onboarding"
+import { GuestTrackingProvider } from "@/components/guest-tracking-provider"
 
 interface GalleryPageWrapperProps {
   children: React.ReactNode
   eventData: any
   eventSlug: string
+  forcePublicView?: boolean
 }
 
 /**
  * Client wrapper that adds the appropriate header based on auth state
  */
-export function GalleryPageWrapper({ children, eventData, eventSlug }: GalleryPageWrapperProps) {
+export function GalleryPageWrapper({ children, eventData, eventSlug, forcePublicView = false }: GalleryPageWrapperProps) {
   const { data: session, isPending } = authClient.useSession()
   const themeId = eventData.themeId || 'default'
   
@@ -27,7 +29,7 @@ export function GalleryPageWrapper({ children, eventData, eventSlug }: GalleryPa
   }
   
   return (
-    <>
+    <GuestTrackingProvider forcePublicView={forcePublicView}>
       {/* Show appropriate header based on auth state */}
       {isPending ? (
         // Loading state - show public header to prevent shift
@@ -55,6 +57,6 @@ export function GalleryPageWrapper({ children, eventData, eventSlug }: GalleryPa
       
       {/* Gallery content */}
       {children}
-    </>
+    </GuestTrackingProvider>
   )
 }

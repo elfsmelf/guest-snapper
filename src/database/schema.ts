@@ -1,5 +1,5 @@
 export * from "@/../auth-schema"
-import { pgTable, text, timestamp, boolean, integer, uuid } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, boolean, integer, uuid, unique } from "drizzle-orm/pg-core"
 import { users, organizations } from "@/../auth-schema"
 
 // Events table (wedding galleries) - matching actual database schema
@@ -77,13 +77,17 @@ export const uploads = pgTable("uploads", {
 // Guests table for anonymous user tracking
 export const guests = pgTable("guests", {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  cookieId: text('cookie_id').notNull(), // Browser guest ID from cookie
   eventId: text('event_id').notNull().references(() => events.id, { onDelete: 'cascade' }),
   guestName: text('guest_name'), // Optional name from localStorage or user input
   ipAddress: text('ip_address'), // For basic deduplication
   userAgent: text('user_agent'), // For additional fingerprinting
   createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
   updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
-})
+}, (table) => ({
+  // Composite unique constraint: one guest record per cookie per event
+  uniqueCookieEvent: unique().on(table.cookieId, table.eventId),
+}))
 
 // Guestbook entries
 export const guestbookEntries = pgTable("guestbook_entries", {

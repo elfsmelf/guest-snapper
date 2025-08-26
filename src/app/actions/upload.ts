@@ -30,41 +30,52 @@ export async function createUpload(uploadData: UploadData) {
     let guestId: string | null = null
     let anonId: string | null = null
 
-    // Handle anonymous guest tracking for non-authenticated users
-    if (!session?.user?.id) {
-      guestId = cookieStore.get('guest_id')?.value || null
+    // Handle guest tracking for anonymous users OR authenticated users with guest cookie (?view=public)
+    guestId = cookieStore.get('guest_id')?.value || null
+    
+    if (guestId) {
+      console.log('🔍 Upload with guest ID:', guestId, 'authenticated:', !!session?.user?.id)
       
-      if (guestId) {
-        // Check if guest record already exists for this event
+      // PostgreSQL UPSERT using composite unique constraint (cookieId + eventId)
+      // This works for both anonymous users and authenticated users using ?view=public
+      const guestResult = await db
+        .insert(guests)
+        .values({
+          cookieId: guestId, // Browser cookie ID
+          eventId: uploadData.eventId,
+          guestName: uploadData.uploaderName || null,
+          ipAddress: null, // Could add IP tracking if needed
+          userAgent: null, // Could add user agent tracking if needed
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .onConflictDoNothing({ target: [guests.cookieId, guests.eventId] })
+        .returning()
+
+      // If insert succeeded, use the new record; otherwise fetch existing
+      if (guestResult.length > 0) {
+        anonId = guestResult[0].id
+        console.log('🔍 Created new guest record:', anonId)
+      } else {
+        // Fetch the existing record (created by concurrent request)
         const existingGuest = await db
           .select()
           .from(guests)
           .where(and(
-            eq(guests.id, guestId),
+            eq(guests.cookieId, guestId),
             eq(guests.eventId, uploadData.eventId)
           ))
           .limit(1)
-
+        
         if (existingGuest.length > 0) {
           anonId = existingGuest[0].id
+          console.log('🔍 Using existing guest record:', anonId)
         } else {
-          // Create new guest record for this event
-          const newGuest = await db
-            .insert(guests)
-            .values({
-              id: guestId,
-              eventId: uploadData.eventId,
-              guestName: uploadData.uploaderName || null,
-              ipAddress: null, // Could add IP tracking if needed
-              userAgent: null, // Could add user agent tracking if needed
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            })
-            .returning()
-          
-          anonId = newGuest[0].id
+          throw new Error('Failed to create or find guest record')
         }
       }
+    } else if (!session?.user?.id) {
+      console.log('🔍 Anonymous user upload without guest ID')
     }
 
     // Verify event exists and get event details for plan checking
