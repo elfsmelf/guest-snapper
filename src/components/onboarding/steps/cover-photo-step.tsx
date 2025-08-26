@@ -9,7 +9,7 @@ import { useDropzone } from "react-dropzone"
 import { toast } from "sonner"
 import { CheckCircle } from "lucide-react"
 import { type OnboardingState } from "@/types/onboarding"
-import { updateOnboardingProgress } from "@/app/actions/onboarding"
+import { updateOnboardingProgress, completeOnboardingStep } from "@/app/actions/onboarding"
 import { useEventData, eventKeys } from "@/hooks/use-onboarding"
 import { useQueryClient } from "@tanstack/react-query"
 
@@ -123,6 +123,18 @@ function OnboardingCoverImageUpload({ event, eventId }: { event: any, eventId: s
       if (updateResult.success) {
         toast.success('Cover image updated successfully!')
         setSelectedFile(null)
+        
+        // Update onboarding state to mark cover photo step as complete
+        try {
+          await completeOnboardingStep(eventId, 'cover-photo')
+          await updateOnboardingProgress(eventId, {
+            coverPhotoSet: true,
+            coverPhotoUploaded: true
+          })
+        } catch (onboardingError) {
+          console.error('Failed to update onboarding progress:', onboardingError)
+        }
+        
         // Invalidate React Query cache to refresh data
         queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId) })
       } else {
@@ -156,6 +168,17 @@ function OnboardingCoverImageUpload({ event, eventId }: { event: any, eventId: s
         toast.success('Cover image removed successfully!')
         setPreview(null)
         setSelectedFile(null)
+        
+        // Update onboarding state to mark cover photo step as incomplete
+        try {
+          await updateOnboardingProgress(eventId, {
+            coverPhotoSet: false,
+            coverPhotoUploaded: false
+          })
+        } catch (onboardingError) {
+          console.error('Failed to update onboarding progress:', onboardingError)
+        }
+        
         console.log('🖼️ Invalidating React Query cache:', eventKeys.detail(eventId))
         // Invalidate React Query cache to refresh data
         queryClient.invalidateQueries({ queryKey: eventKeys.detail(eventId) })
@@ -330,20 +353,9 @@ export function CoverPhotoStep({
     shouldMarkIncomplete: !hasCoverImage && isComplete && state.coverPhotoSet
   })
 
-  // Pure reactive updates - let React Query handle the reactivity
-  if (hasCoverImage && !isComplete) {
-    console.log('📸 CoverPhotoStep: Marking step as COMPLETE')
-    onUpdate({
-      coverPhotoSet: true,
-      completedSteps: [...state.completedSteps.filter(s => s !== 'cover-photo'), 'cover-photo']
-    })
-  } else if (!hasCoverImage && isComplete && state.coverPhotoSet) {
-    console.log('📸 CoverPhotoStep: Marking step as INCOMPLETE')
-    onUpdate({
-      coverPhotoSet: false,
-      completedSteps: state.completedSteps.filter(s => s !== 'cover-photo')
-    })
-  }
+  // React Query will handle reactivity - no direct onUpdate calls during render
+  // The onboarding state will be updated when React Query invalidates the cache
+  // after successful upload/removal operations in OnboardingCoverImageUpload
 
   return (
     <div className="space-y-6">

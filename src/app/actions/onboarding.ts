@@ -5,7 +5,7 @@ import { events } from "@/database/schema"
 import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { revalidatePath } from "next/cache"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { 
   type OnboardingState, 
   parseOnboardingState,
@@ -88,6 +88,9 @@ export async function initializeOnboarding(eventId: string) {
     
     revalidatePath(`/gallery/${event.slug}`)
     revalidatePath(`/dashboard/events/${eventId}`)
+    revalidateTag('event')
+    revalidateTag(`event-${event.slug}`)
+    revalidateTag('onboarding')
     
     return { success: true, state: initialState }
   } catch (error) {
@@ -134,6 +137,9 @@ export async function updateOnboardingProgress(
     revalidatePath(`/gallery/${event.slug}`)
     revalidatePath(`/dashboard/events/${eventId}`)
     revalidatePath('/dashboard')
+    revalidateTag('event')
+    revalidateTag(`event-${event.slug}`)
+    revalidateTag('onboarding')
     
     return { success: true, state: updatedState }
   } catch (error) {
