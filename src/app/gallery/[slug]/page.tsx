@@ -469,7 +469,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
         {/* Debug info for development */}
         <CacheDebugInfo 
           eventSlug={slug}
-          currentGuestCanView={eventWithAlbums.guestCanViewAlbum}
+          currentGuestCanView={eventWithAlbums.guestCanViewAlbum ?? false}
         />
       </div>
     </GalleryPageWrapper>
