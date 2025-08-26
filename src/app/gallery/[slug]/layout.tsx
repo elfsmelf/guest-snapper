@@ -1,9 +1,11 @@
 import { notFound } from 'next/navigation'
-import { getSession } from "@/lib/auth-session-helpers"
+import { headers } from "next/headers"
+import { auth } from "@/lib/auth"
 import { getCachedEventData } from "@/lib/gallery-cache"
 import { parseOnboardingState } from "@/types/onboarding"
 import { GalleryThemeProvider } from "@/components/gallery-theme-provider"
 import { Header } from "@/components/header"
+import { PublicGalleryHeader } from "@/components/public-gallery-header"
 import "@/styles/gallery-themes.css"
 
 interface GalleryLayoutProps {
@@ -23,10 +25,25 @@ export default async function GalleryLayout({ children, params }: GalleryLayoutP
 
   const themeId = eventWithAlbums.themeId || 'default'
   
-  // Check if current user is the owner and get onboarding state
-  const session = await getSession() // Use optimized caching
-  const isOwner = session?.user?.id === eventWithAlbums.userId
-  const onboardingState = parseOnboardingState(eventWithAlbums.quickStartProgress)
+  // Only fetch session if we need to check ownership - avoids API calls for public viewers
+  // This dramatically reduces auth requests for anonymous gallery visitors
+  let session = null
+  let isOwner = false
+  let onboardingState = null
+  
+  // Check if session cookie exists before making API call
+  const headersList = await headers()
+  const sessionCookie = headersList.get('cookie')?.includes('better-auth.session_token')
+  
+  if (sessionCookie) {
+    // Only make session API call if session cookie exists
+    session = await auth.api.getSession({ headers: headersList })
+    isOwner = session?.user?.id === eventWithAlbums.userId
+    
+    if (isOwner) {
+      onboardingState = parseOnboardingState(eventWithAlbums.quickStartProgress)
+    }
+  }
 
   return (
     <>
@@ -48,12 +65,22 @@ export default async function GalleryLayout({ children, params }: GalleryLayoutP
       />
       <GalleryThemeProvider themeId={themeId}>
         <div className="gallery-app">
-          <Header 
-            galleryTheme={themeId} 
-            eventSlug={slug}
-            showOnboardingSetup={isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped}
-            onboardingStep={onboardingState?.currentStep}
-          />
+          {session?.user ? (
+            // Authenticated user - use full header with session management
+            <Header 
+              galleryTheme={themeId} 
+              eventSlug={slug}
+              showOnboardingSetup={isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped}
+              onboardingStep={onboardingState?.currentStep}
+            />
+          ) : (
+            // Anonymous user - use public header with NO session API calls
+            <PublicGalleryHeader 
+              galleryTheme={themeId} 
+              eventSlug={slug}
+              showAuthButtons={true}
+            />
+          )}
           {children}
         </div>
       </GalleryThemeProvider>
