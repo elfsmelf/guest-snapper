@@ -32,30 +32,35 @@ export default async function GalleryLayout({ children, params }: GalleryLayoutP
   let isOwner = false
   let onboardingState = null
   
-  // Use Better Auth's session cookie detection
+  // Use Better Auth's session cookie detection following best practices
   const headersList = await headers()
   const sessionCookie = getSessionCookie(headersList)
   
-  // Fallback check with manual cookie parsing for debugging
-  const cookieHeader = headersList.get('cookie')
-  const hasSessionTokenFallback = cookieHeader?.includes('better-auth.session_token')
+  console.log('Gallery layout - sessionCookie detected:', !!sessionCookie)
   
-  console.log('Gallery layout - getSessionCookie result:', !!sessionCookie)
-  console.log('Gallery layout - manual cookie check:', !!hasSessionTokenFallback)
-  console.log('Gallery layout - cookie header:', cookieHeader ? 'exists' : 'missing')
-  
-  // Use getSessionCookie as primary, with fallback for debugging
-  if (sessionCookie || hasSessionTokenFallback) {
-    // Only make session API call if session cookie exists
-    session = await auth.api.getSession({ headers: headersList })
-    console.log('Gallery layout - session from API:', !!session?.user, session?.user?.email)
-    isOwner = session?.user?.id === eventWithAlbums.userId
-    
-    if (isOwner) {
-      onboardingState = parseOnboardingState(eventWithAlbums.quickStartProgress)
+  // Always try to get session if cookie exists (following Next.js best practices)
+  if (sessionCookie) {
+    try {
+      session = await auth.api.getSession({ headers: headersList })
+      console.log('Gallery layout - session API result:', !!session?.user, session?.user?.email)
+      
+      if (session?.user) {
+        isOwner = session.user.id === eventWithAlbums.userId
+        console.log('Gallery layout - ownership check:', isOwner, session.user.id, eventWithAlbums.userId)
+        
+        if (isOwner) {
+          onboardingState = parseOnboardingState(eventWithAlbums.quickStartProgress)
+        }
+      } else {
+        console.log('Gallery layout - session cookie exists but no valid session returned')
+        session = null
+      }
+    } catch (error) {
+      console.error('Gallery layout - session API error:', error)
+      session = null
     }
   } else {
-    console.log('Gallery layout - no session cookie detected, showing public header')
+    console.log('Gallery layout - no session cookie, treating as anonymous user')
   }
 
   return (
