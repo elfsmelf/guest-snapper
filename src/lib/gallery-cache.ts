@@ -1,4 +1,5 @@
-import { unstable_cache } from 'next/cache'
+import { unstable_noStore } from 'next/cache'
+import { cache } from 'react'
 import { db } from '@/database/db'
 import { uploads, events, albums, guestbookEntries } from '@/database/schema'
 import { eq, and, desc, count } from 'drizzle-orm'
@@ -20,65 +21,87 @@ interface GalleryData {
   hasAccess: boolean
 }
 
-// Cached function to fetch gallery data using optimized prepared statements
-export const getCachedGalleryData = unstable_cache(
-  async (eventId: string, hasAccess: boolean) => {
-    // Use optimized prepared statement for uploads
-    const uploadsResult = await getOptimizedUploadsByEventId(eventId, hasAccess)
+// React cache for request memoization (deduplicates within same request)
+const getGalleryDataInternal = cache(async (eventId: string, hasAccess: boolean) => {
+  // Use optimized prepared statement for uploads
+  const uploadsResult = await getOptimizedUploadsByEventId(eventId, hasAccess)
 
-    // Separate into approved and pending
-    const approvedUploads = uploadsResult.filter(u => u.isApproved)
-    const pendingUploads = hasAccess ? uploadsResult.filter(u => !u.isApproved) : []
+  // Separate into approved and pending
+  const approvedUploads = uploadsResult.filter(u => u.isApproved)
+  const pendingUploads = hasAccess ? uploadsResult.filter(u => !u.isApproved) : []
 
-    return {
-      uploads: approvedUploads,
-      pendingUploads,
-      approvedCount: approvedUploads.length,
-      pendingCount: pendingUploads.length,
-      totalCount: uploadsResult.length,
-      hasAccess,
-    }
-  },
-  [`gallery-data`],
-  {
-    tags: [`gallery`],
-    revalidate: 600, // Cache for 10 minutes with on-demand revalidation
+  return {
+    uploads: approvedUploads,
+    pendingUploads,
+    approvedCount: approvedUploads.length,
+    pendingCount: pendingUploads.length,
+    totalCount: uploadsResult.length,
+    hasAccess,
   }
-)
+})
 
-// Cached function to fetch event with albums and counts using optimized prepared statements  
-export const getCachedEventData = async (slug: string, hasAccess: boolean) => {
-  // Create cache function with dynamic key based on slug
-  const cachedFn = unstable_cache(
-    async (slug: string, hasAccess: boolean) => {
-      // Use optimized prepared statement for event lookup
-      const event = await getOptimizedEventBySlug(slug)
-      
-      if (!event) {
-        return null
-      }
+// Direct function to fetch gallery data (uses React cache for request deduplication)
+export const getCachedGalleryData = async (eventId: string, hasAccess: boolean) => {
+  // Since the gallery page is force-dynamic, this will always fetch fresh data
+  // but deduplicate within the same request using React's cache
+  return getGalleryDataInternal(eventId, hasAccess)
+}
 
-      // Use parallel queries with prepared statements for better performance
-      const [albumsResult, uploadsCount, guestbookCount] = await Promise.all([
-        getOptimizedAlbumsByEventId(event.id),
-        getOptimizedUploadCountByEventId(event.id),
-        getOptimizedGuestbookCountByEventId(event.id)
-      ])
-
-      return {
-        ...event,
-        albums: albumsResult,
-        uploadsCount: uploadsCount,
-        approvedUploadsCount: uploadsCount, // Using same count since we only query approved
-        guestbookCount: guestbookCount,
-      }
-    },
-    [`event-data-${slug}`], // Make cache key specific to the event
-    {
-      tags: [`gallery`, `event`, `event-${slug}`], // Add event-specific tag
-      revalidate: 600, // Cache for 10 minutes with on-demand revalidation
-    }
-  )
+// React cache for request memoization
+const getEventDataInternal = cache(async (slug: string) => {
+  // Use optimized prepared statement for event lookup
+  const event = await getOptimizedEventBySlug(slug)
   
-  return cachedFn(slug, hasAccess)
+  if (!event) {
+    return null
+  }
+
+  // Use parallel queries with prepared statements for better performance
+  const [albumsResult, uploadsCount, guestbookCount] = await Promise.all([
+    getOptimizedAlbumsByEventId(event.id),
+    getOptimizedUploadCountByEventId(event.id),
+    getOptimizedGuestbookCountByEventId(event.id)
+  ])
+
+  return {
+    ...event,
+    albums: albumsResult,
+    uploadsCount: uploadsCount,
+    approvedUploadsCount: uploadsCount,
+    guestbookCount: guestbookCount,
+  }
+})
+
+// Direct function to fetch event data (uses React cache for request deduplication) 
+export const getCachedEventData = async (slug: string, hasAccess: boolean) => {
+  // Since gallery page is force-dynamic, this will always fetch fresh data
+  // The hasAccess parameter is kept for compatibility but not used in caching
+  return getEventDataInternal(slug)
+}
+
+// Explicitly non-cached function (opts out of all caching)
+export const getFreshEventData = async (slug: string) => {
+  unstable_noStore() // Opt out of even request memoization
+  
+  // Use optimized prepared statement for event lookup
+  const event = await getOptimizedEventBySlug(slug)
+  
+  if (!event) {
+    return null
+  }
+
+  // Use parallel queries with prepared statements for better performance
+  const [albumsResult, uploadsCount, guestbookCount] = await Promise.all([
+    getOptimizedAlbumsByEventId(event.id),
+    getOptimizedUploadCountByEventId(event.id),
+    getOptimizedGuestbookCountByEventId(event.id)
+  ])
+
+  return {
+    ...event,
+    albums: albumsResult,
+    uploadsCount: uploadsCount,
+    approvedUploadsCount: uploadsCount,
+    guestbookCount: guestbookCount,
+  }
 }

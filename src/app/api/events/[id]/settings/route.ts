@@ -102,12 +102,20 @@ export async function PATCH(
       
     console.log(`✅ Event updated successfully:`, updatedEvent[0])
 
-    // Revalidate the gallery page cache when settings change
-    // This ensures changes to privacy settings, publish status, etc. are reflected immediately
+    // Force immediate cache invalidation for privacy changes
+    // Since gallery page is force-dynamic, these revalidations ensure any edge caches are cleared
+    revalidatePath(`/gallery/${event.slug}`, 'page')
+    revalidatePath(`/gallery/${event.slug}`)
+    
+    // Also revalidate related paths that might cache the event data
+    revalidatePath(`/events/${id}`)
+    revalidatePath(`/dashboard`)
+    revalidatePath('/', 'layout')
+    
+    // Clear any remaining cache tags (for components using fetch caching)
     revalidateTag('gallery')
     revalidateTag('event')
-    revalidateTag(`event-${event.slug}`) // Invalidate event-specific cache
-    revalidatePath(`/gallery/${event.slug}`)
+    revalidateTag(`event-${event.slug}`)
     
     console.log(`🗄️ Cache invalidated for event ${event.slug}: guestCanViewAlbum=${updateData.guestCanViewAlbum}`)
 
