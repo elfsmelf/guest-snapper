@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
-import { useOptimizedSession } from "@/components/auth-session-provider"
+import { authClient } from "@/lib/auth-client"
 
 import { Button } from "./ui/button"
 import { UserButton } from "@daveyplate/better-auth-ui"
@@ -18,7 +18,7 @@ interface HeaderProps {
 
 export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, onboardingStep = 1 }: HeaderProps) {
     const pathname = usePathname()
-    const { data: session, isPending } = useOptimizedSession()
+    const { data: session, isPending } = authClient.useSession()
 
     // Check if we're on any gallery page
     const isGalleryPage = pathname?.startsWith('/gallery/')
@@ -48,7 +48,7 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
 
     return (
         <header className={getHeaderClasses()}>
-            <Link href="/" className="flex items-center">
+            <Link href="/" className="flex items-center" prefetch={false}>
                 <span className={getTextClasses()}>Guest Snapper</span>
             </Link>
 
@@ -56,7 +56,7 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
                 <ModeToggle />
                 {(isUploadPage || isVoicePage) && gallerySlug ? (
                     <Button asChild variant="outline" size="sm">
-                        <Link href={`/gallery/${gallerySlug}`}>
+                        <Link href={`/gallery/${gallerySlug}`} prefetch={false}>
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Back to Gallery
                         </Link>
@@ -65,15 +65,15 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
                     <>
                         {isOnboardingPage && eventSlug ? (
                             <Button asChild variant="outline" size="sm">
-                                <Link href={`/gallery/${eventSlug}`}>View Gallery</Link>
+                                <Link href={`/gallery/${eventSlug}`} prefetch={false}>View Gallery</Link>
                             </Button>
                         ) : showOnboardingSetup && eventSlug ? (
                             <Button asChild variant="outline" size="sm">
-                                <Link href={`/onboarding?slug=${eventSlug}&step=${onboardingStep}`}>Continue Setup</Link>
+                                <Link href={`/onboarding?slug=${eventSlug}&step=${onboardingStep}`} prefetch={false}>Continue Setup</Link>
                             </Button>
                         ) : (
                             <Button asChild variant="outline" size="sm">
-                                <Link href="/dashboard">Dashboard</Link>
+                                <Link href="/dashboard" prefetch={false}>Dashboard</Link>
                             </Button>
                         )}
                         <UserButton size="icon" />
@@ -81,10 +81,10 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
                 ) : !isPending ? (
                     <>
                         <Button asChild variant="outline" size="sm">
-                            <Link href="/auth/sign-in">Login</Link>
+                            <Link href="/auth/sign-in" prefetch={false}>Login</Link>
                         </Button>
                         <Button asChild size="sm">
-                            <Link href="/auth/sign-up">Create Account</Link>
+                            <Link href="/auth/sign-up" prefetch={false}>Create Account</Link>
                         </Button>
                     </>
                 ) : (

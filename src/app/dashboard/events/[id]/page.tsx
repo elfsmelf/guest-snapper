@@ -282,7 +282,7 @@ export default async function EventDetailPage({ params }: PageProps) {
             {/* Hero Action Buttons */}
             <div className="mt-4 sm:mt-8 flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Button asChild size="default" className="bg-white text-gray-900 hover:bg-white/90 shadow-lg w-full sm:w-auto">
-                <Link href={galleryUrl} target="_blank">
+                <Link href={galleryUrl} target="_blank" prefetch={false}>
                   <Eye className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   View Gallery
                 </Link>
@@ -298,7 +298,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                 <span className="hidden sm:inline">Copy Gallery Link</span>
               </CopyButton>
               <Button asChild variant="secondary" size="default" className="bg-white/10 text-white border-white/20 hover:bg-white/20 shadow-lg backdrop-blur-sm w-full sm:w-auto">
-                <Link href={`/gallery/${event.slug}/upload`}>
+                <Link href={`/gallery/${event.slug}/upload`} prefetch={false}>
                   <Upload className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Upload Media
                 </Link>
@@ -463,7 +463,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                       {galleryUrl}
                     </code>
                     <Button variant="outline" size="icon" className="h-7 w-7" asChild>
-                      <Link href={galleryUrl} target="_blank">
+                      <Link href={galleryUrl} target="_blank" prefetch={false}>
                         <ExternalLink className="h-3 w-3" />
                       </Link>
                     </Button>

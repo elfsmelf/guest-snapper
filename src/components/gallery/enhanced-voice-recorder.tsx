@@ -65,7 +65,7 @@ export function EnhancedVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
   // Check session for authenticated users
-  const session = authClient.useSession()
+  const { data: session } = authClient.useSession()
 
   useEffect(() => {
     return () => {

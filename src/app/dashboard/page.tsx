@@ -126,7 +126,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                 </p>
               </div>
               <Button asChild size="lg">
-                <Link href="/dashboard/create">
+                <Link href="/dashboard/create" prefetch={false}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add New Event
                 </Link>
@@ -183,7 +183,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       </CardContent>
                       <CardFooter>
                         <Button asChild className="w-full">
-                          <Link href={`/onboarding?slug=${event.slug}&step=${event.onboardingState?.currentStep || 1}`}>
+                          <Link href={`/onboarding?slug=${event.slug}&step=${event.onboardingState?.currentStep || 1}`} prefetch={false}>
                             <ArrowRight className="mr-2 h-4 w-4" />
                             Continue Setup
                           </Link>
@@ -276,12 +276,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                     <CardFooter className="px-4 pb-4 pt-1">
                       <div className="flex gap-2 w-full">
                         <Button asChild className="flex-1">
-                          <Link href={`/dashboard/events/${event.id}`}>
+                          <Link href={`/dashboard/events/${event.id}`} prefetch={false}>
                             Manage
                           </Link>
                         </Button>
                         <Button asChild variant="outline" size="default">
-                          <Link href={`/gallery/${event.slug}`}>
+                          <Link href={`/gallery/${event.slug}`} prefetch={false}>
                             <Eye className="h-4 w-4 mr-2" />
                             View
                           </Link>
@@ -302,7 +302,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               Create your first wedding gallery to get started
             </p>
             <Button asChild>
-              <Link href="/dashboard/create">
+              <Link href="/dashboard/create" prefetch={false}>
                 <Plus className="mr-2 h-4 w-4" />
                 Create Your First Gallery
               </Link>

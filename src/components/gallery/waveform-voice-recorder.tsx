@@ -162,7 +162,7 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
   const router = useRouter()
   
   // Check session for authenticated users
-  const session = authClient.useSession()
+  const { data: session } = authClient.useSession()
 
   // Use react-media-recorder hook for audio recording
   const {

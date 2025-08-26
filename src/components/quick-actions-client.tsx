@@ -37,7 +37,7 @@ export function QuickActionsClient({ eventSlug, galleryUrl }: QuickActionsClient
         className="text-xs sm:text-sm w-full min-w-0"
         onMouseEnter={() => handleMouseEnter(`/gallery/${eventSlug}`)}
       >
-        <Link href={`/gallery/${eventSlug}`}>
+        <Link href={`/gallery/${eventSlug}`} prefetch={false}>
           <Eye className="mr-1.5 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
           <span className="truncate">View Gallery</span>
         </Link>
@@ -50,7 +50,7 @@ export function QuickActionsClient({ eventSlug, galleryUrl }: QuickActionsClient
         className="text-xs sm:text-sm w-full min-w-0"
         onMouseEnter={() => handleMouseEnter(`/gallery/${eventSlug}/upload`)}
       >
-        <Link href={`/gallery/${eventSlug}/upload`}>
+        <Link href={`/gallery/${eventSlug}/upload`} prefetch={false}>
           <Upload className="mr-1.5 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4 flex-shrink-0" />
           <span className="truncate">Upload Photos</span>
         </Link>

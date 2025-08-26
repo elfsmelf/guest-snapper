@@ -33,13 +33,13 @@ export function WelcomeCard({ eventName, eventSlug, photoCount }: WelcomeCardPro
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
             <Button asChild size="lg" className="flex-1">
-              <Link href={`/gallery/${eventSlug}/upload`}>
+              <Link href={`/gallery/${eventSlug}/upload`} prefetch={false}>
                 <Camera className="mr-2 h-5 w-5" />
                 Upload Your First Photos
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg" className="flex-1">
-              <Link href={`/gallery/${eventSlug}/upload`}>
+              <Link href={`/gallery/${eventSlug}/upload`} prefetch={false}>
                 <ArrowRight className="mr-2 h-5 w-5" />
                 Take a Test Photo
               </Link>

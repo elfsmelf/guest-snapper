@@ -65,7 +65,7 @@ export function SimpleVoiceRecorder({ event, uploadWindowOpen, isOwner, guestCan
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   
   // Check session for authenticated users
-  const session = authClient.useSession()
+  const { data: session } = authClient.useSession()
 
   useEffect(() => {
     return () => {
