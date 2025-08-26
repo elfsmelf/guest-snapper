@@ -13,11 +13,11 @@ const client = createAuthClient({
         inferAdditionalFields<typeof auth>(),
         (stripeClient as any)()
     ],
-    // Add fetch options to reduce duplicate session calls
+    // Removed fetch caching to ensure session updates properly
     fetchOptions: {
-        // Add caching headers to requests
+        // Don't cache requests to ensure fresh session data
         headers: {
-            'Cache-Control': 'max-age=60'
+            'Cache-Control': 'no-cache'
         }
     }
 })

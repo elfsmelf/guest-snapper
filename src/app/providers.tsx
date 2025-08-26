@@ -40,6 +40,7 @@ export function Providers({ children }: { children: ReactNode }) {
                     navigate={router.push}
                     replace={router.replace}
                     onSessionChange={() => {
+                        // Refresh to update server state after auth changes
                         router.refresh()
                     }}
                     Link={Link}
