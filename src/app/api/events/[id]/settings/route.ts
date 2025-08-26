@@ -119,10 +119,20 @@ export async function PATCH(
     
     console.log(`🗄️ Cache invalidated for event ${event.slug}: guestCanViewAlbum=${updateData.guestCanViewAlbum}`)
 
-    return Response.json({ 
+    // Create response with aggressive cache-busting headers
+    const response = Response.json({ 
       success: true, 
-      event: updatedEvent[0] 
+      event: updatedEvent[0],
+      timestamp: Date.now() // Add timestamp for client-side cache busting
     })
+
+    // Prevent any caching of this response
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate, private')
+    response.headers.set('Pragma', 'no-cache')
+    response.headers.set('Expires', '0')
+    response.headers.set('Vary', '*')
+
+    return response
 
   } catch (error) {
     console.error('Failed to update event settings:', error)

@@ -16,6 +16,7 @@ import { parseOnboardingState } from "@/types/onboarding"
 import { ContinueSetupCard } from "@/components/onboarding/continue-setup-card"
 import { PrivateGalleryActions } from "@/components/gallery/private-gallery-actions"
 import { determineGalleryAccess } from "@/lib/gallery-access-helpers"
+import { CacheDebugInfo } from "@/components/gallery/cache-debug-info"
 
 interface GalleryPageProps {
   params: Promise<{ slug: string }>
@@ -463,6 +464,12 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
               onboardingState={onboardingState}
             />
           ) : undefined}
+        />
+        
+        {/* Debug info for development */}
+        <CacheDebugInfo 
+          eventSlug={slug}
+          currentGuestCanView={eventWithAlbums.guestCanViewAlbum}
         />
       </div>
     </GalleryPageWrapper>

@@ -61,16 +61,17 @@ export async function middleware(request: NextRequest) {
         
         const response = NextResponse.next()
         
-        // Set cache headers for public gallery routes
-        // This complements the static generation with ISR + on-demand revalidation
+        // Set cache headers for public gallery routes  
+        // Gallery pages use force-dynamic, so we avoid aggressive Edge caching
+        // to ensure privacy settings changes are reflected immediately
         if (request.nextUrl.pathname.startsWith('/gallery/')) {
-            // Edge cache: 10 minutes with stale-while-revalidate for performance
-            response.headers.set('Vercel-CDN-Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
-            response.headers.set('CDN-Cache-Control', 'public, s-maxage=600, stale-while-revalidate=60')
-            // Browser cache: Immediate revalidation to respect on-demand invalidation
-            response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
-            // Allow bfcache but enable pageshow handler to refresh when needed
-            response.headers.set('Cache-Control', 'public, max-age=0, must-revalidate')
+            // Disable Edge caching to prevent stale privacy settings
+            response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
+            response.headers.set('Pragma', 'no-cache')
+            response.headers.set('Expires', '0')
+            // Ensure CDN doesn't cache gallery pages
+            response.headers.set('Vercel-CDN-Cache-Control', 'no-cache')
+            response.headers.set('CDN-Cache-Control', 'no-cache')
         }
         
         return response

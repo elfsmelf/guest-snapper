@@ -18,10 +18,12 @@ export function Providers({ children }: { children: ReactNode }) {
             new QueryClient({
                 defaultOptions: {
                     queries: {
-                        // With SSR, we want higher staleTime to avoid refetching immediately
-                        staleTime: 1000 * 60 * 5, // 5 minutes
+                        // Reduced staleTime for more responsive updates (especially for event settings)
+                        staleTime: 1000 * 30, // 30 seconds
                         retry: 1,
-                        refetchOnWindowFocus: false, // Prevent refetching on tab/window focus
+                        refetchOnWindowFocus: true, // Enable refetching on focus for fresh data
+                        refetchOnReconnect: true, // Refetch when connection is restored
+                        refetchOnMount: true, // Always fetch fresh data on mount
                     },
                 },
             })

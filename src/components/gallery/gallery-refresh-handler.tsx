@@ -17,11 +17,30 @@ export function GalleryRefreshHandler() {
       }
     }
 
-    // Listen for pageshow event to detect bfcache restoration
+    // Handle visibility change to refresh when tab becomes visible
+    // This ensures fresh data when user switches back to the tab
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('🔄 Tab became visible, refreshing gallery data...')
+        router.refresh()
+      }
+    }
+
+    // Handle focus events to ensure fresh data
+    const handleFocus = () => {
+      console.log('🔄 Window focused, refreshing gallery data...')
+      router.refresh()
+    }
+
+    // Listen for various events that should trigger refresh
     window.addEventListener('pageshow', handlePageShow)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleFocus)
 
     return () => {
       window.removeEventListener('pageshow', handlePageShow)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
     }
   }, [router])
 
