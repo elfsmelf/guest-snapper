@@ -29,6 +29,10 @@ export async function logoutAction() {
       revalidateTag(`session:${userId}`)
     }
     
+    // Invalidate organization-related caches (important for collaborative workspaces)
+    revalidateTag('organization')
+    revalidateTag('organization-members')
+    
     // Invalidate all paths that depend on auth state
     revalidatePath('/', 'layout') // Invalidate root layout and all nested routes
     revalidatePath('/dashboard')
@@ -44,6 +48,8 @@ export async function logoutAction() {
     cookieStore.delete('better-auth.csrf_token')
     
     revalidateTag('session')
+    revalidateTag('organization') 
+    revalidateTag('organization-members')
     revalidatePath('/', 'layout')
     
     return { success: true } // Return success anyway to complete logout

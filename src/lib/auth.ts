@@ -56,7 +56,7 @@ export const auth = betterAuth({
     session: {
         cookieCache: {
             enabled: true,
-            maxAge: 5 * 60, // Cache session for 5 minutes to allow faster sign-out
+            maxAge: 30 * 60, // 30 minutes - Better Auth recommended sweet spot for performance
         },
         freshTokenThreshold: 24 * 60 * 60, // 24 hours before refreshing tokens
         expiresIn: 30 * 24 * 60 * 60, // 30 days session expiry

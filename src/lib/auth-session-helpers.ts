@@ -1,43 +1,31 @@
 import { cache } from "react"
-import { unstable_cache } from "next/cache"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 
 /**
- * Cached session lookup with Next.js cache tags for invalidation.
- * This prevents duplicate session calls within a single request and
- * allows proper cache invalidation on logout.
+ * Simple session lookup with React cache() for request-level deduplication.
+ * Better Auth's cookie cache handles the heavy lifting for performance.
+ * 
+ * This is just a thin wrapper that prevents duplicate calls within the same request.
+ * Better Auth's nanostore handles client-side reactivity automatically.
  */
 const getCachedSession = cache(async (fresh: boolean = false) => {
-  // Use unstable_cache with tags for server-side invalidation
-  const cachedSessionLookup = unstable_cache(
-    async () => {
-      return auth.api.getSession({
-        headers: await headers(),
-        ...(fresh && {
-          query: { disableCookieCache: true }
-        })
-      })
-    },
-    ['session-lookup'],
-    {
-      tags: ['session'],
-      revalidate: fresh ? 0 : 60 // Cache for 60 seconds unless fresh
-    }
-  )
-  
-  return cachedSessionLookup()
+  return auth.api.getSession({
+    headers: await headers(),
+    ...(fresh && {
+      query: { disableCookieCache: true }
+    })
+  })
 })
 
 /**
- * Get session with optimal caching strategy.
- * Uses cookie cache by default for performance, but allows fresh DB lookup when needed.
- * Also uses React cache() for request-level deduplication.
+ * Get session leveraging Better Auth's built-in cookie cache.
+ * Uses React cache() for request-level deduplication only.
  */
 export async function getSession(options?: { 
   /**
-   * Force fresh database lookup, bypassing cookie cache.
-   * Use this sparingly, only when you need guaranteed fresh data (e.g., after navigation).
+   * Force fresh database lookup, bypassing Better Auth's cookie cache.
+   * Use this sparingly, only when you need guaranteed fresh data.
    */
   fresh?: boolean 
 }) {
@@ -45,8 +33,8 @@ export async function getSession(options?: {
 }
 
 /**
- * Get session optimized for navigation scenarios where cookie cache might be stale.
- * This is specifically for cases where client-side navigation might have outdated cache.
+ * Get session with fresh database lookup.
+ * Bypasses Better Auth's cookie cache for scenarios requiring latest data.
  */
 export async function getSessionAfterNavigation() {
   return getCachedSession(true)
