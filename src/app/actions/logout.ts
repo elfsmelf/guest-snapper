@@ -1,7 +1,7 @@
 "use server"
 
 import { revalidateTag, revalidatePath } from "next/cache"
-import { cookies, headers } from "next/headers"
+import { headers } from "next/headers"
 import { auth } from "@/lib/auth"
 
 export async function logoutAction() {
@@ -13,15 +13,10 @@ export async function logoutAction() {
     
     const userId = session?.user?.id
     
-    // Call Better Auth signOut API to terminate session server-side
+    // Better Auth signOut handles session termination and cookie cleanup automatically
     await auth.api.signOut({
       headers: await headers()
     })
-    
-    // Delete the session cookie manually to ensure immediate invalidation
-    const cookieStore = await cookies()
-    cookieStore.delete('better-auth.session_token')
-    cookieStore.delete('better-auth.csrf_token') 
     
     // Invalidate all session-related caches
     revalidateTag('session')
@@ -42,11 +37,7 @@ export async function logoutAction() {
   } catch (error) {
     console.error('Server logout error:', error)
     
-    // Even if Better Auth API fails, clear cookies and caches
-    const cookieStore = await cookies()
-    cookieStore.delete('better-auth.session_token')
-    cookieStore.delete('better-auth.csrf_token')
-    
+    // If Better Auth signOut fails, still invalidate caches to prevent stale data
     revalidateTag('session')
     revalidateTag('organization') 
     revalidateTag('organization-members')

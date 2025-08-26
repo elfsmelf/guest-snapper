@@ -103,16 +103,63 @@ if (!session?.user) return <LoginRequired />
 #### **Public Route Optimization (Gallery)**
 ```typescript
 // ✅ Optimized for public viewers - only fetch session if cookie exists
+import { getSessionCookie } from "better-auth/cookies"
+
 const headersList = await headers()
-const sessionCookie = headersList.get('cookie')?.includes('better-auth.session_token')
+const sessionCookie = getSessionCookie(headersList)
 
 if (sessionCookie) {
-  // Only make API call if session cookie exists
+  // Only make API call if session cookie exists (authenticated user)
   const session = await auth.api.getSession({ headers: headersList })
   const isOwner = session?.user?.id === eventId
 } else {
   // Anonymous user - use PublicGalleryHeader with NO session API calls
 }
+```
+
+### Session Detection Patterns
+
+#### **Critical: Use Better Auth's Cookie Detection**
+```typescript
+// ✅ ALWAYS use Better Auth's utility for session detection
+import { getSessionCookie } from "better-auth/cookies"
+
+// Server components, middleware, API routes
+const headersList = await headers() // or from request
+const sessionCookie = getSessionCookie(headersList)
+
+if (sessionCookie) {
+  // User has active session - make auth API call
+  const session = await auth.api.getSession({ headers: headersList })
+} else {
+  // Anonymous user - skip all auth API calls
+}
+```
+
+#### **❌ Never Use Hardcoded Cookie Names**
+```typescript
+// ❌ DON'T: Hardcoded cookie detection (breaks with custom prefixes)
+const sessionToken = request.cookies.get('better-auth.session_token')
+
+// ❌ DON'T: Manual cookie parsing
+const cookies = request.headers.get('cookie')
+const hasSession = cookies?.includes('better-auth.session_token')
+```
+
+#### **Session Cleanup in Actions**
+```typescript
+// ✅ Let Better Auth handle cookie cleanup
+export async function logoutAction() {
+  // Better Auth signOut automatically handles cookie cleanup
+  await auth.api.signOut({ headers: await headers() })
+  
+  // Only handle cache invalidation manually
+  revalidateTag('session')
+  revalidateTag('organization')
+}
+
+// ❌ DON'T: Manual cookie deletion (Better Auth handles this)
+// cookieStore.delete('better-auth.session_token') // Not needed
 ```
 
 ### Organization Data (Lazy Loading)
@@ -183,13 +230,16 @@ export async function logoutAction() {
 #### **✅ DO**
 - Use `authClient.useSession()` for client-side session access
 - Use `auth.api.getSession()` for server-side session access  
+- Use `getSessionCookie()` from "better-auth/cookies" for session detection
 - Leverage cookie cache - don't bypass with `disableCookieCache: true`
 - Use access control helpers (`getEventWithAccess`) for consistent permissions
-- Let Better Auth handle session reactivity natively
+- Let Better Auth handle session reactivity and cookie cleanup natively
 
 #### **❌ DON'T**  
 - Create custom session providers that bypass Better Auth's nanostore
 - Add `no-cache` headers to auth client configuration
+- Use hardcoded cookie names like 'better-auth.session_token'
+- Manually delete session cookies (Better Auth's signOut handles this)
 - Make organization API calls automatically - use lazy loading
 - Bypass Better Auth's built-in optimization patterns
 - Use `useEffect` for session fetching - Better Auth handles this

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { headers } from "next/headers"
+import { getSessionCookie } from "better-auth/cookies"
 import { auth } from "@/lib/auth"
 import { getCachedEventData } from "@/lib/gallery-cache"
 import { parseOnboardingState } from "@/types/onboarding"
@@ -31,9 +32,9 @@ export default async function GalleryLayout({ children, params }: GalleryLayoutP
   let isOwner = false
   let onboardingState = null
   
-  // Check if session cookie exists before making API call
+  // Use Better Auth's session cookie detection
   const headersList = await headers()
-  const sessionCookie = headersList.get('cookie')?.includes('better-auth.session_token')
+  const sessionCookie = getSessionCookie(headersList)
   
   if (sessionCookie) {
     // Only make session API call if session cookie exists
