@@ -12,6 +12,8 @@ import { GalleryPageWrapper } from "@/components/gallery/gallery-page-wrapper"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { canUserAccessEvent } from "@/lib/auth-helpers"
+import { parseOnboardingState } from "@/types/onboarding"
+import { ContinueSetupCard } from "@/components/onboarding/continue-setup-card"
 
 interface GalleryPageProps {
   params: Promise<{ slug: string }>
@@ -50,6 +52,19 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
 
   // Get gallery data with proper access level
   const galleryData = await getCachedGalleryData(eventWithAlbums.id, hasEventAccess)
+
+  // Parse onboarding state for owner continuation card
+  const onboardingState = isOwner ? parseOnboardingState(eventWithAlbums.quickStartProgress) : null
+  
+  console.log(`🚀 Onboarding state for ${isOwner ? 'owner' : 'non-owner'}:`, {
+    isOwner,
+    hasOnboardingState: !!onboardingState,
+    onboardingActive: onboardingState?.onboardingActive,
+    onboardingComplete: onboardingState?.onboardingComplete,
+    onboardingSkipped: onboardingState?.onboardingSkipped,
+    currentStep: onboardingState?.currentStep,
+    shouldShowCard: isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped
+  })
 
   // If gallery is not published and user doesn't have access, show draft message
   if (!eventWithAlbums.isPublished && !hasEventAccess) {
@@ -248,7 +263,15 @@ export default async function GalleryPage({ params }: { params: Promise<{ slug: 
           isOwner={isOwner}
           hasEventAccess={hasEventAccess}
           showWelcomeOnLoad={false}
-          onboardingStep={3}
+          onboardingStep={onboardingState?.currentStep || 3}
+          continuationCard={isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped ? (
+            <ContinueSetupCard
+              eventId={eventWithAlbums.id}
+              eventSlug={slug}
+              eventName={eventWithAlbums.name}
+              onboardingState={onboardingState}
+            />
+          ) : undefined}
         />
       </div>
     </GalleryPageWrapper>
