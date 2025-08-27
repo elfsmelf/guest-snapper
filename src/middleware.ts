@@ -2,9 +2,12 @@ import { getSessionCookie } from "better-auth/cookies"
 import { type NextRequest, NextResponse } from "next/server"
 
 export async function middleware(request: NextRequest) {
-    // Block Vercel's automated requests to reduce edge function usage
+    // Block Vercel's automated requests and other bots to reduce edge function usage
     const userAgent = request.headers.get('user-agent') || ''
-    if (userAgent.includes('vercel-favicon') || userAgent.includes('vercel-screenshot')) {
+    if (userAgent.includes('vercel-favicon') || 
+        userAgent.includes('vercel-screenshot') ||
+        userAgent.includes('vercel-bot') ||
+        userAgent.includes('bot') && userAgent.includes('vercel')) {
         return new NextResponse('Blocked', { status: 403 })
     }
 
@@ -34,47 +37,7 @@ export async function middleware(request: NextRequest) {
     const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
     
     if (isPublicRoute) {
-        // Handle view=public parameter persistence for gallery routes
-        if (request.nextUrl.pathname.startsWith('/gallery/')) {
-            const viewParam = request.nextUrl.searchParams.get('view')
-            const referer = request.headers.get('referer')
-            
-            // If this is a gallery navigation without view=public but referer has it, redirect with parameter
-            if (!viewParam && referer) {
-                try {
-                    const refererUrl = new URL(referer)
-                    const refererView = refererUrl.searchParams.get('view')
-                    
-                    if (refererView === 'public' && 
-                        refererUrl.pathname.startsWith('/gallery/') &&
-                        refererUrl.hostname === request.nextUrl.hostname) {
-                        
-                        const url = request.nextUrl.clone()
-                        url.searchParams.set('view', 'public')
-                        return NextResponse.redirect(url)
-                    }
-                } catch (e) {
-                    // Invalid referer URL, ignore
-                }
-            }
-        }
-        
-        const response = NextResponse.next()
-        
-        // Set cache headers for public gallery routes  
-        // Gallery pages use force-dynamic, so we avoid aggressive Edge caching
-        // to ensure privacy settings changes are reflected immediately
-        if (request.nextUrl.pathname.startsWith('/gallery/')) {
-            // Disable Edge caching to prevent stale privacy settings
-            response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate')
-            response.headers.set('Pragma', 'no-cache')
-            response.headers.set('Expires', '0')
-            // Ensure CDN doesn't cache gallery pages
-            response.headers.set('Vercel-CDN-Cache-Control', 'no-cache')
-            response.headers.set('CDN-Cache-Control', 'no-cache')
-        }
-        
-        return response
+        return NextResponse.next()
     }
 
     // Check cookie for optimistic redirects for protected routes
@@ -94,11 +57,14 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    // Protected routes plus domain handling
-    // Exclude static files, public assets, and public auth routes
+    // Only match routes that absolutely need server-side middleware protection
+    // Gallery routes removed - handle view persistence and auth client-side for better performance
     matcher: [
-        "/auth/settings",
-        "/admin/:path*",
-        "/((?!api|_next|auth/sign-in|auth/sign-up|auth/email-otp|auth/forgot-password|auth/reset-password|auth/magic-link|auth/accept-invitation|favicon.ico|manifest.webmanifest|.*\\.png|.*\\.jpg|.*\\.jpeg|.*\\.gif|.*\\.svg|.*\\.webp).*)"
+        "/dashboard/:path*",     // Protected dashboard routes
+        "/admin/:path*",         // Admin routes  
+        "/auth/settings",        // Settings page
+        "/onboarding/:path*",    // Onboarding flow
+        "/events/:path*",        // Event management (if exists)
+        "/checkout/:path*"       // Payment flows
     ]
 }

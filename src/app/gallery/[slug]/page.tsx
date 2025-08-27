@@ -17,6 +17,7 @@ import { ContinueSetupCard } from "@/components/onboarding/continue-setup-card"
 import { PrivateGalleryActions } from "@/components/gallery/private-gallery-actions"
 import { determineGalleryAccess } from "@/lib/gallery-access-helpers"
 import { CacheDebugInfo } from "@/components/gallery/cache-debug-info"
+import { GalleryViewPersistence } from "@/components/gallery/gallery-view-persistence"
 
 interface GalleryPageProps {
   params: Promise<{ slug: string }>
@@ -56,7 +57,9 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
     isOwner = eventWithAlbums.userId === session.user.id
   }
 
-  console.log(`🔍 Gallery access check: guestCanViewAlbum=${eventWithAlbums.guestCanViewAlbum}, hasEventAccess=${hasEventAccess}, isOwner=${isOwner}, session=${!!session?.user}, forcePublicView=${forcePublicView}`)
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔍 Gallery access check: guestCanViewAlbum=${eventWithAlbums.guestCanViewAlbum}, hasEventAccess=${hasEventAccess}, isOwner=${isOwner}, session=${!!session?.user}, forcePublicView=${forcePublicView}`)
+  }
 
   // Get guest cookie for unified access logic
   const cookieStore = await cookies()
@@ -75,15 +78,17 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   // Parse onboarding state for owner continuation card (skip if forcing public view)
   const onboardingState = isOwner && !forcePublicView ? parseOnboardingState(eventWithAlbums.quickStartProgress) : null
   
-  console.log(`🚀 Onboarding state for ${isOwner ? 'owner' : 'non-owner'}:`, {
-    isOwner,
-    hasOnboardingState: !!onboardingState,
-    onboardingActive: onboardingState?.onboardingActive,
-    onboardingComplete: onboardingState?.onboardingComplete,
-    onboardingSkipped: onboardingState?.onboardingSkipped,
-    currentStep: onboardingState?.currentStep,
-    shouldShowCard: isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped
-  })
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🚀 Onboarding state for ${isOwner ? 'owner' : 'non-owner'}:`, {
+      isOwner,
+      hasOnboardingState: !!onboardingState,
+      onboardingActive: onboardingState?.onboardingActive,
+      onboardingComplete: onboardingState?.onboardingComplete,
+      onboardingSkipped: onboardingState?.onboardingSkipped,
+      currentStep: onboardingState?.currentStep,
+      shouldShowCard: isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped
+    })
+  }
 
   // If gallery is not published and user doesn't have access, show draft message
   if (!eventWithAlbums.isPublished && !hasEventAccess) {
@@ -416,6 +421,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
     <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug} forcePublicView={forcePublicView}>
       <div className="min-h-screen bg-background">
         <GalleryRefreshHandler />
+        <GalleryViewPersistence />
         
         {/* Show public view indicator when forcing public view */}
         {forcePublicView && session?.user && (

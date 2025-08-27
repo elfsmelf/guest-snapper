@@ -45,10 +45,12 @@ export async function PATCH(
       settings: additionalSettings = {}
     } = body
     
-    console.log(`📝 Settings update request for event ${id}:`, {
-      guestCanViewAlbum,
-      currentValue: event.guestCanViewAlbum
-    })
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📝 Settings update request for event ${id}:`, {
+        guestCanViewAlbum,
+        currentValue: event.guestCanViewAlbum
+      })
+    }
 
     // Get current settings
     const currentSettings = event.settings
@@ -82,8 +84,10 @@ export async function PATCH(
       }
       updateData.privacySettings = JSON.stringify(updatedPrivacySettings)
       
-      console.log(`🔄 Updating guestCanViewAlbum from ${event.guestCanViewAlbum} to ${guestCanViewAlbum}`)
-      console.log(`🔄 Also updating privacySettings JSON: allow_guest_viewing=${guestCanViewAlbum}`)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`🔄 Updating guestCanViewAlbum from ${event.guestCanViewAlbum} to ${guestCanViewAlbum}`)
+        console.log(`🔄 Also updating privacySettings JSON: allow_guest_viewing=${guestCanViewAlbum}`)
+      }
     }
     if (typeof approveUploads === 'boolean') updateData.approveUploads = approveUploads
     if (typeof guestCount === 'number') updateData.guestCount = guestCount
@@ -92,7 +96,9 @@ export async function PATCH(
     if (typeof isPublished === 'boolean') updateData.isPublished = isPublished
     if (publishedAt !== undefined) updateData.publishedAt = publishedAt
 
-    console.log(`💾 About to update event with data:`, updateData)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`💾 About to update event with data:`, updateData)
+    }
 
     const updatedEvent = await db
       .update(events)
@@ -100,7 +106,9 @@ export async function PATCH(
       .where(eq(events.id, id))
       .returning()
       
-    console.log(`✅ Event updated successfully:`, updatedEvent[0])
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ Event updated successfully:`, updatedEvent[0])
+    }
 
     // Force immediate cache invalidation for privacy changes
     // Since gallery page is force-dynamic, these revalidations ensure any edge caches are cleared
@@ -117,7 +125,9 @@ export async function PATCH(
     revalidateTag('event')
     revalidateTag(`event-${event.slug}`)
     
-    console.log(`🗄️ Cache invalidated for event ${event.slug}: guestCanViewAlbum=${updateData.guestCanViewAlbum}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🗄️ Cache invalidated for event ${event.slug}: guestCanViewAlbum=${updateData.guestCanViewAlbum}`)
+    }
 
     // Create response with aggressive cache-busting headers
     const response = Response.json({ 

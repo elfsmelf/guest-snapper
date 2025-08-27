@@ -12,7 +12,9 @@ export function GalleryRefreshHandler() {
       if (event.persisted) {
         // Page was restored from bfcache (browser back button)
         // Refresh to show any new uploads that may have been added
-        console.log('🔄 Gallery restored from bfcache, refreshing...')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 Gallery restored from bfcache, refreshing...')
+        }
         router.refresh()
       }
     }
@@ -21,14 +23,18 @@ export function GalleryRefreshHandler() {
     // This ensures fresh data when user switches back to the tab
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        console.log('🔄 Tab became visible, refreshing gallery data...')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔄 Tab became visible, refreshing gallery data...')
+        }
         router.refresh()
       }
     }
 
     // Handle focus events to ensure fresh data
     const handleFocus = () => {
-      console.log('🔄 Window focused, refreshing gallery data...')
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔄 Window focused, refreshing gallery data...')
+      }
       router.refresh()
     }
 
