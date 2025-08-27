@@ -37,11 +37,13 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   
   // Only check session if cookie exists (for ISR caching optimization)
   const headersList = await headers()
-  const { getSessionCookie } = await import("better-auth/cookies")
-  const sessionCookie = getSessionCookie(headersList)
+  
+  // Check for session cookie manually to avoid dynamic rendering
+  const cookieHeader = headersList.get('cookie') || ''
+  const hasSessionCookie = cookieHeader.includes('better-auth.session_token')
   
   let session = null
-  if (sessionCookie && !forcePublicView) {
+  if (hasSessionCookie && !forcePublicView) {
     // Only make session API call if cookie exists
     session = await auth.api.getSession({ headers: headersList })
   }
@@ -69,8 +71,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
     console.log(`🔍 Gallery access check: guestCanViewAlbum=${eventWithAlbums.guestCanViewAlbum}, hasEventAccess=${hasEventAccess}, isOwner=${isOwner}, session=${!!session?.user}, forcePublicView=${forcePublicView}`)
   }
 
-  // Get guest cookie from headers to avoid dynamic rendering with cookies() API
-  const cookieHeader = headersList.get('cookie') || ''
+  // Get guest cookie from headers to avoid dynamic rendering with cookies() API  
   const guestCookieMatch = cookieHeader.match(/guest_id=([^;]+)/)
   const guestCookieId = guestCookieMatch ? decodeURIComponent(guestCookieMatch[1]) : null
 
