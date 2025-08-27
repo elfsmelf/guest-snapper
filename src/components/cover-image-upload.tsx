@@ -24,12 +24,14 @@ export function CoverImageUpload({ event }: CoverImageUploadProps) {
   const router = useRouter()
 
   // Debug logging
-  console.log('=== COVER IMAGE UPLOAD DEBUG ===')
-  console.log('event prop:', event)
-  console.log('event.coverImageUrl:', event.coverImageUrl)
-  console.log('initial preview:', preview)
-  console.log('selectedFile:', selectedFile)
-  console.log('=================================')
+  if (process.env.NODE_ENV === 'development') {
+    console.log('=== COVER IMAGE UPLOAD DEBUG ===')
+    console.log('event prop:', event)
+    console.log('event.coverImageUrl:', event.coverImageUrl)
+    console.log('initial preview:', preview)
+    console.log('selectedFile:', selectedFile)
+    console.log('=================================')
+  }
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0]

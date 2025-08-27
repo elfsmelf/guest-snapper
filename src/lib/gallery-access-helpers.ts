@@ -39,7 +39,8 @@ export async function determineGalleryAccess({
   // Determine Content Access
   if (eventData.guestCanViewAlbum === true) {
     // PUBLIC GALLERY - always show ALL content
-    const allContent = await getCachedGalleryData(eventData.id, true)
+    // For public galleries, use hasAccess to determine caching (false = allow caching for public users)
+    const allContent = await getCachedGalleryData(eventData.id, hasEventAccess)
     
     return {
       content: {
@@ -54,7 +55,7 @@ export async function determineGalleryAccess({
   } else {
     // PRIVATE GALLERY
     if (hasEventAccess && !forcePublicView) {
-      // Owner/member normal view - show ALL content
+      // Owner/member normal view - show ALL content (always fresh data for authenticated users)
       const allContent = await getCachedGalleryData(eventData.id, true)
       
       return {

@@ -24,8 +24,8 @@ interface GalleryPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-// Dynamic route for real-time privacy control updates
-export const dynamic = 'force-dynamic'
+// ISR with smart revalidation - cache for performance but revalidate on demand
+export const revalidate = 300 // 5 minutes base cache
 export const dynamicParams = true
 
 export default async function GalleryPage({ params, searchParams }: GalleryPageProps) {
@@ -35,10 +35,16 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   // Check if we should simulate public view
   const forcePublicView = search?.view === 'public'
   
-  // Server-side auth check - Better Auth best practice
-  const session = await auth.api.getSession({
-    headers: await headers()
-  })
+  // Only check session if cookie exists (for ISR caching optimization)
+  const headersList = await headers()
+  const { getSessionCookie } = await import("better-auth/cookies")
+  const sessionCookie = getSessionCookie(headersList)
+  
+  let session = null
+  if (sessionCookie && !forcePublicView) {
+    // Only make session API call if cookie exists
+    session = await auth.api.getSession({ headers: headersList })
+  }
 
   // Get event data
   const eventWithAlbums = await getCachedEventData(slug, false)
@@ -47,23 +53,26 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
     notFound()
   }
 
-  // Server-side access check for authenticated users
+  // Server-side access check for authenticated users only
   // If forcePublicView is true, treat as if no session exists
   let hasEventAccess = false
   let isOwner = false
   
   if (session?.user && !forcePublicView) {
+    // Only check access for authenticated users
     hasEventAccess = await canUserAccessEvent(eventWithAlbums.id, session.user.id)
     isOwner = eventWithAlbums.userId === session.user.id
   }
+  // For public users (no session), hasEventAccess stays false, allowing proper caching
 
   if (process.env.NODE_ENV === 'development') {
     console.log(`🔍 Gallery access check: guestCanViewAlbum=${eventWithAlbums.guestCanViewAlbum}, hasEventAccess=${hasEventAccess}, isOwner=${isOwner}, session=${!!session?.user}, forcePublicView=${forcePublicView}`)
   }
 
-  // Get guest cookie for unified access logic
-  const cookieStore = await cookies()
-  const guestCookieId = cookieStore.get('guest_id')?.value || null
+  // Get guest cookie from headers to avoid dynamic rendering with cookies() API
+  const cookieHeader = headersList.get('cookie') || ''
+  const guestCookieMatch = cookieHeader.match(/guest_id=([^;]+)/)
+  const guestCookieId = guestCookieMatch ? decodeURIComponent(guestCookieMatch[1]) : null
 
   // Use unified access logic
   const accessResult = await determineGalleryAccess({

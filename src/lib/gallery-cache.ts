@@ -42,11 +42,13 @@ const getGalleryDataInternal = cache(async (eventId: string, hasAccess: boolean)
 
 // Direct function to fetch gallery data (uses React cache for request deduplication)
 export const getCachedGalleryData = async (eventId: string, hasAccess: boolean) => {
-  // Explicitly opt out of Next.js caching to ensure fresh data
-  unstable_noStore()
+  // For ISR: Allow caching for public users, but can be revalidated on demand
+  // Only opt out of caching for authenticated users who need fresh pending uploads
+  if (hasAccess) {
+    unstable_noStore() // Authenticated users get fresh data (pending uploads, etc.)
+  }
+  // Public users get cached data that can be revalidated via revalidatePath
   
-  // Since the gallery page is force-dynamic, this will always fetch fresh data
-  // but deduplicate within the same request using React's cache
   return getGalleryDataInternal(eventId, hasAccess)
 }
 
@@ -77,11 +79,12 @@ const getEventDataInternal = cache(async (slug: string) => {
 
 // Direct function to fetch event data (uses React cache for request deduplication) 
 export const getCachedEventData = async (slug: string, hasAccess: boolean) => {
-  // Explicitly opt out of Next.js caching to ensure fresh data
-  unstable_noStore()
+  // For ISR: Allow caching for public users, opt out only for authenticated users
+  if (hasAccess) {
+    unstable_noStore() // Authenticated users get fresh event data
+  }
+  // Public users get cached event data that can be revalidated on demand
   
-  // Since gallery page is force-dynamic, this will always fetch fresh data
-  // The hasAccess parameter is kept for compatibility but not used in caching
   return getEventDataInternal(slug)
 }
 

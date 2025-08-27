@@ -111,9 +111,11 @@ export async function PATCH(
     }
 
     // Force immediate cache invalidation for privacy changes
-    // Since gallery page is force-dynamic, these revalidations ensure any edge caches are cleared
-    revalidatePath(`/gallery/${event.slug}`, 'page')
-    revalidatePath(`/gallery/${event.slug}`)
+    // Gallery page uses ISR so these revalidations ensure immediate updates
+    revalidatePath('/gallery/[slug]', 'page') // Invalidate all gallery pages pattern
+    revalidatePath(`/gallery/${event.slug}`) // Invalidate specific gallery page
+    revalidatePath('/gallery/[slug]/slideshow', 'page') // Invalidate slideshow pages pattern
+    revalidatePath(`/gallery/${event.slug}/slideshow`) // Invalidate specific slideshow page
     
     // Also revalidate related paths that might cache the event data
     revalidatePath(`/events/${id}`)

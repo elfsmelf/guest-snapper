@@ -94,6 +94,14 @@ const nextConfig = {
                 ]
             },
             {
+                // Cache favicon for 1 week to prevent lambda hits
+                source: '/favicon.ico',
+                headers: [
+                    { key: 'Cache-Control', value: 'public, max-age=604800, must-revalidate' },
+                    { key: 'Content-Type', value: 'image/x-icon' }
+                ]
+            },
+            {
                 // Cache static chunks for 1 year (they have hashes in filenames)
                 source: '/_next/static/:path*',
                 headers: [

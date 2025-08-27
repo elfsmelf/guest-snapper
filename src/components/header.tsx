@@ -6,7 +6,7 @@ import { ArrowLeft } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 
 import { Button } from "./ui/button"
-import { UserButton } from "@daveyplate/better-auth-ui"
+import { UserButton } from "./user-button"
 import { ModeToggle } from "./mode-toggle"
 
 interface HeaderProps {
@@ -76,7 +76,7 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
                                 <Link href="/dashboard" prefetch={false}>Dashboard</Link>
                             </Button>
                         )}
-                        <UserButton size="icon" />
+                        <UserButton size="icon" user={session.user} />
                     </>
                 ) : !isPending ? (
                     <>
