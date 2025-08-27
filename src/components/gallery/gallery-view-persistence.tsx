@@ -11,7 +11,6 @@ import { usePathname } from 'next/navigation'
 export function GalleryViewPersistence() {
   const pathname = usePathname()
   const [view, setView] = useQueryState('view', {
-    defaultValue: null,
     history: 'replace' // Use replace to avoid cluttering history
   })
 
@@ -32,7 +31,7 @@ export function GalleryViewPersistence() {
           if (referrerView === 'public' && 
               referrerUrl.pathname.startsWith('/gallery/') &&
               referrerUrl.hostname === window.location.hostname) {
-            setView('public')
+            void setView('public')
           }
         } catch (e) {
           // Invalid referrer URL, ignore
