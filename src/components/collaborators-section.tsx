@@ -8,8 +8,8 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { UserPlus, Users, Crown, Shield, User, Trash2, Loader2, Mail, X } from 'lucide-react'
 import { InviteCollaboratorDialog } from './invite-collaborator-dialog'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
 import { fetchOrganizationData, clearOrganizationCache } from '@/lib/organization-cache'
+import { inviteOrganizationMember, cancelOrganizationInvitation, removeOrganizationMember } from '@/lib/organization-api'
 
 interface Member {
   id: string
@@ -128,12 +128,12 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
     setProcessingInvitations(prev => new Set(prev.add(invitationId)))
     try {
       // First cancel the existing invitation, then send a new one
-      await (authClient as any).organization.cancelInvitation({
+      await cancelOrganizationInvitation({
         invitationId
       })
 
       // Send a fresh invitation
-      const result = await (authClient as any).organization.inviteMember({
+      const result = await inviteOrganizationMember({
         email,
         role,
         organizationId: organization.id
@@ -164,7 +164,7 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
     setProcessingInvitations(prev => new Set(prev.add(invitationId)))
     
     try {
-      const result = await (authClient as any).organization.cancelInvitation({
+      const result = await cancelOrganizationInvitation({
         invitationId
       })
 
@@ -207,9 +207,9 @@ export function CollaboratorsSection({ eventId, isOwner, initialData, onDataChan
     setRemovingMembers(prev => new Set(prev.add(memberId)))
     
     try {
-      const result = await (authClient as any).organization.removeMember({
+      const result = await removeOrganizationMember({
         memberIdOrEmail: userEmail,
-        organizationId: organization?.id
+        organizationId: organization?.id || ''
       })
 
       if (result?.error) {

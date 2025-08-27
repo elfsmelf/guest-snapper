@@ -22,7 +22,7 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Loader2, UserPlus, Mail, Copy, Link2, Check } from 'lucide-react'
 import { toast } from 'sonner'
-import { authClient } from '@/lib/auth-client'
+import { inviteOrganizationMember } from '@/lib/organization-api'
 
 interface InviteCollaboratorDialogProps {
   eventId: string
@@ -63,11 +63,11 @@ export function InviteCollaboratorDialog({
     try {
       console.log('Sending invitation:', { email: email.trim(), role, organizationId, resend })
       
-      // Use Better Auth's organization client to send invitation
-      const result = await (authClient as any).organization.inviteMember({
+      // Use direct API call to send invitation
+      const result = await inviteOrganizationMember({
         email: email.trim(),
         role: role,
-        organizationId: organizationId,
+        organizationId: organizationId!,
         resend: resend
       })
 

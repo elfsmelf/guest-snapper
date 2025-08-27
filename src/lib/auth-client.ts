@@ -1,16 +1,17 @@
 import { createAuthClient } from "better-auth/react"
-import { adminClient, organizationClient, inferAdditionalFields, emailOTPClient } from "better-auth/client/plugins"
+import { adminClient, inferAdditionalFields, emailOTPClient } from "better-auth/client/plugins"
 import { stripeClient } from "@better-auth/stripe/client"
 import type { auth } from "./auth"
 
 // Create the auth client with proper type inference following Better Auth best practices
 // Better Auth handles optimization internally via nanostore - no custom fetch options needed
+// NOTE: organizationClient removed to prevent unnecessary organization API calls
+// Organization features use manual API calls via fetchOrganizationData()
 const client = createAuthClient({
     baseURL: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
     plugins: [
         emailOTPClient(),
         adminClient(),
-        organizationClient(),
         inferAdditionalFields<typeof auth>(),
         (stripeClient as any)()
     ]
