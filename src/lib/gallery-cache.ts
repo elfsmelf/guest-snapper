@@ -80,9 +80,9 @@ export const getCachedEventData = async (slug: string, hasAccess: boolean) => {
   return getEventDataInternal(slug)
 }
 
-// Explicitly non-cached function (opts out of all caching)
+// Direct function for fresh event data (no caching)
 export const getFreshEventData = async (slug: string) => {
-  unstable_noStore() // Opt out of even request memoization
+  // SSR: Direct database query without request memoization
   
   // Use optimized prepared statement for event lookup
   const event = await getOptimizedEventBySlug(slug)
