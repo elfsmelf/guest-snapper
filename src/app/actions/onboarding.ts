@@ -5,7 +5,6 @@ import { events } from "@/database/schema"
 import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { revalidatePath, revalidateTag } from "next/cache"
 import { 
   type OnboardingState, 
   parseOnboardingState,
@@ -86,11 +85,7 @@ export async function initializeOnboarding(eventId: string) {
       })
       .where(eq(events.id, eventId))
     
-    revalidatePath(`/gallery/${event.slug}`)
-    revalidatePath(`/dashboard/events/${eventId}`)
-    revalidateTag('event')
-    revalidateTag(`event-${event.slug}`)
-    revalidateTag('onboarding')
+    console.log(`Onboarding step completed for event: ${event.slug}`)
     
     return { success: true, state: initialState }
   } catch (error) {
@@ -134,12 +129,7 @@ export async function updateOnboardingProgress(
       })
       .where(eq(events.id, eventId))
     
-    revalidatePath(`/gallery/${event.slug}`)
-    revalidatePath(`/dashboard/events/${eventId}`)
-    revalidatePath('/dashboard')
-    revalidateTag('event')
-    revalidateTag(`event-${event.slug}`)
-    revalidateTag('onboarding')
+    console.log(`Onboarding completed for event: ${event.slug}`)
     
     return { success: true, state: updatedState }
   } catch (error) {

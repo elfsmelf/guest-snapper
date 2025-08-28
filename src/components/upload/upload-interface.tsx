@@ -222,8 +222,7 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
             The upload window for this event has ended. Thank you for your interest in sharing memories!
           </p>
           <Button onClick={() => {
-            router.push(`/gallery/${event.slug}`)
-            router.refresh()
+            window.location.href = `/gallery/${event.slug}`
           }}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Gallery
@@ -468,8 +467,7 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
                   <Button 
                     size="sm" 
                     onClick={() => {
-                      router.push(`/gallery/${event.slug}`)
-                      router.refresh()
+                      window.location.href = `/gallery/${event.slug}`
                     }}
                   >
                     View Gallery

@@ -6,7 +6,6 @@ import { db } from "@/database/db"
 import { events } from "@/database/schema"
 import { eq } from "drizzle-orm"
 import { canUserAccessEvent } from "@/lib/auth-helpers"
-import { revalidatePath, revalidateTag } from "next/cache"
 
 export async function updateSlideDuration(eventId: string, duration: number) {
   try {
@@ -31,7 +30,7 @@ export async function updateSlideDuration(eventId: string, duration: number) {
       return { success: false, error: "Access denied" }
     }
 
-    // Get the event to revalidate its gallery page
+    // Get the event for logging
     const event = await db
       .select({ slug: events.slug })
       .from(events)
@@ -49,10 +48,7 @@ export async function updateSlideDuration(eventId: string, duration: number) {
 
     // Revalidate the gallery and slideshow pages
     if (event.length > 0) {
-      revalidateTag('gallery')
-      revalidateTag('event')
-      revalidatePath(`/gallery/${event[0].slug}`)
-      revalidatePath(`/gallery/${event[0].slug}/slideshow`)
+      console.log(`Slide duration updated for event: ${event[0].slug}`)
     }
 
     return { success: true }

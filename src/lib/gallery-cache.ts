@@ -1,4 +1,3 @@
-import { unstable_noStore } from 'next/cache'
 import { cache } from 'react'
 import { db } from '@/database/db'
 import { uploads, events, albums, guestbookEntries } from '@/database/schema'
@@ -42,12 +41,8 @@ const getGalleryDataInternal = cache(async (eventId: string, hasAccess: boolean)
 
 // Direct function to fetch gallery data (uses React cache for request deduplication)
 export const getCachedGalleryData = async (eventId: string, hasAccess: boolean) => {
-  // For ISR: Allow caching for public users, but can be revalidated on demand
-  // Only opt out of caching for authenticated users who need fresh pending uploads
-  if (hasAccess) {
-    unstable_noStore() // Authenticated users get fresh data (pending uploads, etc.)
-  }
-  // Public users get cached data that can be revalidated via revalidatePath
+  // SSR: All users get fresh data on each page load
+  // React cache() handles request-level deduplication within the same request
   
   return getGalleryDataInternal(eventId, hasAccess)
 }
@@ -79,11 +74,8 @@ const getEventDataInternal = cache(async (slug: string) => {
 
 // Direct function to fetch event data (uses React cache for request deduplication) 
 export const getCachedEventData = async (slug: string, hasAccess: boolean) => {
-  // For ISR: Allow caching for public users, opt out only for authenticated users
-  if (hasAccess) {
-    unstable_noStore() // Authenticated users get fresh event data
-  }
-  // Public users get cached event data that can be revalidated on demand
+  // SSR: All users get fresh data on each page load
+  // React cache() handles request-level deduplication within the same request
   
   return getEventDataInternal(slug)
 }

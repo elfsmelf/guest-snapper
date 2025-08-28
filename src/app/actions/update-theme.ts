@@ -1,6 +1,5 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { db } from "@/database/db"
@@ -54,10 +53,7 @@ export async function updateEventTheme(eventId: string, themeId: string) {
       .where(eq(events.id, eventId))
 
     // Revalidate the gallery pages
-    revalidatePath(`/gallery/${event.slug}`)
-    revalidatePath(`/gallery/${event.slug}/upload`)
-    revalidatePath(`/gallery/${event.slug}/voice`)
-    revalidatePath(`/gallery/${event.slug}/slideshow`)
+    console.log(`Theme updated for event: ${event.slug} to ${themeId}`)
 
     return { success: true }
   } catch (error) {

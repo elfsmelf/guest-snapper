@@ -4,7 +4,6 @@ import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { validateEventAccess } from "@/lib/auth-helpers"
-import { revalidatePath, revalidateTag } from "next/cache"
 
 export async function PATCH(
   request: Request,
@@ -110,22 +109,7 @@ export async function PATCH(
       console.log(`✅ Event updated successfully:`, updatedEvent[0])
     }
 
-    // Force immediate cache invalidation for privacy changes
-    // Gallery page uses ISR so these revalidations ensure immediate updates
-    revalidatePath('/gallery/[slug]', 'page') // Invalidate all gallery pages pattern
-    revalidatePath(`/gallery/${event.slug}`) // Invalidate specific gallery page
-    revalidatePath('/gallery/[slug]/slideshow', 'page') // Invalidate slideshow pages pattern
-    revalidatePath(`/gallery/${event.slug}/slideshow`) // Invalidate specific slideshow page
-    
-    // Also revalidate related paths that might cache the event data
-    revalidatePath(`/events/${id}`)
-    revalidatePath(`/dashboard`)
-    revalidatePath('/', 'layout')
-    
-    // Clear any remaining cache tags (for components using fetch caching)
-    revalidateTag('gallery')
-    revalidateTag('event')
-    revalidateTag(`event-${event.slug}`)
+    console.log(`Event settings updated for: ${event.slug}`)
     
     if (process.env.NODE_ENV === 'development') {
       console.log(`🗄️ Cache invalidated for event ${event.slug}: guestCanViewAlbum=${updateData.guestCanViewAlbum}`)

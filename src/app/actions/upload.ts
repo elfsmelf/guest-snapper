@@ -5,7 +5,6 @@ import { uploads, events, guests } from '@/database/schema'
 import { eq, count, countDistinct, and, isNotNull } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { headers, cookies } from 'next/headers'
-import { revalidateTag, revalidatePath } from 'next/cache'
 import { canAcceptMoreGuests } from '@/lib/feature-gates'
 
 interface UploadData {
@@ -182,18 +181,7 @@ export async function createUpload(uploadData: UploadData) {
       })
       .returning()
 
-    // Invalidate specific cache tags for this event
-    revalidateTag(`gallery:${event.id}`)
-    revalidateTag(`event:${event.slug}`)
-    revalidateTag('gallery') // Global gallery cache
-    
-    // Force ISR page cache regeneration for immediate visibility
-    const galleryPath = `/gallery/${event.slug}`
-    revalidatePath(galleryPath)
-    
-    console.log('Upload created and cache invalidated:', newUpload[0].id)
-    console.log('Revalidated gallery path:', galleryPath)
-    console.log('Event details:', { id: event.id, slug: event.slug, isPublished: event.isPublished })
+    console.log('Upload created:', newUpload[0].id)
 
     return {
       success: true,
@@ -251,16 +239,7 @@ export async function approveUpload(uploadId: string) {
       throw new Error('Upload not found')
     }
 
-    // Invalidate cache tags
-    revalidateTag('gallery')
-    revalidateTag('event')
-    
-    // Force ISR page cache regeneration for immediate visibility
-    if (event.length > 0) {
-      revalidatePath(`/gallery/${event[0].slug}`)
-    }
-    
-    console.log('Upload approved and cache invalidated:', uploadId)
+    console.log('Upload approved:', uploadId)
 
     return {
       success: true,
@@ -313,16 +292,7 @@ export async function rejectUpload(uploadId: string) {
       throw new Error('Upload not found')
     }
 
-    // Invalidate cache tags
-    revalidateTag('gallery')
-    revalidateTag('event')
-    
-    // Force ISR page cache regeneration for immediate visibility
-    if (event.length > 0) {
-      revalidatePath(`/gallery/${event[0].slug}`)
-    }
-    
-    console.log('Upload rejected and cache invalidated:', uploadId)
+    console.log('Upload rejected:', uploadId)
 
     return {
       success: true,

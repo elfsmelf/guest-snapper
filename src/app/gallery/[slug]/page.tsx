@@ -16,7 +16,6 @@ import { parseOnboardingState } from "@/types/onboarding"
 import { ContinueSetupCard } from "@/components/onboarding/continue-setup-card"
 import { PrivateGalleryActions } from "@/components/gallery/private-gallery-actions"
 import { determineGalleryAccess } from "@/lib/gallery-access-helpers"
-import { CacheDebugInfo } from "@/components/gallery/cache-debug-info"
 import { GalleryViewPersistence } from "@/components/gallery/gallery-view-persistence"
 
 interface GalleryPageProps {
@@ -24,9 +23,8 @@ interface GalleryPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-// ISR with smart revalidation - cache for performance but revalidate on demand
-export const revalidate = 300 // 5 minutes base cache
-export const dynamicParams = true
+// Optimized SSR: Server-rendered with client-side hydration for interactive elements
+// No caching complexity, just fast server-side rendering + client interactivity
 
 export default async function GalleryPage({ params, searchParams }: GalleryPageProps) {
   const { slug } = await params
@@ -35,16 +33,10 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   // Check if we should simulate public view
   const forcePublicView = search?.view === 'public'
   
-  // Only check session if cookie exists (for ISR caching optimization)
+  // Get session directly for dynamic rendering
   const headersList = await headers()
-  
-  // Check for session cookie manually to avoid dynamic rendering
-  const cookieHeader = headersList.get('cookie') || ''
-  const hasSessionCookie = cookieHeader.includes('better-auth.session_token')
-  
   let session = null
-  if (hasSessionCookie && !forcePublicView) {
-    // Only make session API call if cookie exists
+  if (!forcePublicView) {
     session = await auth.api.getSession({ headers: headersList })
   }
 
@@ -67,13 +59,11 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   }
   // For public users (no session), hasEventAccess stays false, allowing proper caching
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🔍 Gallery access check: guestCanViewAlbum=${eventWithAlbums.guestCanViewAlbum}, hasEventAccess=${hasEventAccess}, isOwner=${isOwner}, session=${!!session?.user}, forcePublicView=${forcePublicView}`)
-  }
 
-  // Get guest cookie from headers to avoid dynamic rendering with cookies() API  
-  const guestCookieMatch = cookieHeader.match(/guest_id=([^;]+)/)
-  const guestCookieId = guestCookieMatch ? decodeURIComponent(guestCookieMatch[1]) : null
+  // Get guest cookie for dynamic rendering
+  const cookieStore = await cookies()
+  const guestCookie = cookieStore.get('guest_id')
+  const guestCookieId = guestCookie ? decodeURIComponent(guestCookie.value) : null
 
   // Use unified access logic
   const accessResult = await determineGalleryAccess({
@@ -87,18 +77,6 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
 
   // Parse onboarding state for owner continuation card (skip if forcing public view)
   const onboardingState = isOwner && !forcePublicView ? parseOnboardingState(eventWithAlbums.quickStartProgress) : null
-  
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`🚀 Onboarding state for ${isOwner ? 'owner' : 'non-owner'}:`, {
-      isOwner,
-      hasOnboardingState: !!onboardingState,
-      onboardingActive: onboardingState?.onboardingActive,
-      onboardingComplete: onboardingState?.onboardingComplete,
-      onboardingSkipped: onboardingState?.onboardingSkipped,
-      currentStep: onboardingState?.currentStep,
-      shouldShowCard: isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped
-    })
-  }
 
   // If gallery is not published and user doesn't have access, show draft message
   if (!eventWithAlbums.isPublished && !hasEventAccess) {
@@ -482,11 +460,6 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
           ) : undefined}
         />
         
-        {/* Debug info for development */}
-        <CacheDebugInfo 
-          eventSlug={slug}
-          currentGuestCanView={eventWithAlbums.guestCanViewAlbum ?? false}
-        />
       </div>
     </GalleryPageWrapper>
   )

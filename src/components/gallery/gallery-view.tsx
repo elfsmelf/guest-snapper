@@ -211,8 +211,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
         setOptimisticActions(prev => new Map(prev.set(uploadId, 'approved')))
         toast.success('Upload approved successfully')
         
-        // Refresh data in background without blocking UI
-        setTimeout(() => router.refresh(), 100)
+        // Data will be updated via optimistic state - no refresh needed
       } else {
         // Revert optimistic update on error
         setOptimisticActions(prev => {
@@ -245,8 +244,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
         setOptimisticActions(prev => new Map(prev.set(uploadId, 'rejected')))
         toast.success('Upload rejected')
         
-        // Refresh data in background without blocking UI
-        setTimeout(() => router.refresh(), 100)
+        // Data will be updated via optimistic state - no refresh needed
       } else {
         // Revert optimistic update on error
         setOptimisticActions(prev => {
@@ -509,7 +507,9 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                       Be the first to share an audio message from this event!
                     </p>
                     {uploadWindowOpen && (
-                      <Button onClick={() => router.push(`/gallery/${eventSlug}/voice`)}>
+                      <Button onClick={() => {
+                        window.location.href = `/gallery/${eventSlug}/voice`
+                      }}>
                         <Mic className="h-4 w-4 mr-2" />
                         Record Audio Message
                       </Button>
@@ -778,7 +778,9 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                       }
                     </p>
                     {uploadWindowOpen && selectedTab !== 'pending' && (
-                      <Button onClick={() => router.push(`/gallery/${eventSlug}/upload`)}>
+                      <Button onClick={() => {
+                        window.location.href = `/gallery/${eventSlug}/upload`
+                      }}>
                         <Camera className="h-4 w-4 mr-2" />
                         {isGuestOwnContent ? 'Share Your Photos' : 'Upload Photos'}
                       </Button>
