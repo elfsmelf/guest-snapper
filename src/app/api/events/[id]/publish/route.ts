@@ -5,6 +5,7 @@ import { db } from '@/database/db'
 import { events } from '@/database/schema'
 import { eq } from 'drizzle-orm'
 import { addMonths } from 'date-fns'
+import { parseLocalDate } from '@/lib/date-utils'
 import { validateEventAccess } from '@/lib/auth-helpers'
 import { canPublishEvent } from '@/lib/feature-gates'
 
@@ -59,7 +60,7 @@ export async function POST(
       }, { status: 403 })
     }
 
-    const activationDate = new Date(event.activationDate)
+    const activationDate = parseLocalDate(event.activationDate)
     const uploadWindowEnd = addMonths(activationDate, 3)
     const downloadWindowEnd = addMonths(activationDate, 12)
     const publishedAt = new Date()

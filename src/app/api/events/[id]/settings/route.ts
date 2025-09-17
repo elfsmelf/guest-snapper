@@ -41,6 +41,7 @@ export async function PATCH(
       themeId,
       isPublished,
       publishedAt,
+      privacySettings,
       settings: additionalSettings = {}
     } = body
     
@@ -94,6 +95,7 @@ export async function PATCH(
     if (themeId) updateData.themeId = themeId
     if (typeof isPublished === 'boolean') updateData.isPublished = isPublished
     if (publishedAt !== undefined) updateData.publishedAt = publishedAt
+    if (privacySettings) updateData.privacySettings = privacySettings
 
     if (process.env.NODE_ENV === 'development') {
       console.log(`💾 About to update event with data:`, updateData)

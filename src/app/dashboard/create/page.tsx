@@ -7,9 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePickerRac } from '@/components/ui/date-picker-rac'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { CalendarDate, parseDate } from '@internationalized/date'
+import { eventTypes } from '@/lib/event-types'
 
 export default function CreateGalleryPage() {
   const router = useRouter()
@@ -19,6 +21,7 @@ export default function CreateGalleryPage() {
     coupleNames: '',
     eventDate: '',
     venue: '',
+    eventType: 'wedding',
   })
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null)
 
@@ -47,6 +50,7 @@ export default function CreateGalleryPage() {
           slug,
           coupleNames: formData.coupleNames,
           venue: formData.venue,
+          eventType: formData.eventType,
           date: selectedDate ? new Date(selectedDate.year, selectedDate.month - 1, selectedDate.day) : null,
         }),
       })
@@ -123,17 +127,46 @@ export default function CreateGalleryPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="coupleNames">Couple Names *</Label>
+              <Label htmlFor="coupleNames">Event Participants *</Label>
               <Input
                 id="coupleNames"
                 type="text"
-                placeholder="John & Jane"
+                placeholder="John & Jane, Team Building Event, etc."
                 value={formData.coupleNames}
                 onChange={(e) =>
                   setFormData({ ...formData, coupleNames: e.target.value })
                 }
                 required
               />
+            </div>
+
+            <div>
+              <Label>Event Type *</Label>
+              <RadioGroup
+                value={formData.eventType}
+                onValueChange={(value) => setFormData({ ...formData, eventType: value })}
+                className="grid grid-cols-5 gap-3 mt-3"
+              >
+                {Object.values(eventTypes).map((type) => {
+                  const IconComponent = type.icon
+                  return (
+                    <div key={type.id}>
+                      <RadioGroupItem
+                        value={type.id}
+                        id={type.id}
+                        className="peer sr-only"
+                      />
+                      <Label
+                        htmlFor={type.id}
+                        className="flex flex-col items-center justify-center rounded-lg border-2 border-muted bg-popover p-3 h-20 hover:bg-accent hover:text-accent-foreground peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 [&:has([data-state=checked])]:border-primary cursor-pointer transition-all duration-200 group"
+                      >
+                        <IconComponent className="h-5 w-5 mb-1 group-hover:scale-110 transition-transform duration-200" />
+                        <span className="text-xs font-medium text-center leading-tight">{type.label}</span>
+                      </Label>
+                    </div>
+                  )
+                })}
+              </RadioGroup>
             </div>
 
             <div>

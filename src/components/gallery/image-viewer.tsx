@@ -24,9 +24,10 @@ interface ImageViewerProps {
   upload: Upload | null
   isOpen: boolean
   onClose: () => void
+  allowGuestDownloads?: boolean
 }
 
-export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
+export function ImageViewer({ upload, isOpen, onClose, allowGuestDownloads = false }: ImageViewerProps) {
   const [shouldLoadImage, setShouldLoadImage] = useState(false)
   
   useEffect(() => {
@@ -58,11 +59,13 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
   }
 
   const handleDownload = () => {
+    // Use server-side download proxy to avoid CORS issues
+    const imageUrl = getOriginalImageUrl(upload.fileUrl)
+    const downloadUrl = `/api/download?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(upload.fileName)}`
+
     const a = document.createElement('a')
-    // Use original image URL for downloads (not the optimized version)
-    a.href = getOriginalImageUrl(upload.fileUrl)
+    a.href = downloadUrl
     a.download = upload.fileName
-    a.target = '_blank'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -171,15 +174,17 @@ export function ImageViewer({ upload, isOpen, onClose }: ImageViewerProps) {
                 </div>
               </div>
               
-              {/* Download button */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-gray-500 hover:bg-gray-100 rounded-full h-8 w-8"
-                onClick={handleDownload}
-              >
-                <Download className="h-4 w-4" />
-              </Button>
+              {/* Download button - only show if guest downloads are allowed */}
+              {allowGuestDownloads && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-500 hover:bg-gray-100 rounded-full h-8 w-8"
+                  onClick={handleDownload}
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              )}
             </div>
             
             {/* Caption with proper spacing */}

@@ -22,40 +22,22 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Plan configurations matching your pricing.ts
 const plans = [
   {
-    id: 'starter',
-    name: 'Starter Plan',
-    description: '10 guests, 1 album, public gallery access, 3-month upload window',
-    prices: { AUD: 2900, USD: 2000, GBP: 1500, EUR: 1800, CAD: 2600, NZD: 3100 }
+    id: 'guest50',
+    name: '50 Guest Plan',
+    description: '50 guests, 3 albums, 5 themes, 3-month upload, video guestbook',
+    prices: { AUD: 5900, USD: 3900, GBP: 3100, EUR: 3600, CAD: 5300, NZD: 6300 }
   },
   {
-    id: 'small',
-    name: 'Small Plan', 
-    description: '25 guests, 2 albums, 5 themes, public gallery access',
-    prices: { AUD: 3900, USD: 2700, GBP: 2000, EUR: 2400, CAD: 3500, NZD: 4200 }
-  },
-  {
-    id: 'medium',
-    name: 'Medium Plan',
-    description: '50 guests, 3 albums, 10 themes, 6-month upload, video guestbook',
-    prices: { AUD: 5900, USD: 4100, GBP: 3100, EUR: 3700, CAD: 5300, NZD: 6300 }
-  },
-  {
-    id: 'large',
-    name: 'Large Plan',
-    description: '100 guests, 5 albums, 15 themes, 12-month upload, premium features',
-    prices: { AUD: 7900, USD: 5500, GBP: 4200, EUR: 5000, CAD: 7100, NZD: 8500 }
-  },
-  {
-    id: 'xlarge',
-    name: 'XLarge Plan',
-    description: '200 guests, 10 albums, custom branding, priority support',
-    prices: { AUD: 10900, USD: 7600, GBP: 5800, EUR: 6900, CAD: 9800, NZD: 11700 }
+    id: 'guest100',
+    name: '100 Guest Plan',
+    description: '100 guests, 6 albums, 10 themes, 12-month upload, premium features',
+    prices: { AUD: 8900, USD: 5900, GBP: 4700, EUR: 5400, CAD: 7900, NZD: 9500 }
   },
   {
     id: 'unlimited',
-    name: 'Unlimited Plan',
-    description: 'Unlimited guests & albums, enterprise features, dedicated support',
-    prices: { AUD: 14900, USD: 10400, GBP: 7900, EUR: 9400, CAD: 13400, NZD: 15900 }
+    name: 'Unlimited Guest Plan',
+    description: 'Unlimited guests, 12 albums, all themes, enterprise features, dedicated support',
+    prices: { AUD: 13400, USD: 8900, GBP: 7100, EUR: 8100, CAD: 11900, NZD: 14300 }
   }
 ];
 

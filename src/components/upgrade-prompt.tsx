@@ -56,6 +56,7 @@ export function UpgradePrompt({
   if (showFullPricing) {
     return (
       <GuestCountPricingDialog
+        key={`${eventId}-${currentPlan}`}
         isOpen={isOpen}
         onClose={onClose}
         eventId={eventId}

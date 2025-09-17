@@ -55,8 +55,8 @@ export function canPublishEvent(event: EventForFeatureGating): FeatureGateResult
   if (!features.publicAccess) {
     return {
       allowed: false,
-      reason: 'Free trial galleries cannot be made public. Upgrade to publish your gallery.',
-      suggestedPlan: 'starter',
+      reason: 'Free galleries cannot be made public. Upgrade to publish your gallery.',
+      suggestedPlan: 'guest50',
       upgradeRequired: true
     }
   }
@@ -116,8 +116,8 @@ export function canUseVideoGuestbook(event: EventForFeatureGating): FeatureGateR
   if (!features.videoGuestbook) {
     return {
       allowed: false,
-      reason: 'Video guestbook is available on Medium plans and above.',
-      suggestedPlan: 'medium',
+      reason: 'Video guestbook is available on 50 Guest plans and above.',
+      suggestedPlan: 'guest50',
       upgradeRequired: true
     }
   }
@@ -138,8 +138,8 @@ export function canUseCustomBranding(event: EventForFeatureGating): FeatureGateR
   if (!features.customBranding) {
     return {
       allowed: false,
-      reason: 'Custom branding is available on XLarge plans and above.',
-      suggestedPlan: 'xlarge',
+      reason: 'Custom branding is available on Unlimited plans.',
+      suggestedPlan: 'unlimited',
       upgradeRequired: true
     }
   }
@@ -220,29 +220,21 @@ export function getPlanUsageSummary(event: EventForFeatureGating, stats: {
 // Helper functions to suggest appropriate plans
 
 function getSuggestedPlanForAlbums(requiredAlbums: number): Plan {
-  if (requiredAlbums <= 1) return 'starter'
-  if (requiredAlbums <= 2) return 'small'
-  if (requiredAlbums <= 3) return 'medium'
-  if (requiredAlbums <= 5) return 'large'
-  if (requiredAlbums <= 10) return 'xlarge'
+  if (requiredAlbums <= 3) return 'guest50'
+  if (requiredAlbums <= 6) return 'guest100'
   return 'unlimited'
 }
 
 function getSuggestedPlanForGuests(requiredGuests: number): Plan {
-  if (requiredGuests <= 10) return 'starter'
-  if (requiredGuests <= 25) return 'small'
-  if (requiredGuests <= 50) return 'medium'
-  if (requiredGuests <= 100) return 'large'
-  if (requiredGuests <= 200) return 'xlarge'
+  if (requiredGuests <= 50) return 'guest50'
+  if (requiredGuests <= 100) return 'guest100'
   return 'unlimited'
 }
 
 function getSuggestedPlanForThemes(requiredThemes: number): Plan {
-  if (requiredThemes <= 1) return 'starter'
-  if (requiredThemes <= 5) return 'small'
-  if (requiredThemes <= 10) return 'medium'
-  if (requiredThemes <= 15) return 'large'
-  return 'xlarge' // XLarge and unlimited both have 15+ themes
+  if (requiredThemes <= 5) return 'guest50'
+  if (requiredThemes <= 10) return 'guest100'
+  return 'unlimited'
 }
 
 /**

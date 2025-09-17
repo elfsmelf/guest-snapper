@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { Users, Check, CheckCircle, Loader2, Sparkles } from "lucide-react"
+import { Users, Check, CheckCircle, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatCurrency, getPlanFeatures, getPrice, getUpgradePrice, isPlanUpgrade, type Plan, type Currency } from "@/lib/pricing"
 import { type OnboardingState } from "@/types/onboarding"
@@ -33,35 +33,32 @@ const currencies = [
 ]
 
 // Guest counts mapped to plans
-const guestCounts = [8, 10, 25, 50, 100, 200, 999999] // 999999 represents unlimited
-const guestCountToPlans: Record<number, { plan: Plan; name: string }> = {
-  8: { plan: 'starter', name: 'Free Trial (8 guests)' }, // Free tier shows as starter plan features but $0
-  10: { plan: 'starter', name: 'Starter Plan' },
-  25: { plan: 'small', name: 'Small Plan' },
-  50: { plan: 'medium', name: 'Medium Plan' },
-  100: { plan: 'large', name: 'Large Plan' },
-  200: { plan: 'xlarge', name: 'XLarge Plan' },
-  999999: { plan: 'unlimited', name: 'Unlimited Plan' }
+const guestCounts = [10, 50, 100, 999999] // 999999 represents unlimited
+const guestCountToPlans: Record<number, { plan: Plan | 'free'; name: string }> = {
+  10: { plan: 'free', name: 'Free Plan' },
+  50: { plan: 'guest50', name: '50 Guest Plan' },
+  100: { plan: 'guest100', name: '100 Guest Plan' },
+  999999: { plan: 'unlimited', name: 'Unlimited Guest Plan' }
 }
 
 // Features for each guest count
 const features = {
-  8: [
-    "Owner & collaborators can view",
-    "Upload & organize photos/videos", 
+  10: [
+    "Public gallery access",
+    "Upload & organize photos/videos",
     "Live realtime slideshow",
     "Digital guestbook",
     "Custom QR code",
-    "Gallery stays private",
-    "⚠️ Upgrade required to make public",
+    "3-month upload window",
+    "12-month download access",
   ],
   default: [
     "Public gallery access",
     "Unlimited video & photo uploads",
     "Real-time album feed",
-    "Digital guestbook", 
+    "Digital guestbook",
     "Custom QR code",
-    "12 month album access",
+    "Video guestbook recording",
     "Enhanced slideshow features"
   ]
 }
@@ -86,7 +83,7 @@ export function GuestCountStep({
     (eventData?.currency as Currency) || 'AUD'
   )
   const [selectedGuestCount, setSelectedGuestCount] = useState<number>(
-    eventData?.guestCount || 8
+    eventData?.guestCount || 10
   )
   const [loading, setLoading] = useState(false)
   const [currentPlan, setCurrentPlan] = useState<string>(
@@ -95,10 +92,7 @@ export function GuestCountStep({
   const [eventCurrency, setEventCurrency] = useState<Currency>(
     (eventData?.currency as Currency) || 'AUD'
   )
-  const [paymentSuccess, setPaymentSuccess] = useState(false)
-  const [paymentData, setPaymentData] = useState<any>(null)
-  const [processingPayment, setProcessingPayment] = useState(false)
-  const isComplete = state.guestCountSet || paymentSuccess
+  const isComplete = state.guestCountSet
 
   // Update state when event data changes
   useEffect(() => {
@@ -117,84 +111,20 @@ export function GuestCountStep({
     }
   }, [eventData])
 
-  // Handle payment success/cancel from URL params
-  const paymentSuccessParam = searchParams.get('payment_success')
-  const sessionId = searchParams.get('session_id')
+  // Handle payment cancellation from URL params
   const paymentCancelled = searchParams.get('payment_cancelled')
-  
-  // Process payment success immediately
+
+  // Process payment cancellation
   React.useEffect(() => {
-    if (paymentSuccessParam === 'true' && sessionId && !processingPayment && !paymentSuccess) {
-      fetchPaymentData(sessionId)
-    } else if (paymentCancelled === 'true') {
+    if (paymentCancelled === 'true') {
       toast.error('Payment was cancelled. You can try again anytime.')
       // Clean up URL
       const newUrl = `/onboarding?slug=${eventSlug}&step=4`
       router.replace(newUrl)
     }
-  }, [paymentSuccessParam, sessionId, paymentCancelled, processingPayment, paymentSuccess, eventSlug, router])
+  }, [paymentCancelled, eventSlug, router])
 
 
-  const fetchPaymentData = async (sessionId: string) => {
-    setProcessingPayment(true)
-    try {
-      const response = await fetch('/api/checkout/session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ session_id: sessionId }),
-      })
-      
-      const data = await response.json()
-      
-      if (response.ok && data.payment_status === 'paid') {
-        setPaymentData({
-          sessionId: data.id,
-          amount: data.amount_total,
-          currency: data.currency,
-          plan: data.metadata?.plan || 'unknown'
-        })
-        setPaymentSuccess(true)
-        toast.success('🎉 Payment successful! Your gallery has been upgraded.')
-        
-        // Update the current plan immediately for UI consistency
-        if (data.metadata?.plan) {
-          setCurrentPlan(data.metadata.plan)
-          
-          // Update guest count based on the plan purchased
-          const planToGuestCount: Record<string, number> = {
-            'starter': 10,
-            'small': 25,
-            'medium': 50,
-            'large': 100,
-            'xlarge': 200,
-            'unlimited': 999999
-          }
-          const guestCount = planToGuestCount[data.metadata.plan] || 50
-          setSelectedGuestCount(guestCount)
-        }
-
-        // Update onboarding state 
-        onUpdate({ 
-          guestCountSet: true, 
-          paymentCompleted: true 
-        })
-        
-        // Invalidate queries to refresh the UI
-        queryClient.invalidateQueries({ queryKey: ['onboarding', eventId] })
-        queryClient.invalidateQueries({ queryKey: ['events', eventId] })
-      } else {
-        throw new Error('Payment verification failed')
-      }
-    } catch (error) {
-      console.error('Error fetching payment data:', error)
-      toast.error('Payment verification failed. Please contact support.')
-    } finally {
-      setProcessingPayment(false)
-      // Clean up URL parameters
-      const newUrl = `/onboarding?slug=${eventSlug}&step=4`
-      router.replace(newUrl)
-    }
-  }
 
   const currentCurrency = currencies.find((c) => c.code === selectedCurrency)
   
@@ -203,28 +133,28 @@ export function GuestCountStep({
   const selectedPlan = selectedPlanInfo.plan
   
   // Get price for selected plan and currency
-  const isUpgradeFromCurrent = isPlanUpgrade(currentPlan, selectedPlan)
-  const upgradePrice = getUpgradePrice(currentPlan, selectedPlan, selectedCurrency)
-  const fullPrice = getPrice(selectedPlan, selectedCurrency)
+  const isUpgradeFromCurrent = selectedPlan !== 'free' && isPlanUpgrade(currentPlan, selectedPlan as Plan)
+  const upgradePrice = selectedPlan !== 'free' ? getUpgradePrice(currentPlan, selectedPlan as Plan, selectedCurrency) : 0
+  const fullPrice = selectedPlan !== 'free' ? getPrice(selectedPlan as Plan, selectedCurrency) : 0
   
   // Use upgrade price if this is an upgrade, otherwise full price
-  const currentPrice = selectedGuestCount === 8 ? 0 : (isUpgradeFromCurrent ? upgradePrice : fullPrice)
-  const currentFeatures = selectedGuestCount === 8 ? features[8] : features.default
+  const currentPrice = selectedGuestCount === 10 ? 0 : (isUpgradeFromCurrent ? upgradePrice : fullPrice)
+  const currentFeatures = selectedGuestCount === 10 ? features[10] : features.default
   
   // Check if this is current user's plan
-  const isCurrentPlan = currentPlan === selectedPlan || (currentPlan === 'free' && selectedGuestCount === 8)
+  const isCurrentPlan = currentPlan === selectedPlan || (currentPlan === 'free' && selectedGuestCount === 10)
 
   const handlePurchase = async () => {
     if (loading) return
     
-    if (selectedGuestCount === 8) {
+    if (selectedGuestCount === 10) {
       // Free plan - just update the settings and continue
       try {
         const response = await fetch(`/api/events/${eventId}/settings`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            guestCount: 8,
+            guestCount: 10,
             plan: 'free',
             currency: selectedCurrency,
           }),
@@ -255,6 +185,7 @@ export function GuestCountStep({
           plan: selectedPlan,
           currency: selectedCurrency,
           eventId,
+          context: 'onboarding',
         }),
       })
 
@@ -293,81 +224,7 @@ export function GuestCountStep({
         <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
-      {processingPayment ? (
-        <Card className="border-2 border-primary/30 shadow-lg">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-center py-12 space-y-4 flex-col">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              <div className="text-center">
-                <p className="font-medium">Verifying your payment...</p>
-                <p className="text-sm text-muted-foreground">This will only take a moment</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ) : paymentSuccess && paymentData ? (
-        <Card className="border-green-200 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 shadow-lg">
-          <CardContent className="pt-6 space-y-6">
-            {/* Success Header */}
-            <div className="text-center space-y-3">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                <CheckCircle className="w-10 h-10 text-white" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-green-900 dark:text-green-100 flex items-center justify-center gap-2">
-                  Payment Successful! <Sparkles className="w-5 h-5" />
-                </h3>
-                <p className="text-green-700 dark:text-green-300">
-                  Your gallery has been upgraded to the {paymentData.plan} plan
-                </p>
-              </div>
-            </div>
-            
-            {/* Payment Details */}
-            <div className="bg-white/60 dark:bg-black/20 rounded-xl p-4 space-y-2 border border-green-200">
-              <div className="flex justify-between text-sm">
-                <span className="font-medium text-green-800 dark:text-green-200">Amount Paid:</span>
-                <span className="font-bold text-green-900 dark:text-green-100">
-                  {new Intl.NumberFormat('en-US', {
-                    style: 'currency',
-                    currency: paymentData.currency.toUpperCase(),
-                  }).format(paymentData.amount / 100)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="font-medium text-green-800 dark:text-green-200">Plan:</span>
-                <span className="font-bold text-green-900 dark:text-green-100">
-                  {paymentData.plan.charAt(0).toUpperCase() + paymentData.plan.slice(1)} Plan
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="font-medium text-green-800 dark:text-green-200">Status:</span>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="font-bold text-green-900 dark:text-green-100">Paid & Active</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Features Unlocked */}
-            <div className="bg-white/60 dark:bg-black/20 rounded-xl p-4 border border-green-200">
-              <h4 className="font-semibold text-green-900 dark:text-green-100 mb-3 flex items-center gap-2">
-                <Sparkles className="w-4 h-4" />
-                Features Unlocked
-              </h4>
-              <div className="grid grid-cols-2 gap-2">
-                {['Public gallery access', 'Unlimited uploads', 'Enhanced slideshow', '12 month access'].map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Check className="w-3 h-3 text-green-600" />
-                    <span className="text-xs text-green-800 dark:text-green-200">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-          </CardContent>
-        </Card>
-      ) : isComplete ? (
+      {isComplete ? (
         <Card className="border-green-200 bg-green-50 dark:bg-green-950/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">

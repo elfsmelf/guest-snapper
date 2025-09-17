@@ -11,17 +11,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { 
-  Camera, 
-  MessageSquare, 
-  Mic, 
-  Heart, 
-  Download, 
-  Share2, 
-  Search, 
-  Grid3X3, 
-  List, 
-  User, 
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {
+  Camera,
+  MessageSquare,
+  Mic,
+  Heart,
+  Download,
+  Share2,
+  Search,
+  User,
   Calendar,
   Info,
   Play,
@@ -29,7 +28,13 @@ import {
   X,
   ChevronDown,
   Upload,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff,
+  FolderPlus,
+  CheckSquare,
+  Square,
+  MoreHorizontal
 } from "lucide-react"
 import { ImageViewer } from "./image-viewer"
 import { MessageDialog } from "./message-dialog"
@@ -37,7 +42,8 @@ import Masonry from 'react-masonry-css'
 import { GuestbookEntries } from "./guestbook-entries"
 import { AudioPlayer } from "./audio-player"
 import { toast } from "sonner"
-import { approveUpload, rejectUpload } from "@/app/actions/upload"
+import { approveUpload, rejectUpload, bulkMoveToAlbum, bulkHideImages, hideImage } from "@/app/actions/upload"
+import { parseLocalDate } from "@/lib/date-utils"
 
 interface Event {
   id: string
@@ -54,7 +60,7 @@ interface Event {
   guestCanViewAlbum: boolean
   approveUploads: boolean
   userId: string
-  albums: { id: string; name: string; sortOrder: number }[]
+  albums: { id: string; name: string; sortOrder: number; isVisible: boolean }[]
   uploadsCount: number
   approvedUploadsCount: number
   guestbookCount: number
@@ -91,17 +97,36 @@ interface GalleryViewProps {
 }
 
 export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, isOwner = false, hasEventAccess = false, continuationCard, forcePublicView = false, guestbookEntries = [], isGuestOwnContent = false, uiMode = 'GUEST_UI' }: GalleryViewProps) {
-  
+
   const [selectedTab, setSelectedTab] = useState<'photos' | 'audio' | 'guestbook' | 'pending'>('photos')
   const [selectedAlbum, setSelectedAlbum] = useState<string>('all')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedUpload, setSelectedUpload] = useState<Upload | null>(null)
+
+  // Parse privacy settings to determine if guest downloads are allowed
+  const getPrivacySettings = () => {
+    try {
+      return event.privacySettings ? JSON.parse(event.privacySettings) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  const privacySettings = getPrivacySettings()
+  const allowGuestDownloads = privacySettings.allow_guest_downloads ?? false
   const [isMessageDialogOpen, setIsMessageDialogOpen] = useState(false)
   const [guestbookCount, setGuestbookCount] = useState(event.guestbookCount)
-  
+
+  // Image selection state for bulk actions
+  const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set())
+  const [selectionMode, setSelectionMode] = useState(false)
+  const [showAlbumModal, setShowAlbumModal] = useState(false)
+
   // Optimistic updates state
   const [optimisticActions, setOptimisticActions] = useState<Map<string, 'approving' | 'rejecting' | 'approved' | 'rejected'>>(new Map())
+
+  // Optimistic hide state - tracks which images are being hidden or have been hidden
+  const [hiddenImages, setHiddenImages] = useState<Set<string>>(new Set())
   
   const router = useRouter()
 
@@ -117,8 +142,8 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   ]
 
   // Check if upload window is open
-  const uploadWindowOpen = event.activationDate ? 
-    new Date() >= new Date(event.activationDate) && 
+  const uploadWindowOpen = event.activationDate ?
+    new Date() >= parseLocalDate(event.activationDate) &&
     new Date() <= new Date(event.uploadWindowEnd || event.activationDate)
     : true
   
@@ -130,19 +155,123 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
     setGuestbookCount(prev => prev + 1)
   }
 
+  // Image selection helpers
+  const toggleImageSelection = (uploadId: string) => {
+    setSelectedImages(prev => {
+      const newSelection = new Set(prev)
+      if (newSelection.has(uploadId)) {
+        newSelection.delete(uploadId)
+      } else {
+        newSelection.add(uploadId)
+      }
+      return newSelection
+    })
+  }
+
+  const selectAllImages = () => {
+    const allImageIds = new Set(displayUploads.map(upload => upload.id))
+    setSelectedImages(allImageIds)
+  }
+
+  const clearSelection = () => {
+    setSelectedImages(new Set())
+    setSelectionMode(false)
+  }
+
+  const handleBulkHideImages = async () => {
+    if (selectedImages.size === 0) return
+
+    const uploadIds = Array.from(selectedImages)
+
+    // Optimistically hide images immediately
+    setHiddenImages(prev => {
+      const newHidden = new Set(prev)
+      uploadIds.forEach(id => newHidden.add(id))
+      return newHidden
+    })
+
+    toast.loading(`Hiding ${selectedImages.size} image(s)...`)
+
+    const result = await bulkHideImages(uploadIds)
+
+    if (result.success) {
+      toast.dismiss()
+      toast.success(result.message || `${selectedImages.size} image(s) hidden successfully`)
+    } else {
+      toast.dismiss()
+      toast.error(result.error || 'Failed to hide images')
+
+      // Revert optimistic update on error
+      setHiddenImages(prev => {
+        const newHidden = new Set(prev)
+        uploadIds.forEach(id => newHidden.delete(id))
+        return newHidden
+      })
+    }
+
+    clearSelection()
+  }
+
+  const handleBulkMoveToAlbum = async (albumId: string) => {
+    if (selectedImages.size === 0) return
+
+    const uploadIds = Array.from(selectedImages)
+
+    // Optimistic update: immediately update local state
+    const albumName = albumId ?
+      event.albums.find(a => a.id === albumId)?.name || 'Album' :
+      'General'
+
+    toast.loading(`Moving ${selectedImages.size} image(s) to ${albumName}...`)
+
+    const result = await bulkMoveToAlbum(uploadIds, albumId || null)
+
+    if (result.success) {
+      toast.dismiss()
+      toast.success(`${result.count} image(s) moved to ${albumName}`)
+
+      // Force page refresh to show updated data
+      router.refresh()
+    } else {
+      toast.dismiss()
+      toast.error(result.error || 'Failed to move images')
+    }
+
+    setShowAlbumModal(false)
+    clearSelection()
+  }
+
 
   // Filter approved uploads for photos tab (exclude audio)
   const filteredUploads = selectedTab === 'photos' ? displayApprovedUploads.filter(upload => {
     const isPhotoOrVideo = upload.fileType === 'image' || upload.fileType === 'video'
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       upload.uploaderName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       upload.caption?.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    // Album filtering
-    const matchesAlbum = selectedAlbum === 'all' || 
+
+    // Check if image is in Hidden Images album (already hidden on server)
+    const hiddenAlbum = event.albums.find(a => a.name === 'Hidden Images')
+    const isInHiddenAlbum = hiddenAlbum && upload.albumId === hiddenAlbum.id
+
+    // Handle optimistically hidden images
+    const isHiddenOptimistically = hiddenImages.has(upload.id)
+    const isViewingHiddenAlbum = selectedAlbum && event.albums.find(a => a.id === selectedAlbum)?.name === 'Hidden Images'
+
+    // If viewing Hidden Images album, only show hidden images (optimistic + server-side)
+    if (isViewingHiddenAlbum) {
+      return isPhotoOrVideo && matchesSearch && (isHiddenOptimistically || isInHiddenAlbum)
+    }
+
+    // For all other views (including "All photos"), exclude hidden images
+    if (isHiddenOptimistically || isInHiddenAlbum) {
+      return false
+    }
+
+    // Album filtering (after excluding hidden images)
+    const matchesAlbum = selectedAlbum === 'all' ||
       (selectedAlbum === 'unassigned' && !upload.albumId) ||
       upload.albumId === selectedAlbum
-    
+
     return isPhotoOrVideo && matchesSearch && matchesAlbum
   }) : []
 
@@ -159,15 +288,33 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   // Filter pending uploads for pending tab (exclude audio)
   const filteredPendingUploads = selectedTab === 'pending' && uiMode === 'OWNER_UI' ? displayPendingUploads.filter(upload => {
     const isPhotoOrVideo = upload.fileType === 'image' || upload.fileType === 'video'
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       upload.uploaderName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       upload.caption?.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    // Album filtering
-    const matchesAlbum = selectedAlbum === 'all' || 
+
+    // Check if image is in Hidden Images album (already hidden on server)
+    const hiddenAlbum = event.albums.find(a => a.name === 'Hidden Images')
+    const isInHiddenAlbum = hiddenAlbum && upload.albumId === hiddenAlbum.id
+
+    // Handle optimistically hidden images
+    const isHiddenOptimistically = hiddenImages.has(upload.id)
+    const isViewingHiddenAlbum = selectedAlbum && event.albums.find(a => a.id === selectedAlbum)?.name === 'Hidden Images'
+
+    // If viewing Hidden Images album, only show hidden images (optimistic + server-side)
+    if (isViewingHiddenAlbum) {
+      return isPhotoOrVideo && matchesSearch && (isHiddenOptimistically || isInHiddenAlbum)
+    }
+
+    // For all other views (including "All photos"), exclude hidden images
+    if (isHiddenOptimistically || isInHiddenAlbum) {
+      return false
+    }
+
+    // Album filtering (after excluding hidden images)
+    const matchesAlbum = selectedAlbum === 'all' ||
       (selectedAlbum === 'unassigned' && !upload.albumId) ||
       upload.albumId === selectedAlbum
-    
+
     return isPhotoOrVideo && matchesSearch && matchesAlbum
   }) : []
 
@@ -185,10 +332,25 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   const displayUploads = selectedTab === 'pending' ? filteredPendingUploads : filteredUploads
   const displayAudioUploads = selectedTab === 'pending' ? filteredPendingAudioUploads : filteredAudioUploads
 
-  // Calculate counts
-  const pendingPhotoCount = displayPendingUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length
+  // Calculate counts (excluding hidden images)
+  const hiddenAlbum = event.albums.find(a => a.name === 'Hidden Images')
+
+  const pendingPhotoCount = displayPendingUploads.filter(u => {
+    const isPhotoOrVideo = u.fileType === 'image' || u.fileType === 'video'
+    const isInHiddenAlbum = hiddenAlbum && u.albumId === hiddenAlbum.id
+    const isHiddenOptimistically = hiddenImages.has(u.id)
+    return isPhotoOrVideo && !isInHiddenAlbum && !isHiddenOptimistically
+  }).length
+
   const pendingAudioCount = displayPendingUploads.filter(u => u.fileType === 'audio').length
-  const approvedPhotoCount = displayApprovedUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length
+
+  const approvedPhotoCount = displayApprovedUploads.filter(u => {
+    const isPhotoOrVideo = u.fileType === 'image' || u.fileType === 'video'
+    const isInHiddenAlbum = hiddenAlbum && u.albumId === hiddenAlbum.id
+    const isHiddenOptimistically = hiddenImages.has(u.id)
+    return isPhotoOrVideo && !isInHiddenAlbum && !isHiddenOptimistically
+  }).length
+
   const approvedAudioCount = displayApprovedUploads.filter(u => u.fileType === 'audio').length
 
   const openImageModal = (upload: Upload) => {
@@ -307,7 +469,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
               {/* Date */}
               <p className="text-lg md:text-xl text-white/90 mb-12 tracking-wide drop-shadow-lg gallery-serif">
-                {new Date(event.eventDate).toLocaleDateString("en-US", {
+                {parseLocalDate(event.eventDate).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -379,7 +541,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
               {/* Date */}
               <p className="text-lg md:text-xl mb-12 tracking-wide text-muted-foreground gallery-serif">
-                {new Date(event.eventDate).toLocaleDateString("en-US", {
+                {parseLocalDate(event.eventDate).toLocaleDateString("en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -520,10 +682,22 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
             ) : selectedTab === 'photos' || selectedTab === 'pending' ? (
               <div>
                 {/* Album Filter Tabs */}
-                {event.albums.length > 0 && (
+                {event.albums.filter((album) => {
+                  // For public users, hide Hidden Images album and only show visible albums
+                  if (uiMode === 'GUEST_UI') {
+                    return album.name !== 'Hidden Images' && album.isVisible !== false
+                  }
+                  // For owners/members, show all albums including Hidden
+                  return true
+                }).length > 0 && (
                   <div className="mb-4">
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-sm font-medium text-muted-foreground">Filter by Album:</span>
+                      {event.albums.some((album) => album.isVisible === false) && uiMode === 'OWNER_UI' && (
+                        <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                          Some albums are hidden from guests
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Button
@@ -531,26 +705,63 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         size="sm"
                         onClick={() => setSelectedAlbum('all')}
                       >
-                        All Photos {!isGuestOwnContent && `(${selectedTab === 'pending' ? pendingUploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length : uploads.filter(u => u.fileType === 'image' || u.fileType === 'video').length})`}
+                        All Photos {!isGuestOwnContent && `(${selectedTab === 'pending' ? pendingPhotoCount : approvedPhotoCount})`}
                       </Button>
                       <Button
                         variant={selectedAlbum === 'unassigned' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setSelectedAlbum('unassigned')}
                       >
-                        General {!isGuestOwnContent && `(${selectedTab === 'pending' ? pendingUploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && !u.albumId).length : uploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && !u.albumId).length})`}
+                        General {!isGuestOwnContent && `(${selectedTab === 'pending'
+                          ? pendingUploads.filter(u => {
+                              const isPhotoOrVideo = u.fileType === 'image' || u.fileType === 'video'
+                              const isUnassigned = !u.albumId
+                              const isHiddenOptimistically = hiddenImages.has(u.id)
+                              return isPhotoOrVideo && isUnassigned && !isHiddenOptimistically
+                            }).length
+                          : uploads.filter(u => {
+                              const isPhotoOrVideo = u.fileType === 'image' || u.fileType === 'video'
+                              const isUnassigned = !u.albumId
+                              const isInHiddenAlbum = hiddenAlbum && u.albumId === hiddenAlbum.id
+                              const isHiddenOptimistically = hiddenImages.has(u.id)
+                              return isPhotoOrVideo && isUnassigned && !isInHiddenAlbum && !isHiddenOptimistically
+                            }).length
+                        })`}
                       </Button>
-                      {event.albums.map((album) => {
-                        const albumUploads = selectedTab === 'pending' 
+                      {event.albums.filter((album) => {
+                        // For public users, hide Hidden Images album and only show visible albums
+                        if (uiMode === 'GUEST_UI') {
+                          return album.name !== 'Hidden Images' && album.isVisible !== false
+                        }
+                        // For owners/members, show all albums including Hidden
+                        return true
+                      }).map((album) => {
+                        // Calculate album uploads with optimistic updates
+                        let albumUploads = selectedTab === 'pending'
                           ? pendingUploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && u.albumId === album.id)
                           : uploads.filter(u => (u.fileType === 'image' || u.fileType === 'video') && u.albumId === album.id)
+
+                        // For Hidden Images album, add optimistically hidden images
+                        if (album.name === 'Hidden Images') {
+                          const hiddenUploads = (selectedTab === 'pending' ? pendingUploads : uploads)
+                            .filter(u =>
+                              (u.fileType === 'image' || u.fileType === 'video') &&
+                              hiddenImages.has(u.id)
+                            )
+                          albumUploads = [...albumUploads, ...hiddenUploads]
+                        } else {
+                          // For other albums, remove optimistically hidden images
+                          albumUploads = albumUploads.filter(u => !hiddenImages.has(u.id))
+                        }
                         return (
                           <Button
                             key={album.id}
                             variant={selectedAlbum === album.id ? 'default' : 'outline'}
                             size="sm"
                             onClick={() => setSelectedAlbum(album.id)}
+                            className={album.name === 'Hidden Images' ? 'border-orange-300 text-orange-700' : ''}
                           >
+                            {album.name === 'Hidden Images' && <EyeOff className="h-3 w-3 mr-1" />}
                             {album.name} {!isGuestOwnContent && `(${albumUploads.length})`}
                           </Button>
                         )
@@ -572,170 +783,254 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                       />
                     </div>
                   </div>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-                  >
-                    {viewMode === 'grid' ? <List className="h-4 w-4" /> : <Grid3X3 className="h-4 w-4" />}
-                  </Button>
+
                 </div>
 
-                {/* Photo Masonry Grid */}
-                {viewMode === 'grid' ? (
-                  <Masonry
-                    breakpointCols={{
-                      default: 4,
-                      1280: 4,
-                      1024: 3,
-                      640: 2
-                    }}
-                    className="flex -ml-3 w-auto"
-                    columnClassName="pl-3 bg-clip-padding"
-                  >
-                    {displayUploads.map((upload) => (
-                      <div 
-                        key={upload.id} 
-                        className="relative cursor-pointer group overflow-hidden rounded-lg mb-3"
-                        onClick={() => openImageModal(upload)}
-                      >
-                        <CloudflareImage
-                          src={upload.fileUrl}
-                          alt={upload.fileName}
-                          width={600}
-                          height={800}
-                          className="w-full h-auto transition-transform duration-300 group-hover:scale-105 rounded-lg"
-                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-                          style={{ height: 'auto' }}
-                          loading="lazy"
-                        />
-                        
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
-                        
-                        {/* Video badge */}
-                        {upload.fileType === 'video' && (
-                          <div className="absolute top-2 right-2">
-                            <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-black/60 text-white border-none">
-                              <Play className="h-3 w-3" />
-                              Video
-                            </Badge>
-                          </div>
-                        )}
-
-                        {/* Approval buttons for pending tab */}
-                        {selectedTab === 'pending' && uiMode === 'OWNER_UI' && (() => {
-                          const action = optimisticActions.get(upload.id)
-                          const isProcessing = action === 'approving' || action === 'rejecting'
-                          
-                          return (
-                            <div className="absolute top-2 left-2 flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="h-8 w-8 p-0 bg-green-500 hover:bg-green-600 disabled:opacity-50"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleApprove(upload.id)
-                                }}
-                                disabled={isProcessing}
-                                title={action === 'approving' ? 'Approving...' : 'Approve'}
-                              >
-                                {action === 'approving' ? 
-                                  <Loader2 className="h-4 w-4 animate-spin" /> : 
-                                  <Check className="h-4 w-4" />
-                                }
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                className="h-8 w-8 p-0 disabled:opacity-50"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleReject(upload.id)
-                                }}
-                                disabled={isProcessing}
-                                title={action === 'rejecting' ? 'Rejecting...' : 'Reject'}
-                              >
-                                {action === 'rejecting' ? 
-                                  <Loader2 className="h-4 w-4 animate-spin" /> : 
-                                  <X className="h-4 w-4" />
-                                }
-                              </Button>
-                            </div>
-                          )
-                        })()}
-                        
-                        {/* Name overlay at bottom */}
-                        {upload.uploaderName && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
-                            <p className="text-white text-sm font-medium truncate">
-                              {upload.uploaderName}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </Masonry>
-                ) : (
-                  <div className="space-y-2">
-                    {displayUploads.map((upload) => (
-                      <Card key={upload.id}>
-                        <CardContent className="p-3">
-                          <div className="flex items-center gap-3">
-                            <div 
-                              className="relative w-12 h-12 flex-shrink-0 cursor-pointer group"
-                              onClick={() => openImageModal(upload)}
+                {/* Bulk Actions for Owners/Members */}
+                {(uiMode === 'OWNER_UI' || uiMode === 'AUTH_UI') && displayUploads.length > 0 && (
+                  <div className="flex items-center justify-between mb-4 p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      {!selectionMode ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectionMode(true)}
+                        >
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Select Images
+                        </Button>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={selectAllImages}
                             >
-                              <CloudflareImage
-                                src={upload.fileUrl}
-                                alt={upload.fileName}
-                                fill
-                                className="object-cover rounded transition-transform group-hover:scale-110"
-                                sizes="48px"
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded" />
-                              {upload.fileType === 'video' && (
-                                <Badge variant="secondary" className="absolute -top-1 -right-1 text-xs">
-                                  <Play className="h-3 w-3" />
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <User className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-sm font-medium truncate">
-                                  {upload.uploaderName || 'Anonymous'}
-                                </span>
-                              </div>
-                              {upload.caption && (
-                                <p className="text-sm text-muted-foreground truncate mt-1">
-                                  {upload.caption}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                                <Calendar className="h-3 w-3" />
-                                <span>{new Date(upload.createdAt).toLocaleDateString()}</span>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Button variant="ghost" size="sm">
-                                <Heart className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Download className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="sm">
-                                <Share2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                              Select All ({displayUploads.length})
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={clearSelection}
+                            >
+                              Cancel
+                            </Button>
                           </div>
-                        </CardContent>
-                      </Card>
-                    ))}
+
+                          {selectedImages.size > 0 && (
+                            <div className="flex items-center gap-2 ml-4">
+                              <span className="text-sm font-medium">
+                                {selectedImages.size} selected
+                              </span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleBulkHideImages}
+                              >
+                                <EyeOff className="h-4 w-4 mr-2" />
+                                Hide Images
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowAlbumModal(true)}
+                              >
+                                <FolderPlus className="h-4 w-4 mr-2" />
+                                Move to Album
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 )}
+
+                {/* Photo Masonry Grid */}
+                <Masonry
+                  breakpointCols={{
+                    default: 4,
+                    1280: 4,
+                    1024: 3,
+                    640: 2
+                  }}
+                  className="flex -ml-3 w-auto"
+                  columnClassName="pl-3 bg-clip-padding"
+                >
+                  {displayUploads.map((upload) => {
+                    const isSelected = selectedImages.has(upload.id)
+
+                    return (
+                    <div
+                      key={upload.id}
+                      className={`relative cursor-pointer group overflow-hidden rounded-lg mb-3 transition-all duration-200 ${
+                        isSelected ? 'ring-4 ring-primary ring-opacity-70' : ''
+                      }`}
+                      onClick={(e) => {
+                        if (selectionMode) {
+                          e.stopPropagation()
+                          toggleImageSelection(upload.id)
+                        } else {
+                          openImageModal(upload)
+                        }
+                      }}
+                    >
+                      <CloudflareImage
+                        src={upload.fileUrl}
+                        alt={upload.fileName}
+                        width={600}
+                        height={800}
+                        className="w-full h-auto transition-transform duration-300 group-hover:scale-105 rounded-lg"
+                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                        style={{ height: 'auto' }}
+                        loading="lazy"
+                      />
+
+                      {/* Hover overlay */}
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
+
+                      {/* Video badge */}
+                      {upload.fileType === 'video' && (
+                        <div className="absolute top-2 right-2">
+                          <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-black/60 text-white border-none">
+                            <Play className="h-3 w-3" />
+                            Video
+                          </Badge>
+                        </div>
+                      )}
+
+                      {/* Approval buttons for pending tab */}
+                      {selectedTab === 'pending' && uiMode === 'OWNER_UI' && (() => {
+                        const action = optimisticActions.get(upload.id)
+                        const isProcessing = action === 'approving' || action === 'rejecting'
+
+                        return (
+                          <div className="absolute top-2 left-2 flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              className="h-8 w-8 p-0 bg-green-500 hover:bg-green-600 disabled:opacity-50"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleApprove(upload.id)
+                              }}
+                              disabled={isProcessing}
+                              title={action === 'approving' ? 'Approving...' : 'Approve'}
+                            >
+                              {action === 'approving' ?
+                                <Loader2 className="h-4 w-4 animate-spin" /> :
+                                <Check className="h-4 w-4" />
+                              }
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              className="h-8 w-8 p-0 disabled:opacity-50"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleReject(upload.id)
+                              }}
+                              disabled={isProcessing}
+                              title={action === 'rejecting' ? 'Rejecting...' : 'Reject'}
+                            >
+                              {action === 'rejecting' ?
+                                <Loader2 className="h-4 w-4 animate-spin" /> :
+                                <X className="h-4 w-4" />
+                              }
+                            </Button>
+                          </div>
+                        )
+                      })()}
+
+                      {/* Selection and action buttons for owners/members */}
+                      {(uiMode === 'OWNER_UI' || uiMode === 'AUTH_UI') && selectedTab !== 'pending' && (
+                        <>
+                          {/* Selection checkbox */}
+                          {selectionMode && (
+                            <div className="absolute top-2 left-2">
+                              <Button
+                                size="sm"
+                                variant={isSelected ? "default" : "secondary"}
+                                className="h-8 w-8 p-0 bg-white/90 hover:bg-white text-black border-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  toggleImageSelection(upload.id)
+                                }}
+                              >
+                                {isSelected ?
+                                  <CheckSquare className="h-4 w-4" /> :
+                                  <Square className="h-4 w-4" />
+                                }
+                              </Button>
+                            </div>
+                          )}
+
+                          {/* Individual action buttons - only show when not in selection mode */}
+                          {!selectionMode && (
+                            <div className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-8 w-8 p-0 bg-white/90 hover:bg-white text-black border-0"
+                                onClick={async (e) => {
+                                  e.stopPropagation()
+
+                                  // Optimistically hide image immediately
+                                  setHiddenImages(prev => new Set(prev).add(upload.id))
+
+                                  toast.loading('Hiding image...')
+                                  const result = await hideImage(upload.id)
+
+                                  if (result.success) {
+                                    toast.dismiss()
+                                    toast.success(result.message || 'Image hidden successfully')
+                                  } else {
+                                    toast.dismiss()
+                                    toast.error(result.error || 'Failed to hide image')
+
+                                    // Revert optimistic update on error
+                                    setHiddenImages(prev => {
+                                      const newHidden = new Set(prev)
+                                      newHidden.delete(upload.id)
+                                      return newHidden
+                                    })
+                                  }
+                                }}
+                                title="Hide image"
+                              >
+                                <EyeOff className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="h-8 w-8 p-0 bg-white/90 hover:bg-white text-black border-0"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedImages(new Set([upload.id]))
+                                  setShowAlbumModal(true)
+                                }}
+                                title="Move to album"
+                              >
+                                <FolderPlus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      {/* Name overlay at bottom */}
+                      {upload.uploaderName && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
+                          <p className="text-white text-sm font-medium truncate">
+                            {upload.uploaderName}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    )
+                  })}
+                </Masonry>
 
                 {/* Pending Audio Messages */}
                 {selectedTab === 'pending' && displayAudioUploads.length > 0 && (
@@ -811,6 +1106,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
         upload={selectedUpload}
         isOpen={selectedUpload !== null}
         onClose={closeImageModal}
+        allowGuestDownloads={allowGuestDownloads}
       />
 
       {/* Message Dialog */}
@@ -821,6 +1117,69 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
         onClose={() => setIsMessageDialogOpen(false)}
         onMessageAdded={handleMessageAdded}
       />
+
+      {/* Album Selection Modal */}
+      <Dialog open={showAlbumModal} onOpenChange={setShowAlbumModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Move Images to Album</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Choose an album to move {selectedImages.size} selected image{selectedImages.size !== 1 ? 's' : ''} to:
+            </p>
+            <div className="space-y-2">
+              {/* General/Unassigned option */}
+              <Button
+                variant="outline"
+                className="w-full justify-start"
+                onClick={() => handleBulkMoveToAlbum('')}
+              >
+                <FolderPlus className="h-4 w-4 mr-2" />
+                General (No Album)
+              </Button>
+
+              {/* Available albums */}
+              {event.albums
+                .filter((album) => {
+                  // For owners/members, show all albums including Hidden
+                  // For guests, only show visible albums (though guests can't access this modal anyway)
+                  if (uiMode === 'OWNER_UI' || uiMode === 'AUTH_UI') {
+                    return true
+                  }
+                  return album.isVisible !== false
+                })
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map((album) => (
+                <Button
+                  key={album.id}
+                  variant="outline"
+                  className={`w-full justify-start ${
+                    album.name === 'Hidden Images' ? 'border-orange-300 text-orange-700' : ''
+                  }`}
+                  onClick={() => handleBulkMoveToAlbum(album.id)}
+                >
+                  {album.name === 'Hidden Images' ? (
+                    <EyeOff className="h-4 w-4 mr-2" />
+                  ) : (
+                    <FolderPlus className="h-4 w-4 mr-2" />
+                  )}
+                  {album.name}
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowAlbumModal(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

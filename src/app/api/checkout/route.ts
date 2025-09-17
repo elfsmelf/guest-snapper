@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { plan, currency, eventId } = await req.json();
+    const { plan, currency, eventId, context = 'dashboard' } = await req.json();
     
     console.log('Checkout request:', { plan, currency, eventId });
 
@@ -91,8 +91,10 @@ export async function POST(req: NextRequest) {
       sessionMetadata = {
         userId: session.user.id,
         eventId,
+        eventSlug: event.slug,
         plan,
         currency,
+        context,
         isUpgrade: 'true',
         fromPlan: currentPlan,
         upgradePrice: upgradePrice.toString()
@@ -112,8 +114,10 @@ export async function POST(req: NextRequest) {
       sessionMetadata = {
         userId: session.user.id,
         eventId,
+        eventSlug: event.slug,
         plan,
         currency,
+        context,
         isUpgrade: 'false'
       };
     }
@@ -127,8 +131,8 @@ export async function POST(req: NextRequest) {
       payment_method_types: ["card"],
       customer_email: session.user.email,
       line_items: lineItems,
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding?slug=${event.slug}&step=4&payment_success=true&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/onboarding?slug=${event.slug}&step=4&payment_cancelled=true`,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/events/${event.id}?payment_cancelled=true`,
       metadata: sessionMetadata,
       billing_address_collection: "auto",
     });

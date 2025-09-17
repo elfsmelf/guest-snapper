@@ -3,6 +3,7 @@
 import { Calendar, Eye, Users, Lock, Shield, ChevronRight, Globe, Clock, Loader2 } from "lucide-react"
 import { useState, useCallback } from "react"
 import { format, addMonths } from "date-fns"
+import { parseLocalDate, formatLocalDate } from "@/lib/date-utils"
 
 import { cn } from "@/lib/utils"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
@@ -34,6 +35,7 @@ interface Event {
   settings?: string
   coverImageUrl?: string | null
   name: string
+  privacySettings?: string
   // Payment fields
   plan?: string
   currency?: string
@@ -48,19 +50,53 @@ interface EventSettingsFormProps {
 }
 
 export function EventSettingsForm({ event, calculatedGuestCount }: EventSettingsFormProps) {
-  const [date, setDate] = useState<Date>(new Date(event.eventDate))
+  const [date, setDate] = useState<Date>(parseLocalDate(event.eventDate))
   const [activationDate, setActivationDate] = useState<Date | undefined>(
-    event.activationDate ? new Date(event.activationDate) : undefined
+    event.activationDate ? parseLocalDate(event.activationDate) : undefined
   )
   const [guestCanView, setGuestCanView] = useState(event.guestCanViewAlbum)
   const [autoApprove, setAutoApprove] = useState(event.approveUploads)
+
+  // Parse privacy settings to get guest downloads setting
+  const getPrivacySettings = () => {
+    try {
+      return event.privacySettings ? JSON.parse(event.privacySettings) : {}
+    } catch {
+      return {}
+    }
+  }
+
+  const [guestCanDownload, setGuestCanDownload] = useState<boolean>(() => {
+    const privacySettings = getPrivacySettings()
+    return privacySettings.allow_guest_downloads ?? false // Default to false
+  })
   const [guestCountDialogOpen, setGuestCountDialogOpen] = useState(false)
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false)
   const [publishError, setPublishError] = useState<{
     reason: string
     suggestedPlan: any
   } | null>(null)
-  const [currentGuestCount, setCurrentGuestCount] = useState(event.guestCount || calculatedGuestCount)
+  // Calculate guest count based on plan if database value seems outdated
+  const getGuestCountFromPlan = (plan: string) => {
+    switch (plan) {
+      case 'guest50': return 50
+      case 'guest100': return 100
+      case 'unlimited': return 999999
+      default: return 10 // free plan
+    }
+  }
+
+  // Use plan-based guest count if database value is inconsistent with plan
+  const planBasedGuestCount = getGuestCountFromPlan(event.plan || 'free')
+  const databaseGuestCount = event.guestCount || calculatedGuestCount
+
+  // If database shows old values (8 or inconsistent with plan), use plan-based count
+  const intelligentGuestCount = (databaseGuestCount === 8 ||
+    (event.plan !== 'free' && databaseGuestCount < planBasedGuestCount))
+    ? planBasedGuestCount
+    : databaseGuestCount
+
+  const [currentGuestCount, setCurrentGuestCount] = useState(intelligentGuestCount)
   const [isUpdating, setIsUpdating] = useState(false)
 
   const updateEventSettings = useCallback(async (updates: any) => {
@@ -97,7 +133,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
     if (newDate) {
       setDate(newDate)
       await updateEventSettings({
-        eventDate: newDate.toISOString(),
+        eventDate: formatLocalDate(newDate),
       })
     }
   }, [updateEventSettings])
@@ -105,7 +141,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
   const handleActivationDateChange = useCallback(async (newDate: Date | undefined) => {
     setActivationDate(newDate)
     await updateEventSettings({
-      activationDate: newDate ? newDate.toISOString() : null,
+      activationDate: newDate ? formatLocalDate(newDate) : null,
     })
   }, [updateEventSettings])
 
@@ -120,6 +156,21 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
     setAutoApprove(checked)
     await updateEventSettings({
       approveUploads: checked,
+    })
+  }, [updateEventSettings])
+
+  const handleGuestDownloadChange = useCallback(async (checked: boolean) => {
+    setGuestCanDownload(checked)
+
+    // Update privacy settings JSON
+    const currentPrivacySettings = getPrivacySettings()
+    const updatedPrivacySettings = {
+      ...currentPrivacySettings,
+      allow_guest_downloads: checked
+    }
+
+    await updateEventSettings({
+      privacySettings: JSON.stringify(updatedPrivacySettings),
     })
   }, [updateEventSettings])
 
@@ -224,7 +275,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
         <CardContent className="space-y-6">
           {/* Date of Event */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">Date of Event</label>
+            <label className="text-sm font-medium">Event Date</label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button
@@ -236,7 +287,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                   disabled={isUpdating}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
-                  {date ? format(date, "EEEE, MMMM do, yyyy") : "Pick a date"}
+                  {date ? format(date, "EEEE, MMMM do, yyyy") : "When did/will your event happen?"}
                   {isUpdating && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
                 </Button>
               </PopoverTrigger>
@@ -249,6 +300,9 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 />
               </PopoverContent>
             </Popover>
+            <p className="text-xs text-muted-foreground">
+              The actual date when your event took place (wedding, party, etc.)
+            </p>
           </div>
 
           {/* Guest Count */}
@@ -261,12 +315,12 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
               disabled={isUpdating}
             >
               <Users className="mr-2 h-4 w-4" />
-{currentGuestCount === 8 ? "FREE" : currentGuestCount >= 999999 ? "Unlimited" : currentGuestCount} guests
+{(event.plan === 'free' || currentGuestCount === 10) ? "FREE" : currentGuestCount >= 999999 ? "Unlimited" : currentGuestCount} guests
               <ChevronRight className="ml-auto h-4 w-4" />
               {isUpdating && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
             </Button>
             {/* Free Trial Notice */}
-            {currentGuestCount === 8 && (
+            {(event.plan === 'free' || currentGuestCount === 10) && (
               <div className="text-center text-sm text-muted-foreground bg-orange-50 border border-orange-200 rounded-lg p-3">
                 Change the amount of guests to make your gallery public
               </div>
@@ -308,9 +362,25 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 Manually review and approve photos before they appear in the gallery
               </div>
             </div>
-            <Switch 
+            <Switch
               checked={autoApprove}
               onCheckedChange={handleAutoApproveChange}
+              className="data-[state=checked]:bg-primary"
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Guest Downloads */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Allow guest downloads</div>
+              <div className="text-xs text-muted-foreground">
+                Allow guests to download photos and videos from the gallery
+              </div>
+            </div>
+            <Switch
+              checked={guestCanDownload}
+              onCheckedChange={handleGuestDownloadChange}
               className="data-[state=checked]:bg-primary"
               disabled={isUpdating}
             />
@@ -349,14 +419,21 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
           {event.publishedAt && (
             <div className="text-xs text-muted-foreground">
-              Published on {format(new Date(event.publishedAt), "MMMM d, yyyy 'at' h:mm a")}
+              Published on {new Date(event.publishedAt).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })}
             </div>
           )}
 
           {/* Activation Date */}
           <div className="space-y-2">
             <label className="text-sm font-medium">
-              Activation Date
+              Gallery Activation Date
               {event.isPublished && <span className="text-xs text-muted-foreground ml-1">(locked)</span>}
             </label>
             <Popover>
@@ -370,7 +447,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                   disabled={event.isPublished || isUpdating}
                 >
                   <Calendar className="mr-2 h-4 w-4" />
-                  {activationDate ? format(activationDate, "EEEE, MMMM do, yyyy") : "Set activation date"}
+                  {activationDate ? format(activationDate, "EEEE, MMMM do, yyyy") : "When should guests be able to access?"}
                   {isUpdating && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
                 </Button>
               </PopoverTrigger>
@@ -383,10 +460,17 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 />
               </PopoverContent>
             </Popover>
-            <p className="text-xs text-muted-foreground">
-              When your gallery becomes publicly accessible to guests
-              {event.isPublished && " (Cannot be changed after publishing)"}
-            </p>
+            <div className="space-y-1">
+              <p className="text-xs text-muted-foreground">
+                When your gallery becomes publicly accessible to guests. This can be different from your event date - for example, you might want to activate it the day after your wedding.
+                {event.isPublished && " (Cannot be changed after publishing)"}
+              </p>
+              {activationDate && !event.isPublished && (
+                <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded p-2">
+                  💡 <strong>Tip:</strong> You can set this for any date - before, during, or after your event date. Common choices are the day of the event or the day after.
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Publish Button */}
@@ -445,20 +529,24 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 <span className="text-sm font-medium">Gallery Windows</span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3 rounded-lg bg-secondary border border-border">
-                  <div className="text-sm font-medium text-secondary-foreground mb-1">Upload Window</div>
-                  <div className="text-xs text-secondary-foreground">
-                    {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">3 months duration</div>
-                </div>
-                <div className="p-3 rounded-lg bg-rose-50 border border-rose-200">
-                  <div className="text-sm font-medium text-rose-900 mb-1">Download Window</div>
-                  <div className="text-xs text-rose-700">
-                    {format(activationDate, "MMM d, yyyy")} - {getDownloadEndDate() ? format(getDownloadEndDate()!, "MMM d, yyyy") : "N/A"}
-                  </div>
-                  <div className="text-xs text-rose-600 mt-1">12 months duration</div>
-                </div>
+                <Card>
+                  <CardContent className="p-3">
+                    <div className="text-sm font-medium mb-1">Upload Window</div>
+                    <div className="text-xs text-muted-foreground">
+                      {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">3 months duration</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3">
+                    <div className="text-sm font-medium mb-1">Download Window</div>
+                    <div className="text-xs text-muted-foreground">
+                      {format(activationDate, "MMM d, yyyy")} - {getDownloadEndDate() ? format(getDownloadEndDate()!, "MMM d, yyyy") : "N/A"}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">12 months duration</div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           )}
@@ -468,6 +556,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
       {/* Guest Count Pricing Dialog */}
       <GuestCountPricingDialog
+        key={`${event.id}-${event.plan}`}
         isOpen={guestCountDialogOpen}
         onClose={() => setGuestCountDialogOpen(false)}
         eventId={event.id}

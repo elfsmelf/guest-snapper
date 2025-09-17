@@ -9,7 +9,7 @@ import {
   type CarouselApi 
 } from "@/components/ui/carousel"
 import { Button } from "@/components/ui/button"
-import { QRCodeGenerator } from "@/components/qr-code-generator"
+import { SimpleQRCode } from "@/components/simple-qr-code"
 import { 
   X, 
   Maximize, 
@@ -111,10 +111,12 @@ export function SlideshowView({ event, uploads, eventSlug, slideDuration = 5 }: 
   }
 
   const handleDownload = (upload: Upload) => {
+    // Use server-side download proxy to avoid CORS issues
+    const downloadUrl = `/api/download?url=${encodeURIComponent(upload.fileUrl)}&filename=${encodeURIComponent(upload.fileName)}`
+
     const a = document.createElement('a')
-    a.href = upload.fileUrl
+    a.href = downloadUrl
     a.download = upload.fileName
-    a.target = '_blank'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)
@@ -229,8 +231,8 @@ export function SlideshowView({ event, uploads, eventSlug, slideDuration = 5 }: 
       >
         <CarouselContent className="h-full">
           {mediaUploads.map((upload, index) => (
-            <CarouselItem key={upload.id} className="relative h-full">
-              <div className="relative h-full flex items-center justify-center p-4">
+            <CarouselItem key={upload.id} className="relative h-screen">
+              <div className="absolute inset-0 flex items-center justify-center">
                 {upload.fileType === 'video' ? (
                   <video
                     src={upload.fileUrl}
@@ -244,8 +246,7 @@ export function SlideshowView({ event, uploads, eventSlug, slideDuration = 5 }: 
                   <img
                     src={upload.fileUrl}
                     alt={upload.fileName}
-                    className="max-w-full max-h-full object-contain mx-auto"
-                    style={{ maxHeight: isFullscreen ? '90vh' : '80vh' }}
+                    className="max-w-full max-h-full object-contain"
                   />
                 )}
                 
@@ -305,12 +306,12 @@ export function SlideshowView({ event, uploads, eventSlug, slideDuration = 5 }: 
       </Carousel>
 
       {/* QR Code Overlay */}
-      <div className="absolute bottom-4 right-4 z-50">
+      <div className="fixed bottom-4 right-4 z-50">
         <div className="bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
           <div className="text-center mb-2">
             <p className="text-xs font-medium text-gray-800">Scan to add photos</p>
           </div>
-          <QRCodeGenerator value={galleryUrl} size={80} />
+          <SimpleQRCode value={galleryUrl} size={80} />
         </div>
       </div>
 

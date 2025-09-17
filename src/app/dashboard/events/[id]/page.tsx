@@ -40,7 +40,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CopyButton } from "@/components/copy-button"
-import { ViewAsPublicButton } from "@/components/view-as-public-button"
 import { EventSettingsForm } from "@/components/event-settings-form"
 import { PaymentSuccessHandler } from "@/components/payment-success-handler"
 import { QuickActionsClient } from "@/components/quick-actions-client"
@@ -48,6 +47,8 @@ import { GalleryThemeManager } from "@/components/gallery-theme-manager"
 import { CoverImageUpload } from "@/components/cover-image-upload"
 import { QRCodeGeneratorClient } from "@/components/qr-code-generator-client"
 import { updateEventTheme } from "@/app/actions/update-theme"
+import type { Currency } from "@/lib/pricing"
+import { formatEventTitle, getEventTypeInfo } from "@/lib/event-types"
 import dynamic from 'next/dynamic'
 
 // Dynamically import heavy client components
@@ -129,11 +130,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const { event } = result
 
     return {
-      title: `${event.coupleNames} - ${event.name} | Dashboard`,
-      description: `Manage your event gallery for ${event.name}. View uploads, manage settings, and share with guests.`,
+      title: `${formatEventTitle(event.coupleNames, event.eventType || 'wedding')} | Dashboard`,
+      description: `Manage your event gallery for ${formatEventTitle(event.coupleNames, event.eventType || 'wedding')}. View uploads, manage settings, and share with guests.`,
       openGraph: {
-        title: `${event.coupleNames} - ${event.name}`,
-        description: `Event dashboard for ${event.name}`,
+        title: formatEventTitle(event.coupleNames, event.eventType || 'wedding'),
+        description: `Event dashboard for ${formatEventTitle(event.coupleNames, event.eventType || 'wedding')}`,
         images: event.coverImageUrl ? [{
           url: event.coverImageUrl,
           width: 1200,
@@ -144,8 +145,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
       twitter: {
         card: 'summary_large_image',
-        title: `${event.coupleNames} - ${event.name}`,
-        description: `Event dashboard for ${event.name}`,
+        title: formatEventTitle(event.coupleNames, event.eventType || 'wedding'),
+        description: `Event dashboard for ${formatEventTitle(event.coupleNames, event.eventType || 'wedding')}`,
         images: event.coverImageUrl ? [event.coverImageUrl] : undefined,
       }
     }
@@ -213,23 +214,25 @@ export default async function EventDetailPage({ params }: PageProps) {
       </div>
 
       {/* Hero Section */}
-      <div className={`relative overflow-hidden rounded-xl h-64 md:h-80 lg:h-96 ${
-        !event.coverImageUrl 
-          ? "bg-gradient-to-br from-primary/90 via-primary to-primary/90 dark:from-primary/70 dark:via-primary/80 dark:to-primary/70" 
-          : ""
-      }`}>
+      <div className="relative overflow-hidden rounded-xl">
         {/* Cover Image Background */}
-        {event.coverImageUrl && (
-          <Image
-            src={event.coverImageUrl}
-            alt={`${event.coupleNames} - ${event.name}`}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-            placeholder="blur"
-            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R7XTvtd0535YH9jyJ6Oz/2Q=="
-          />
+        {event.coverImageUrl ? (
+          <div className="overflow-hidden" style={{ height: '600px' }}>
+            <Image
+              src={event.coverImageUrl}
+              alt={`${event.coupleNames} - ${event.name}`}
+              width={1200}
+              height={675}
+              priority
+              sizes="100vw"
+              className="w-full h-full object-cover object-center"
+              placeholder="blur"
+              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R7XTvtd0535YH9jyJ6Oz/2Q=="
+            />
+          </div>
+        ) : (
+          // Fallback gradient background when no cover image
+          <div style={{ height: '600px' }} className="bg-gradient-to-br from-primary/90 via-primary to-primary/90 dark:from-primary/70 dark:via-primary/80 dark:to-primary/70" />
         )}
         
         {/* Pattern overlay when no cover image */}
@@ -251,14 +254,18 @@ export default async function EventDetailPage({ params }: PageProps) {
         }`} />
         
         {/* Content */}
-        <div className="relative px-6 py-10 sm:px-8 sm:py-12 h-full flex flex-col justify-center">
+        <div className="absolute inset-0 px-6 py-10 sm:px-8 sm:py-12 flex flex-col justify-end">
           <div className="max-w-4xl">
             <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-white mb-2 sm:mb-4 drop-shadow-lg font-serif">
-              {event.coupleNames}
+              {formatEventTitle(event.coupleNames, event.eventType || 'wedding')}
             </h1>
             <div className="space-y-2 sm:space-y-3">
-              <p className="text-base sm:text-xl text-white/95 font-medium drop-shadow">
-                {event.name}
+              <p className="text-base sm:text-xl text-white/95 font-medium drop-shadow flex items-center gap-2">
+                {(() => {
+                  const EventIcon = getEventTypeInfo(event.eventType || 'wedding').icon
+                  return <EventIcon className="w-5 h-5 sm:w-6 sm:h-6" />
+                })()}
+                {getEventTypeInfo(event.eventType || 'wedding').label}
               </p>
               <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-6">
                 <p className="text-sm sm:text-lg text-white/90 flex items-center gap-2 drop-shadow">
@@ -289,14 +296,8 @@ export default async function EventDetailPage({ params }: PageProps) {
                   View Gallery
                 </Link>
               </Button>
-              <ViewAsPublicButton 
-                galleryUrl={galleryUrl}
-                variant="secondary"
-                size="default"
-                className="bg-white/10 text-white border-white/20 hover:bg-white/20 shadow-lg backdrop-blur-sm w-full sm:w-auto"
-              />
-              <CopyButton 
-                text={galleryUrl} 
+              <CopyButton
+                text={galleryUrl}
                 variant="secondary"
                 size="default"
                 className="bg-white/10 text-white border-white/20 hover:bg-white/20 shadow-lg backdrop-blur-sm w-full sm:w-auto"
@@ -350,7 +351,7 @@ export default async function EventDetailPage({ params }: PageProps) {
 
           {/* 4. Theme Manager */}
           <div className="order-4 lg:order-none" data-section="gallery-theme-manager">
-          <GalleryThemeManager 
+          <GalleryThemeManager
             eventId={event.id}
             currentThemeId={event.themeId || 'default'}
             eventData={{
@@ -365,23 +366,51 @@ export default async function EventDetailPage({ params }: PageProps) {
           />
           </div>
 
-          {/* 7. Stats */}
-          <div className="order-7 lg:order-none" data-section="event-stats">
+          {/* 5. Albums Management - Temporarily disabled for debugging */}
+          <div className="order-5 lg:order-none" data-section="albums-management">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <ImageIcon className="mr-2 h-5 w-5" />
+                  Photo Albums
+                </CardTitle>
+                <CardDescription>
+                  Organize your event photos into custom albums for better navigation.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AlbumsSection
+                  eventId={event.id}
+                  initialAlbums={eventAlbums}
+                  event={{
+                    id: event.id,
+                    plan: event.plan,
+                    currency: event.currency as Currency,
+                    guestCount: event.guestCount ?? undefined,
+                    isPublished: event.isPublished
+                  }}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 6. Stats */}
+          <div className="order-6 lg:order-none" data-section="event-stats">
           <Suspense fallback={<StatsSkeleton />}>
             <EventStatsGrid eventId={event.id} guestCount={event.guestCount || 0} />
           </Suspense>
           </div>
 
-          {/* 9. Collaborators */}
-          <div className="order-9 lg:order-none" data-section="collaborators-section">
+          {/* 7. Collaborators */}
+          <div className="order-7 lg:order-none" data-section="collaborators-section">
           <Suspense fallback={<CollaboratorsSkeleton />}>
             <CollaboratorsSection eventId={event.id} isOwner={isOwner} />
           </Suspense>
           </div>
 
-          {/* 10. Danger Zone - Only show to event owner */}
+          {/* 8. Danger Zone - Only show to event owner */}
           {isOwner && (
-            <div className="order-10 lg:order-none">
+            <div className="order-8 lg:order-none">
             <Card className="border-destructive/20">
               <CardHeader>
                 <CardTitle className="text-destructive">Danger Zone</CardTitle>
@@ -455,8 +484,8 @@ export default async function EventDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {/* 5. QR Code */}
-            <Card className="order-5 lg:order-none" data-section="qr-code-sharing">
+            {/* 9. QR Code */}
+            <Card className="order-9 lg:order-none" data-section="qr-code-sharing">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <QrCode className="mr-2 h-5 w-5" />
@@ -478,16 +507,16 @@ export default async function EventDetailPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                <QRCodeGeneratorClient 
+                <QRCodeGeneratorClient
                   value={galleryUrl}
                   eventId={event.id}
                 />
               </CardContent>
             </Card>
 
-            {/* 6. Slideshow */}
-            <div className="order-6 lg:order-none" data-section="slideshow-settings">
-              <SlideshowSettings 
+            {/* 10. Slideshow */}
+            <div className="order-10 lg:order-none" data-section="slideshow-settings">
+              <SlideshowSettings
                 eventId={event.id}
                 eventSlug={event.slug}
                 currentDuration={(event as any).slideDuration || 5}
@@ -495,8 +524,8 @@ export default async function EventDetailPage({ params }: PageProps) {
               />
             </div>
 
-            {/* 8. Download All Files */}
-            <Card className="order-8 lg:order-none">
+            {/* 11. Download All Files */}
+            <Card className="order-11 lg:order-none">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Download className="mr-2 h-5 w-5" />

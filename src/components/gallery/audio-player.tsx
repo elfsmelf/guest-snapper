@@ -32,10 +32,12 @@ interface AudioPlayerProps {
 
 export function AudioPlayer({ upload, onApprove, onReject, showApprovalButtons = false }: AudioPlayerProps) {
   const handleDownload = () => {
+    // Use server-side download proxy to avoid CORS issues
+    const downloadUrl = `/api/download?url=${encodeURIComponent(upload.fileUrl)}&filename=${encodeURIComponent(upload.fileName)}`
+
     const a = document.createElement('a')
-    a.href = upload.fileUrl
+    a.href = downloadUrl
     a.download = upload.fileName
-    a.target = '_blank'
     document.body.appendChild(a)
     a.click()
     document.body.removeChild(a)

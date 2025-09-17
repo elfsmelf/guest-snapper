@@ -13,18 +13,18 @@ interface GuestTrackingProviderProps {
  * Client component that initializes guest tracking for anonymous users
  * This runs after the initial static render to preserve cache performance
  */
-export function GuestTrackingProvider({ children, forcePublicView = false }: GuestTrackingProviderProps) {
+export function GuestTrackingProvider({ children, forcePublicView }: GuestTrackingProviderProps) {
   const { data: session, isPending } = authClient.useSession()
   const [guestIdReady, setGuestIdReady] = useState(false)
 
   useEffect(() => {
-    // Initialize guest tracking for anonymous users OR authenticated users using ?view=public
+    // Initialize guest tracking for anonymous users
     if (!isPending) {
-      if (!session?.user || forcePublicView) {
-        // Anonymous user OR owner testing public view - initialize guest ID
+      if (!session?.user) {
+        // Anonymous user - initialize guest ID
         initializeGuestId()
           .then((guestId) => {
-            console.log('Guest ID initialized:', guestId, forcePublicView ? '(force public view)' : '(anonymous)')
+            console.log('Guest ID initialized:', guestId)
             setGuestIdReady(true)
           })
           .catch((error) => {
@@ -33,11 +33,11 @@ export function GuestTrackingProvider({ children, forcePublicView = false }: Gue
             setGuestIdReady(true)
           })
       } else {
-        // Authenticated user in normal mode - no guest ID needed
+        // Authenticated user - no guest ID needed
         setGuestIdReady(true)
       }
     }
-  }, [session, isPending, forcePublicView])
+  }, [session, isPending])
 
   // Don't render children until guest tracking is ready
   // This ensures guest ID is set before any uploads can happen

@@ -82,3 +82,43 @@ export async function abortMultipart(key: string, uploadId: string) {
   });
   await r2Client.send(cmd);
 }
+
+// Marketing content utilities
+export function generateMarketingKey(category: string, fileName: string): string {
+  const timestamp = Date.now()
+  const randomString = Math.random().toString(36).substring(2, 15)
+  const fileExtension = fileName.split('.').pop()?.toLowerCase()
+
+  // Structure: marketing/{category}/{randomString}_{timestamp}.{extension}
+  return `marketing/${category}/${randomString}_${timestamp}.${fileExtension}`
+}
+
+export async function signMarketingUploadUrl(category: string, fileName: string, contentType: string, expires = 900) {
+  const key = generateMarketingKey(category, fileName)
+  const cmd = new PutObjectCommand({
+    Bucket: bucketName,
+    Key: key,
+    ContentType: contentType,
+  });
+  const url = await getSignedUrl(r2Client, cmd, { expiresIn: expires });
+  return { url, key };
+}
+
+export function getMarketingImageUrl(key: string): string {
+  return `${publicDomain}/${key}`
+}
+
+// Marketing categories for organization
+export const MARKETING_CATEGORIES = {
+  HEROES: 'heroes',           // Hero section images
+  FEATURES: 'features',       // Feature showcase images
+  TESTIMONIALS: 'testimonials', // Customer testimonial images
+  GALLERY: 'gallery',         // Sample gallery images
+  LOGOS: 'logos',            // Brand logos and partners
+  SOCIAL: 'social',          // Social media graphics
+  EMAIL: 'email',            // Email marketing images
+  ADS: 'ads',               // Advertisement banners
+  MISC: 'misc'              // Miscellaneous marketing assets
+} as const
+
+export type MarketingCategory = typeof MARKETING_CATEGORIES[keyof typeof MARKETING_CATEGORIES]

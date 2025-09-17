@@ -28,6 +28,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { parseOnboardingState } from "@/types/onboarding"
+import { formatEventTitle, getEventTypeInfo } from "@/lib/event-types"
 
 function SectionTitle({
   title,
@@ -248,7 +249,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                     <CardContent className="px-4 pt-3 pb-2">
                       <div className="space-y-2">
                         <div>
-                          <h3 className="font-semibold text-lg leading-tight">{event.coupleNames}</h3>
+                          <h3 className="font-semibold text-lg leading-tight flex items-center gap-2">
+                            {(() => {
+                              const EventIcon = getEventTypeInfo(event.eventType || 'wedding').icon
+                              return <EventIcon className="w-5 h-5" />
+                            })()}
+                            {formatEventTitle(event.coupleNames, event.eventType || 'wedding')}
+                          </h3>
                           <p className="text-sm text-muted-foreground">
                             {event.eventDate ? new Date(event.eventDate).toLocaleDateString('en-US', {
                               weekday: 'long',

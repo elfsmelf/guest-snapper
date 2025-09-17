@@ -8,6 +8,7 @@ export const events = pgTable("events", {
   userId: text('user_id').notNull(), // Removed foreign key constraint to avoid conflicts with Better Auth
   organizationId: text('organization_id').references(() => organizations.id, { onDelete: 'set null' }), // Link events to organizations
   name: text('name').notNull(),
+  eventType: text('event_type').default('wedding').notNull(), // 'wedding', 'party', 'corporate', 'memorial', 'vacation'
   coupleNames: text('couple_names').notNull(),
   eventDate: text('event_date').notNull(), // Using text to match database
   activationDate: text('activation_date'), // When the gallery becomes active/public
@@ -28,7 +29,7 @@ export const events = pgTable("events", {
   revealSetting: text('reveal_setting').default('immediately'),
   guestCount: integer('guest_count').default(0),
   // Payment-related fields
-  plan: text('plan').default('free').notNull(), // 'free', 'starter', 'small', 'medium', 'large', 'xlarge', 'unlimited'
+  plan: text('plan').default('free').notNull(), // 'free', 'guest50', 'guest100', 'unlimited'
   currency: text('currency').default('AUD').notNull(), // 'AUD', 'USD', 'GBP', 'EUR', 'CAD', 'NZD'
   paidAt: timestamp('paid_at', { mode: 'string' }),
   stripeSessionId: text('stripe_session_id'),
@@ -50,6 +51,7 @@ export const albums = pgTable("albums", {
   name: text('name').notNull(),
   description: text('description'),
   isDefault: boolean('is_default').default(false).notNull(),
+  isVisible: boolean('is_visible').default(true).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
   updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),

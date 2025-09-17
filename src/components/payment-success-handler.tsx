@@ -88,6 +88,7 @@ export function PaymentSuccessHandler({
   
   return (
     <GuestCountPricingDialog
+      key={`${eventId}-${currentPlan}`}
       isOpen={dialogOpen}
       onClose={handleDialogClose}
       eventId={eventId}

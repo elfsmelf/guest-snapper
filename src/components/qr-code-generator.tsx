@@ -1,9 +1,11 @@
 "use client"
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import QRCode from 'react-qr-code'
 import { Button } from '@/components/ui/button'
-import { Download, Printer, FileImage } from 'lucide-react'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Download, Printer, FileImage, Palette } from 'lucide-react'
 
 interface QRCodeGeneratorProps {
   value: string
@@ -14,6 +16,8 @@ interface QRCodeGeneratorProps {
 
 export function QRCodeGenerator({ value, size = 192, eventId, onDownload }: QRCodeGeneratorProps) {
   const qrRef = useRef<HTMLDivElement>(null)
+  const [qrColor, setQrColor] = useState('#000000')
+  const [isTransparent, setIsTransparent] = useState(false)
 
   const downloadSVG = () => {
     if (!qrRef.current) return
@@ -21,8 +25,19 @@ export function QRCodeGenerator({ value, size = 192, eventId, onDownload }: QRCo
     const svg = qrRef.current.querySelector('svg')
     if (!svg) return
 
+    // Clone SVG to avoid modifying the original
+    const svgClone = svg.cloneNode(true) as SVGElement
+
+    // Update fill color if it's not the default black
+    if (qrColor !== '#000000') {
+      const paths = svgClone.querySelectorAll('path[fill="#000000"], path[fill="black"]')
+      paths.forEach(path => {
+        path.setAttribute('fill', qrColor)
+      })
+    }
+
     // Serialize the SVG to string
-    const svgData = new XMLSerializer().serializeToString(svg)
+    const svgData = new XMLSerializer().serializeToString(svgClone)
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
     const svgUrl = URL.createObjectURL(svgBlob)
 
@@ -32,7 +47,7 @@ export function QRCodeGenerator({ value, size = 192, eventId, onDownload }: QRCo
     a.download = 'gallery-qr-code.svg'
     a.click()
     URL.revokeObjectURL(svgUrl)
-    
+
     // Track download for Quick Start Guide
     if (eventId && onDownload) {
       onDownload()
@@ -70,9 +85,11 @@ export function QRCodeGenerator({ value, size = 192, eventId, onDownload }: QRCo
       canvas.style.width = `${downloadSize + (padding * 2 / pixelRatio)}px`
       canvas.style.height = `${downloadSize + (padding * 2 / pixelRatio)}px`
 
-      // Fill white background (quiet zone)
-      ctx.fillStyle = 'white'
-      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      // Fill background (quiet zone) - only if not transparent
+      if (!isTransparent) {
+        ctx.fillStyle = 'white'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+      }
 
       // Draw QR code with padding
       ctx.drawImage(img, padding, padding, canvasSize, canvasSize)
@@ -130,7 +147,7 @@ export function QRCodeGenerator({ value, size = 192, eventId, onDownload }: QRCo
             svg {
               border: 1px solid #ddd;
               padding: 20px;
-              background: white;
+              background: ${isTransparent ? 'transparent' : 'white'};
             }
           </style>
         </head>
@@ -154,14 +171,64 @@ export function QRCodeGenerator({ value, size = 192, eventId, onDownload }: QRCo
 
   return (
     <div className="space-y-4">
+      {/* Customization Controls */}
+      <div className="space-y-4 p-4 bg-muted/50 rounded-lg border">
+        <div className="flex items-center gap-2">
+          <Palette className="w-4 h-4" />
+          <Label className="text-sm font-medium">Customize QR Code</Label>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Color Picker */}
+          <div className="space-y-2">
+            <Label htmlFor="qr-color" className="text-sm">QR Code Color</Label>
+            <div className="flex items-center gap-2">
+              <input
+                id="qr-color"
+                type="color"
+                value={qrColor}
+                onChange={(e) => setQrColor(e.target.value)}
+                className="w-12 h-8 rounded border border-gray-300 cursor-pointer"
+              />
+              <span className="text-sm text-muted-foreground">{qrColor}</span>
+            </div>
+          </div>
+
+          {/* Transparency Option */}
+          <div className="space-y-2">
+            <Label className="text-sm">Background</Label>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="transparent"
+                checked={isTransparent}
+                onCheckedChange={(checked) => setIsTransparent(checked as boolean)}
+              />
+              <Label htmlFor="transparent" className="text-sm">
+                Transparent background
+              </Label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* QR Code Preview */}
       <div className="flex justify-center">
-        <div 
+        <div
           ref={qrRef}
-          className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm"
+          className={`p-4 rounded-lg border border-gray-200 shadow-sm ${
+            isTransparent ? 'bg-transparent' : 'bg-white'
+          }`}
+          style={{
+            backgroundImage: isTransparent ?
+              'repeating-conic-gradient(#808080 0% 25%, transparent 0% 50%) 50% / 20px 20px' :
+              undefined
+          }}
         >
           <QRCode
             value={value}
             size={size}
+            fgColor={qrColor}
+            bgColor={isTransparent ? "transparent" : "white"}
             style={{ height: "auto", maxWidth: "100%", width: "100%" }}
           />
         </div>

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { QrCode, Loader2, CheckCircle, Smartphone, Camera, Share, Copy, ExternalLink } from "lucide-react"
+import { QrCode, Loader2, CheckCircle, Smartphone, Camera, Share, Copy, ExternalLink, Palette } from "lucide-react"
 import { toast } from "sonner"
 import { type OnboardingState } from "@/types/onboarding"
 import { updateOnboardingProgress } from "@/app/actions/onboarding"
@@ -180,6 +180,47 @@ export function QRCodeStep({
         </Card>
       </div>
 
+      {/* Canva Templates Section */}
+      <Card className="bg-gradient-to-r from-secondary/30 to-accent/30 border-secondary">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
+            {/* Content */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Palette className="w-5 h-5 text-primary" />
+                <h3 className="text-xl font-semibold text-foreground">Free Canva Templates</h3>
+              </div>
+
+              <p className="text-foreground/80 leading-relaxed">
+                We want you to get the most out of your digital gallery. That's why we've made these editable templates using the free version of Canva. Easily update with your unique QR code, personalise with your names and edit your message. Instructions are included in the link.
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                <strong>Note:</strong> you'll need to sign up for a free version of Canva to use these.
+              </p>
+
+              <Button
+                onClick={() => window.open('#', '_blank')} // Replace # with actual Canva template link
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View our templates
+              </Button>
+            </div>
+
+            {/* Hero Image */}
+            <div className="order-first lg:order-last">
+              <div className="relative rounded-lg overflow-hidden shadow-lg">
+                <img
+                  src="https://assets.guestsnapper.com/marketing/gallery/resources-hero-CFfCVpHQ-min.jpg"
+                  alt="Canva template examples for QR codes"
+                  className="w-full h-48 lg:h-56 object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {!hasDownloaded && (
         <div className="text-center">

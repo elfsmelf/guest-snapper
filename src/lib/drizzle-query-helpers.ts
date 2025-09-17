@@ -26,6 +26,8 @@ export const getEventBySlug = db
     coupleNames: events.coupleNames,
     eventDate: events.eventDate,
     activationDate: events.activationDate,
+    privacySettings: events.privacySettings,
+    eventType: events.eventType,
     status: events.status
   })
   .from(events)
@@ -51,6 +53,8 @@ export const getEventById = db
     coupleNames: events.coupleNames,
     eventDate: events.eventDate,
     activationDate: events.activationDate,
+    privacySettings: events.privacySettings,
+    eventType: events.eventType,
     status: events.status
   })
   .from(events)
@@ -125,7 +129,8 @@ export const getAlbumsByEventId = db
   .select({
     id: albums.id,
     name: albums.name,
-    sortOrder: albums.sortOrder
+    sortOrder: albums.sortOrder,
+    isVisible: albums.isVisible
   })
   .from(albums)
   .where(eq(albums.eventId, placeholder("eventId")))

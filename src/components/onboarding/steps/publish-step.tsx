@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Globe, Calendar as CalendarIcon, Clock, Loader2 } from "lucide-react"
 import { format, addMonths } from "date-fns"
+import { parseLocalDate, formatLocalDate } from "@/lib/date-utils"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 import { type OnboardingState } from "@/types/onboarding"
@@ -40,7 +41,7 @@ export function PublishStep({
   const { data: event } = useEventData(eventId)
 
   // Derive activation date directly from event data
-  const activationDate = event?.activationDate ? new Date(event.activationDate) : undefined
+  const activationDate = event?.activationDate ? parseLocalDate(event.activationDate) : undefined
 
   const handleActivationDateChange = async (date: Date | undefined) => {
     if (!date || event?.isPublished) return
@@ -51,7 +52,7 @@ export function PublishStep({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          activationDate: date.toISOString(),
+          activationDate: formatLocalDate(date),
         }),
       })
 
@@ -84,7 +85,7 @@ export function PublishStep({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           isPublished: true,
-          publishedAt: new Date().toISOString(),
+          publishedAt: new Date().toISOString(), // This is fine for timestamp
         }),
       })
 
@@ -125,7 +126,7 @@ export function PublishStep({
       <div className="space-y-2">
         <h3 className="text-lg font-semibold">Publish Your Gallery</h3>
         <p className="text-muted-foreground">
-          Set your event date and make your gallery live for guests to access.
+          Set when you want your gallery to go live for guests to access. This can be different from your event date.
         </p>
       </div>
 
@@ -133,7 +134,7 @@ export function PublishStep({
       <div className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">
-            Activation Date
+            Gallery Activation Date
             {event?.isPublished && <span className="text-xs text-muted-foreground ml-1">(locked)</span>}
           </label>
           <Popover>
@@ -147,7 +148,7 @@ export function PublishStep({
                 disabled={event?.isPublished || isUpdatingDate}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {activationDate ? format(activationDate, "EEEE, MMMM do, yyyy") : "Set activation date"}
+                {activationDate ? format(activationDate, "EEEE, MMMM do, yyyy") : "When should guests be able to access?"}
                 {isUpdatingDate && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
               </Button>
             </PopoverTrigger>
@@ -160,10 +161,12 @@ export function PublishStep({
               />
             </PopoverContent>
           </Popover>
-          <p className="text-xs text-muted-foreground">
-            When your gallery becomes publicly accessible to guests
-            {event?.isPublished && " (Cannot be changed after publishing)"}
-          </p>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">
+              When your gallery becomes publicly accessible to guests.
+              {event?.isPublished && " (Cannot be changed after publishing)"}
+            </p>
+          </div>
         </div>
 
         {/* Publish Button */}
@@ -192,7 +195,14 @@ export function PublishStep({
             <p className="text-sm text-green-700 dark:text-green-300">Your gallery is now publicly accessible to all guests.</p>
             {event?.publishedAt && (
               <div className="text-xs text-green-600 dark:text-green-400 mt-2">
-                Published on {format(new Date(event.publishedAt), "MMMM d, yyyy 'at' h:mm a")}
+                Published on {new Date(event.publishedAt).toLocaleString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })}
               </div>
             )}
           </div>
@@ -206,20 +216,24 @@ export function PublishStep({
               <span className="text-sm font-medium">Gallery Windows</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-3 rounded-lg bg-secondary border border-border">
-                <div className="text-sm font-medium text-secondary-foreground mb-1">Upload Window</div>
-                <div className="text-xs text-secondary-foreground">
-                  {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">3 months duration</div>
-              </div>
-              <div className="p-3 rounded-lg bg-rose-50 border border-rose-200">
-                <div className="text-sm font-medium text-rose-900 mb-1">Download Window</div>
-                <div className="text-xs text-rose-700">
-                  {format(activationDate, "MMM d, yyyy")} - {getDownloadEndDate() ? format(getDownloadEndDate()!, "MMM d, yyyy") : "N/A"}
-                </div>
-                <div className="text-xs text-rose-600 mt-1">12 months duration</div>
-              </div>
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-sm font-medium mb-1">Upload Window</div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">3 months duration</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="p-3">
+                  <div className="text-sm font-medium mb-1">Download Window</div>
+                  <div className="text-xs text-muted-foreground">
+                    {format(activationDate, "MMM d, yyyy")} - {getDownloadEndDate() ? format(getDownloadEndDate()!, "MMM d, yyyy") : "N/A"}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">12 months duration</div>
+                </CardContent>
+              </Card>
             </div>
           </div>
         )}

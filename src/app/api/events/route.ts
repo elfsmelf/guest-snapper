@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { slug, coupleNames, venue, date } = body
+    const { slug, coupleNames, venue, date, eventType } = body
 
     if (!slug || !coupleNames) {
       return NextResponse.json(
@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
       organizationId: null, // Will be set when organizations are implemented
       name: coupleNames, // Using couple names as the event name
+      eventType: eventType || 'wedding', // Default to wedding if not provided
       slug,
       coupleNames,
       venue: venue || null,

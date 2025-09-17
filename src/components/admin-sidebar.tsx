@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, Calendar, BarChart3, Settings, Shield } from "lucide-react"
+import { Users, Calendar, BarChart3, Settings, Shield, Image } from "lucide-react"
 
 import {
   Sidebar,
@@ -26,6 +26,11 @@ const adminMenuItems = [
     title: "Events",
     url: "/admin/events",
     icon: Calendar,
+  },
+  {
+    title: "Marketing",
+    url: "/admin/marketing",
+    icon: Image,
   },
   {
     title: "Analytics",

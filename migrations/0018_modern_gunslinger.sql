@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "event_type" text DEFAULT 'wedding' NOT NULL;

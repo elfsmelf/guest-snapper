@@ -10,17 +10,17 @@ const nextConfig = {
             '**/debug-*.js'
         ]
     },
-    // Speed up dev compilation with Turbopack optimizations
+    // Speed up dev compilation with optimizations
     experimental: {
-        // Use Turbopack for faster builds (automatically enabled in dev)
-        turbo: {
-            rules: {
-                // Let Turbopack handle optimizations automatically
-            }
-        },
-        turbotrace: {
-            logLevel: 'error'
-        },
+        // Temporarily disable Turbopack to fix build issues
+        // turbo: {
+        //     rules: {
+        //         // Let Turbopack handle optimizations automatically
+        //     }
+        // },
+        // turbotrace: {
+        //     logLevel: 'error'
+        // },
         // Optimize client bundles with tree shaking
         optimizePackageImports: [
             'lucide-react',

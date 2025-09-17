@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Shield, Eye, EyeOff, CheckCircle, Loader2, Users, Lock, Camera } from "lucide-react"
+import { Shield, Eye, EyeOff, CheckCircle, Loader2, Users, Lock, Camera, Download } from "lucide-react"
 import { toast } from "sonner"
 import { type OnboardingState } from "@/types/onboarding"
 import { updateOnboardingProgress } from "@/app/actions/onboarding"
@@ -30,17 +30,31 @@ export function PrivacyStep({
 }: PrivacyStepProps) {
   const [guestCanView, setGuestCanView] = useState<boolean | null>(null) // null until loaded
   const [approveUploads, setApproveUploads] = useState<boolean | null>(null) // null until loaded
+  const [allowGuestDownloads, setAllowGuestDownloads] = useState<boolean | null>(null) // null until loaded
   const [isUpdating, setIsUpdating] = useState(false)
   const isComplete = state.privacyConfigured
 
   // Use prefetched event data
   const { data: eventData, isLoading } = useEventData(eventId)
 
+  // Parse privacy settings from JSON
+  const getPrivacySettings = () => {
+    try {
+      return eventData?.privacySettings ? JSON.parse(eventData.privacySettings) : {}
+    } catch {
+      return {}
+    }
+  }
+
   // Sync with prefetched event data
   useEffect(() => {
     if (eventData) {
       setGuestCanView(eventData.guestCanViewAlbum ?? true)
       setApproveUploads(eventData.approveUploads ?? false)
+
+      // Parse privacy settings for guest downloads
+      const privacySettings = getPrivacySettings()
+      setAllowGuestDownloads(privacySettings.allow_guest_downloads ?? false)
     }
   }, [eventData])
 
@@ -88,7 +102,7 @@ export function PrivacyStep({
     const previousValue = approveUploads
     // Optimistic update - update UI immediately
     setApproveUploads(checked)
-    
+
     try {
       await updateEventSettings({
         approveUploads: checked,
@@ -96,6 +110,28 @@ export function PrivacyStep({
     } catch (error) {
       // Revert on error
       setApproveUploads(previousValue)
+    }
+  }
+
+  const handleAllowGuestDownloadsChange = async (checked: boolean) => {
+    const previousValue = allowGuestDownloads
+    // Optimistic update - update UI immediately
+    setAllowGuestDownloads(checked)
+
+    try {
+      // Update privacy settings JSON
+      const currentPrivacySettings = getPrivacySettings()
+      const updatedPrivacySettings = {
+        ...currentPrivacySettings,
+        allow_guest_downloads: checked
+      }
+
+      await updateEventSettings({
+        privacySettings: JSON.stringify(updatedPrivacySettings),
+      })
+    } catch (error) {
+      // Revert on error
+      setAllowGuestDownloads(previousValue)
     }
   }
 
@@ -192,9 +228,28 @@ export function PrivacyStep({
                   Manually review and approve photos before they appear in the gallery
                 </div>
               </div>
-              <Switch 
+              <Switch
                 checked={approveUploads === null ? false : approveUploads}
                 onCheckedChange={handleApproveUploadsChange}
+                className="data-[state=checked]:bg-primary"
+                disabled={isUpdating || isLoading}
+              />
+            </div>
+
+            {/* Allow Guest Downloads */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Download className="w-4 h-4 text-muted-foreground" />
+                  <div className="text-sm font-medium">Allow guest downloads</div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Let guests download photos and videos from the gallery
+                </div>
+              </div>
+              <Switch
+                checked={allowGuestDownloads === null ? false : allowGuestDownloads}
+                onCheckedChange={handleAllowGuestDownloadsChange}
                 className="data-[state=checked]:bg-primary"
                 disabled={isUpdating || isLoading}
               />
@@ -230,7 +285,8 @@ export function PrivacyStep({
         <ul className="text-sm text-muted-foreground space-y-1">
           <li>• <strong>Guest viewing:</strong> Enabled by default so anyone can enjoy your photos</li>
           <li>• <strong>Upload approval:</strong> Disabled for easier sharing - enable if you want to review first</li>
-          <li>• <strong>Default settings:</strong> Optimized for the best guest experience</li>
+          <li>• <strong>Guest downloads:</strong> Disabled by default - enable to let guests save photos to their devices</li>
+          <li>• <strong>Default settings:</strong> Optimized for the best guest experience while protecting your content</li>
           <li>• <strong>Change anytime:</strong> You can modify these settings later from your dashboard</li>
         </ul>
       </div>

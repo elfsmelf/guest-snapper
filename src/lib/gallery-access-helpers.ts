@@ -21,20 +21,18 @@ export async function determineGalleryAccess({
   eventData,
   isOwner,
   hasEventAccess,
-  forcePublicView,
   session,
   guestCookieId
 }: {
   eventData: any
   isOwner: boolean
   hasEventAccess: boolean
-  forcePublicView: boolean
   session: any
   guestCookieId: string | null
 }): Promise<GalleryAccessResult> {
-  
+
   // Determine UI Mode
-  const uiMode: UIMode = getUIMode(session, isOwner, hasEventAccess, forcePublicView)
+  const uiMode: UIMode = getUIMode(session, isOwner, hasEventAccess)
   
   // Determine Content Access
   if (eventData.guestCanViewAlbum === true) {
@@ -54,8 +52,8 @@ export async function determineGalleryAccess({
     }
   } else {
     // PRIVATE GALLERY
-    if (hasEventAccess && !forcePublicView) {
-      // Owner/member normal view - show ALL content (always fresh data for authenticated users)
+    if (hasEventAccess) {
+      // Owner/member view - show ALL content (always fresh data for authenticated users)
       const allContent = await getCachedGalleryData(eventData.id, true)
       
       return {
@@ -93,18 +91,14 @@ export async function determineGalleryAccess({
 /**
  * Determine which UI mode to use based on user state
  */
-function getUIMode(session: any, isOwner: boolean, hasEventAccess: boolean, forcePublicView: boolean): UIMode {
-  if (forcePublicView) {
-    return 'GUEST_UI' // Always guest UI when forcing public view
-  }
-  
+function getUIMode(session: any, isOwner: boolean, hasEventAccess: boolean): UIMode {
   if (isOwner) {
     return 'OWNER_UI' // Full owner features
   }
-  
+
   if (session?.user && hasEventAccess) {
-    return 'AUTH_UI' // Basic authenticated features  
+    return 'AUTH_UI' // Basic authenticated features
   }
-  
+
   return 'GUEST_UI' // Anonymous or no access
 }

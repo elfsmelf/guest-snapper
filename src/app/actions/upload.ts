@@ -1,8 +1,8 @@
 'use server'
 
 import { db } from '@/database/db'
-import { uploads, events, guests } from '@/database/schema'
-import { eq, count, countDistinct, and, isNotNull } from 'drizzle-orm'
+import { uploads, events, guests, albums } from '@/database/schema'
+import { eq, count, countDistinct, and, isNotNull, inArray } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { headers, cookies } from 'next/headers'
 import { canAcceptMoreGuests } from '@/lib/feature-gates'
@@ -29,14 +29,13 @@ export async function createUpload(uploadData: UploadData) {
     let guestId: string | null = null
     let anonId: string | null = null
 
-    // Handle guest tracking for anonymous users OR authenticated users with guest cookie (?view=public)
+    // Handle guest tracking for anonymous users
     guestId = cookieStore.get('guest_id')?.value || null
-    
+
     if (guestId) {
       console.log('🔍 Upload with guest ID:', guestId, 'authenticated:', !!session?.user?.id)
-      
+
       // PostgreSQL UPSERT using composite unique constraint (cookieId + eventId)
-      // This works for both anonymous users and authenticated users using ?view=public
       const guestResult = await db
         .insert(guests)
         .values({
@@ -304,6 +303,186 @@ export async function rejectUpload(uploadId: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Rejection failed'
+    }
+  }
+}
+
+async function getOrCreateHiddenAlbum(eventId: string) {
+  // First try to find existing Hidden album
+  const existingHiddenAlbum = await db
+    .select()
+    .from(albums)
+    .where(and(
+      eq(albums.eventId, eventId),
+      eq(albums.name, 'Hidden Images')
+    ))
+    .limit(1)
+
+  if (existingHiddenAlbum.length > 0) {
+    return existingHiddenAlbum[0]
+  }
+
+  // Create new Hidden album if it doesn't exist
+  const newHiddenAlbum = await db
+    .insert(albums)
+    .values({
+      eventId: eventId,
+      name: 'Hidden Images',
+      description: 'Images hidden from gallery visitors',
+      isDefault: false,
+      isVisible: false, // Only visible to owners/members
+      sortOrder: 999, // Show last in album lists
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    .returning()
+
+  return newHiddenAlbum[0]
+}
+
+export async function bulkMoveToAlbum(uploadIds: string[], albumId: string | null) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
+
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized')
+    }
+
+    if (uploadIds.length === 0) {
+      throw new Error('No uploads selected')
+    }
+
+    // Update all selected uploads using inArray
+    const updatedUploads = await db
+      .update(uploads)
+      .set({
+        albumId: albumId || null,
+        updatedAt: new Date()
+      })
+      .where(inArray(uploads.id, uploadIds))
+      .returning()
+
+    console.log(`Moved ${uploadIds.length} uploads to album:`, albumId)
+
+    return {
+      success: true,
+      count: updatedUploads.length,
+      albumId: albumId,
+      updatedUploads: updatedUploads
+    }
+
+  } catch (error) {
+    console.error('Bulk move to album failed:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Move failed'
+    }
+  }
+}
+
+export async function bulkHideImages(uploadIds: string[]) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
+
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized')
+    }
+
+    if (uploadIds.length === 0) {
+      throw new Error('No uploads selected')
+    }
+
+    // Get the event ID from the first upload to find/create Hidden album
+    const firstUpload = await db
+      .select({ eventId: uploads.eventId })
+      .from(uploads)
+      .where(eq(uploads.id, uploadIds[0]))
+      .limit(1)
+
+    if (!firstUpload.length) {
+      throw new Error('Upload not found')
+    }
+
+    // Get or create the Hidden album
+    const hiddenAlbum = await getOrCreateHiddenAlbum(firstUpload[0].eventId)
+
+    // Move all selected uploads to Hidden album
+    const updatedUploads = await db
+      .update(uploads)
+      .set({
+        albumId: hiddenAlbum.id,
+        updatedAt: new Date()
+      })
+      .where(inArray(uploads.id, uploadIds))
+      .returning()
+
+    console.log(`Moved ${uploadIds.length} uploads to Hidden album`)
+
+    return {
+      success: true,
+      count: updatedUploads.length,
+      message: `${updatedUploads.length} image(s) hidden successfully`
+    }
+
+  } catch (error) {
+    console.error('Bulk hide images failed:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Hide failed'
+    }
+  }
+}
+
+export async function hideImage(uploadId: string) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
+
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized')
+    }
+
+    // Get the upload to find the event ID
+    const upload = await db
+      .select({ eventId: uploads.eventId })
+      .from(uploads)
+      .where(eq(uploads.id, uploadId))
+      .limit(1)
+
+    if (!upload.length) {
+      throw new Error('Upload not found')
+    }
+
+    // Get or create the Hidden album
+    const hiddenAlbum = await getOrCreateHiddenAlbum(upload[0].eventId)
+
+    // Move upload to Hidden album
+    const updatedUpload = await db
+      .update(uploads)
+      .set({
+        albumId: hiddenAlbum.id,
+        updatedAt: new Date()
+      })
+      .where(eq(uploads.id, uploadId))
+      .returning()
+
+    console.log(`Moved upload ${uploadId} to Hidden album`)
+
+    return {
+      success: true,
+      message: 'Image hidden successfully'
+    }
+
+  } catch (error) {
+    console.error('Hide image failed:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Hide failed'
     }
   }
 }

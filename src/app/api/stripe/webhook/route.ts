@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
                 plan: 'free',
                 paidAt: null,
                 isPublished: false, // Free plan cannot be public
-                guestCount: 8, // Reset to free trial limit
+                guestCount: 10, // Reset to free plan limit
                 updatedAt: new Date().toISOString(),
               })
               .where(eq(events.id, relatedEvent.id));

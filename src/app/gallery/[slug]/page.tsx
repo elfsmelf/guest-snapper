@@ -16,7 +16,8 @@ import { parseOnboardingState } from "@/types/onboarding"
 import { ContinueSetupCard } from "@/components/onboarding/continue-setup-card"
 import { PrivateGalleryActions } from "@/components/gallery/private-gallery-actions"
 import { determineGalleryAccess } from "@/lib/gallery-access-helpers"
-import { GalleryViewPersistence } from "@/components/gallery/gallery-view-persistence"
+import { parseLocalDate } from "@/lib/date-utils"
+import { formatEventTitle, getEventTypeInfo } from "@/lib/event-types"
 
 interface GalleryPageProps {
   params: Promise<{ slug: string }>
@@ -30,15 +31,9 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   const { slug } = await params
   const search = await searchParams
   
-  // Check if we should simulate public view
-  const forcePublicView = search?.view === 'public'
-  
   // Get session directly for dynamic rendering
   const headersList = await headers()
-  let session = null
-  if (!forcePublicView) {
-    session = await auth.api.getSession({ headers: headersList })
-  }
+  const session = await auth.api.getSession({ headers: headersList })
 
   // Get event data
   const eventWithAlbums = await getCachedEventData(slug, false)
@@ -48,12 +43,10 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   }
 
   // Server-side access check for authenticated users only
-  // If forcePublicView is true, treat as if no session exists
   let hasEventAccess = false
   let isOwner = false
-  
-  if (session?.user && !forcePublicView) {
-    // Only check access for authenticated users
+
+  if (session?.user) {
     hasEventAccess = await canUserAccessEvent(eventWithAlbums.id, session.user.id)
     isOwner = eventWithAlbums.userId === session.user.id
   }
@@ -70,18 +63,17 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
     eventData: eventWithAlbums,
     isOwner,
     hasEventAccess,
-    forcePublicView,
     session,
     guestCookieId
   })
 
-  // Parse onboarding state for owner continuation card (skip if forcing public view)
-  const onboardingState = isOwner && !forcePublicView ? parseOnboardingState(eventWithAlbums.quickStartProgress) : null
+  // Parse onboarding state for owner continuation card
+  const onboardingState = isOwner ? parseOnboardingState(eventWithAlbums.quickStartProgress) : null
 
   // If gallery is not published and user doesn't have access, show draft message
   if (!eventWithAlbums.isPublished && !hasEventAccess) {
     return (
-      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug} forcePublicView={forcePublicView}>
+      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
         <div className="min-h-screen bg-background">
           <GalleryRefreshHandler />
           <div className="min-h-screen bg-pink-50/30">
@@ -101,8 +93,14 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
                 
                 {/* Event Header */}
                 <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">{eventWithAlbums.coupleNames}</h1>
-                  <p className="text-lg text-gray-600 mb-4">{eventWithAlbums.name}</p>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    {(() => {
+                      const EventIcon = getEventTypeInfo(eventWithAlbums.eventType || 'wedding').icon
+                      return <EventIcon className="w-8 h-8" />
+                    })()}
+                    {formatEventTitle(eventWithAlbums.coupleNames, eventWithAlbums.eventType || 'wedding')}
+                  </h1>
+                  <p className="text-lg text-gray-600 mb-4">{getEventTypeInfo(eventWithAlbums.eventType || 'wedding').label}</p>
                   <p className="text-gray-500">
                     {new Date(eventWithAlbums.eventDate).toLocaleDateString('en-US', {
                       weekday: 'long',
@@ -130,7 +128,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
                       <div className="p-3 rounded-lg bg-pink-50 border border-pink-200">
                         <p className="text-sm text-pink-800">
                           <strong>Expected to go live:</strong><br />
-                          {new Date(eventWithAlbums.activationDate).toLocaleDateString('en-US', {
+                          {parseLocalDate(eventWithAlbums.activationDate).toLocaleDateString('en-US', {
                             weekday: 'long',
                             year: 'numeric',
                             month: 'long',
@@ -158,7 +156,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
     // Show the private gallery message (no guest content)
     
     return (
-      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug} forcePublicView={forcePublicView}>
+      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
         <div className="min-h-screen relative overflow-hidden bg-background">
         <GalleryRefreshHandler />
         
@@ -384,7 +382,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   // If guest has own content, show their private gallery view
   if (accessResult.isGuestOwnContent) {
     return (
-      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug} forcePublicView={forcePublicView}>
+      <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
         <div className="min-h-screen bg-background">
           <GalleryRefreshHandler />
 
@@ -406,22 +404,10 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   
   // Show the gallery - user has access or it's public
   return (
-    <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug} forcePublicView={forcePublicView}>
+    <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
       <div className="min-h-screen bg-background">
         <GalleryRefreshHandler />
-        <GalleryViewPersistence />
         
-        {/* Show public view indicator when forcing public view */}
-        {forcePublicView && session?.user && (
-          <div className="bg-yellow-500/10 border-b border-yellow-500/20">
-            <div className="container mx-auto px-4 py-2">
-              <p className="text-sm text-yellow-700 dark:text-yellow-300 flex items-center justify-center gap-2">
-                <EyeOff className="h-4 w-4" />
-                <strong>Public Preview Mode:</strong> You're viewing this gallery as a public visitor would see it
-              </p>
-            </div>
-          </div>
-        )}
         
         {/* Show owner/member badge for authenticated users with access */}
         {hasEventAccess && (
@@ -446,7 +432,6 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
           hasEventAccess={hasEventAccess}
           showWelcomeOnLoad={false}
           onboardingStep={onboardingState?.currentStep || 3}
-          forcePublicView={forcePublicView}
           guestbookEntries={accessResult.content.guestbookEntries as any}
           isGuestOwnContent={accessResult.isGuestOwnContent}
           uiMode={accessResult.uiMode}

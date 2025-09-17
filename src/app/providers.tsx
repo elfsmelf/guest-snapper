@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 import { ThemeProvider } from "next-themes"
 import type { ReactNode } from "react"
 import { Toaster } from "@/components/ui/sonner"
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { authClient } from "@/lib/auth-client"
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -37,22 +38,28 @@ export function Providers({ children }: { children: ReactNode }) {
                 enableSystem
                 disableTransitionOnChange
             >
-                <AuthUIProvider
-                    authClient={authClient as any}
-                    navigate={router.push}
-                    replace={router.replace}
-                    Link={Link}
-                    emailOTP={true}
-                    credentials={false}
-                    signUp={true}
-                    social={{
-                        providers: ["google"]
-                    }}
-                >
-                    {children}
+                <TooltipProvider>
+                    <AuthUIProvider
+                        authClient={authClient as any}
+                        navigate={router.push}
+                        replace={router.replace}
+                        onSessionChange={() => router.refresh()}
+                        Link={Link}
+                        emailOTP={true}
+                        credentials={false}
+                        signUp={true}
+                        social={{
+                            providers: ["google"]
+                        }}
+                        settings={{
+                            url: "/settings" // Redirect to our custom settings page
+                        }}
+                    >
+                        {children}
 
-                    <Toaster position="top-right" />
-                </AuthUIProvider>
+                        <Toaster position="top-right" />
+                    </AuthUIProvider>
+                </TooltipProvider>
             </ThemeProvider>
         </QueryClientProvider>
     )

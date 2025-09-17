@@ -120,6 +120,20 @@
       "when": 1756202667456,
       "tag": "0016_long_arclight",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1757908714511,
+      "tag": "0017_small_microchip",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1757996552959,
+      "tag": "0018_modern_gunslinger",
+      "breakpoints": true
     }
   ]
 }

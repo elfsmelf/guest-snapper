@@ -3,19 +3,25 @@
 import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Eye, Lock } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Plus, Eye, EyeOff, Lock, Info } from 'lucide-react'
 import { CreateAlbumDialog } from './create-album-dialog'
 import { UpgradePrompt } from './upgrade-prompt'
 import { canCreateAlbum, type EventForFeatureGating } from '@/lib/feature-gates'
 import { getPlanFeatures } from '@/lib/pricing'
 import type { Currency } from '@/lib/pricing'
-import { useCreateAlbum, useAlbumsData } from '@/hooks/use-onboarding'
+import { useCreateAlbum, useAlbumsData, albumKeys } from '@/hooks/use-onboarding'
+import { useQueryClient } from '@tanstack/react-query'
+import { toggleAlbumVisibility } from '@/app/actions/album'
+import { toast } from 'sonner'
 
 interface Album {
   id: string
   name: string
   description?: string | null
   isDefault: boolean
+  isVisible: boolean
   sortOrder: number
   createdAt: string
   updatedAt: string
@@ -42,8 +48,10 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
     suggestedPlan: any
     currentLimit: number
   } | null>(null)
+  const [togglingAlbums, setTogglingAlbums] = useState<Set<string>>(new Set())
 
   // Use TanStack Query for albums data and creation
+  const queryClient = useQueryClient()
   const { data: albumsData } = useAlbumsData(eventId)
   const createAlbumMutation = useCreateAlbum(eventId, onAlbumsChange)
   
@@ -98,6 +106,34 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
     }
   }
 
+  const handleToggleVisibility = async (albumId: string) => {
+    // Prevent multiple toggles on the same album
+    if (togglingAlbums.has(albumId)) return
+
+    setTogglingAlbums(prev => new Set(prev).add(albumId))
+
+    try {
+      const result = await toggleAlbumVisibility(albumId)
+
+      if (result.success) {
+        toast.success(result.message)
+        // Invalidate albums query to trigger refetch and update UI
+        queryClient.invalidateQueries({ queryKey: albumKeys.list(eventId) })
+      } else {
+        toast.error(result.error || 'Failed to toggle album visibility')
+      }
+    } catch (error) {
+      console.error('Failed to toggle album visibility:', error)
+      toast.error('Failed to toggle album visibility')
+    } finally {
+      setTogglingAlbums(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(albumId)
+        return newSet
+      })
+    }
+  }
+
   // Get plan info for UI display
   const planFeatures = getPlanFeatures(event.plan || 'free')
   const albumUsage = {
@@ -106,10 +142,21 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
     unlimited: planFeatures.albumLimit === 999999
   }
 
+  const hasHiddenAlbums = albums.some((album: Album) => album.isVisible === false)
+
   return (
     <>
       {albums.length > 0 ? (
         <div className="space-y-4">
+          {/* Alert for hidden albums */}
+          {hasHiddenAlbums && (
+            <Alert className="bg-amber-50 border-amber-200">
+              <Info className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                Some albums are hidden from gallery visitors. Click the eye icon to toggle visibility.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">
@@ -133,33 +180,67 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {albums.map((album: Album) => (
-              <div
-                key={album.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-shadow"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium">{album.name}</h4>
-                    {album.isDefault && (
-                      <Badge variant="secondary" className="text-xs">
-                        Default
-                      </Badge>
+            {albums.map((album: Album) => {
+              const isToggling = togglingAlbums.has(album.id)
+              return (
+                <div
+                  key={album.id}
+                  className={`flex items-center justify-between p-4 border rounded-lg hover:shadow-sm transition-all ${
+                    !album.isVisible ? 'opacity-60 bg-muted/30' : ''
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className={`font-medium ${!album.isVisible ? 'line-through text-muted-foreground' : ''}`}>
+                        {album.name}
+                      </h4>
+                      {album.isDefault && (
+                        <Badge variant="secondary" className="text-xs">
+                          Default
+                        </Badge>
+                      )}
+                      {!album.isVisible && (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          Hidden
+                        </Badge>
+                      )}
+                    </div>
+                    {album.description && (
+                      <p className={`text-sm text-muted-foreground ${!album.isVisible ? 'line-through' : ''}`}>
+                        {album.description}
+                      </p>
                     )}
                   </div>
-                  {album.description && (
-                    <p className="text-sm text-muted-foreground">
-                      {album.description}
-                    </p>
-                  )}
+                  <div className="flex items-center gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleVisibility(album.id)}
+                          disabled={isToggling}
+                          className={`hover:bg-muted ${!album.isVisible ? 'text-muted-foreground' : ''}`}
+                        >
+                          {album.isVisible ? (
+                            <Eye className="h-4 w-4" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {album.isVisible
+                            ? 'Hide album from gallery visitors'
+                            : 'Show album to gallery visitors'
+                          }
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="sm">
-                    <Eye className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       ) : (
