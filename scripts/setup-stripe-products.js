@@ -22,22 +22,22 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // Plan configurations matching your pricing.ts
 const plans = [
   {
-    id: 'guest50',
-    name: '50 Guest Plan',
-    description: '50 guests, 3 albums, 5 themes, 3-month upload, video guestbook',
-    prices: { AUD: 5900, USD: 3900, GBP: 3100, EUR: 3600, CAD: 5300, NZD: 6300 }
+    id: 'bliss',
+    name: 'Bliss - Wedding Gallery',
+    description: 'Perfect for intimate weddings. Unlimited guests, 3-month upload window, default theme.',
+    prices: { USD: 4900, AUD: 7400, GBP: 3900, EUR: 4500, CAD: 6600, NZD: 7900 }
   },
   {
-    id: 'guest100',
-    name: '100 Guest Plan',
-    description: '100 guests, 6 albums, 10 themes, 12-month upload, premium features',
-    prices: { AUD: 8900, USD: 5900, GBP: 4700, EUR: 5400, CAD: 7900, NZD: 9500 }
+    id: 'radiance',
+    name: 'Radiance - Wedding Gallery',
+    description: 'Most popular choice. Unlimited guests, 12-month upload, 8 albums, 25 premium themes.',
+    prices: { USD: 7900, AUD: 11900, GBP: 6300, EUR: 7200, CAD: 10600, NZD: 12700 }
   },
   {
-    id: 'unlimited',
-    name: 'Unlimited Guest Plan',
-    description: 'Unlimited guests, 12 albums, all themes, enterprise features, dedicated support',
-    prices: { AUD: 13400, USD: 8900, GBP: 7100, EUR: 8100, CAD: 11900, NZD: 14300 }
+    id: 'eternal',
+    name: 'Eternal - Wedding Gallery',
+    description: 'Premium wedding experience. 12-month upload, 15 albums, all themes, custom branding.',
+    prices: { USD: 13900, AUD: 20900, GBP: 11100, EUR: 12700, CAD: 18600, NZD: 22400 }
   }
 ];
 

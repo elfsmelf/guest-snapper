@@ -135,7 +135,7 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
   }
 
   // Get plan info for UI display
-  const planFeatures = getPlanFeatures(event.plan || 'free')
+  const planFeatures = getPlanFeatures(event.plan || 'free_trial')
   const albumUsage = {
     current: albums.length,
     limit: planFeatures.albumLimit,
@@ -288,7 +288,7 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
             setAlbumLimitError(null)
           }}
           eventId={eventId}
-          currentPlan={event.plan || 'free'}
+          currentPlan={event.plan || 'free_trial'}
           eventCurrency={event.currency}
           reason={albumLimitError.reason}
           suggestedPlan={albumLimitError.suggestedPlan}

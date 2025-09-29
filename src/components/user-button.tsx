@@ -3,7 +3,7 @@
 import { User, LogOut } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { logoutAction } from "@/app/actions/logout"
+import { authClient } from "@/lib/auth-client"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -28,18 +28,24 @@ export function UserButton({ size = "icon", user }: UserButtonProps) {
 
   const handleSignOut = async () => {
     try {
-      // Call server action to properly invalidate caches
-      await logoutAction()
-      
-      // Force router refresh to get fresh server components
-      router.refresh()
-      
-      // Redirect to home page
-      router.push("/")
+      // Use Better Auth client signOut - this automatically updates useSession hooks
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            // Redirect to home page after successful signout
+            router.push("/")
+          },
+          onError: (ctx) => {
+            console.error('Sign out error:', ctx.error)
+            // Fallback redirect in case of error
+            router.push("/")
+          }
+        }
+      })
     } catch (error) {
       console.error('Sign out error:', error)
       // Fallback redirect in case of error
-      window.location.href = "/"
+      router.push("/")
     }
   }
 

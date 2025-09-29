@@ -17,11 +17,11 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { slug, coupleNames, venue, date, eventType } = body
+    const { slug, name, venue, date, eventType } = body
 
-    if (!slug || !coupleNames) {
+    if (!slug || !name) {
       return NextResponse.json(
-        { error: 'Slug and couple names are required' },
+        { error: 'Slug and event name are required' },
         { status: 400 }
       )
     }
@@ -32,14 +32,15 @@ export async function POST(request: NextRequest) {
     const [newEvent] = await db.insert(events).values({
       userId: session.user.id,
       organizationId: null, // Will be set when organizations are implemented
-      name: coupleNames, // Using couple names as the event name
+      name: name, // Using provided event name
       eventType: eventType || 'wedding', // Default to wedding if not provided
       slug,
-      coupleNames,
+      coupleNames: name, // Use name for backward compatibility
       venue: venue || null,
       eventDate: date ? new Date(date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0], // Required field, use current date if not provided
       uploadWindowEnd: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(), // 90 days from now
       downloadWindowEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+      plan: 'free_trial', // All new events start with free trial
     }).returning()
 
     // Note: Album creation removed for now - table may not exist in actual DB

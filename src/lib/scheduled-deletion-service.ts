@@ -53,9 +53,9 @@ export async function moveExpiredEventsToTrash(): Promise<DeletionResult> {
               eq(events.isPublished, true),
               lt(events.downloadWindowEnd, now.toISOString())
             ),
-            // Free events older than 1 year (regardless of published status)
+            // Free trial events older than 1 year (regardless of published status)
             and(
-              eq(events.plan, 'free'),
+              or(eq(events.plan, 'free'), eq(events.plan, 'free_trial')),
               lt(events.createdAt, oneYearAgo.toISOString())
             )
           )
@@ -73,7 +73,7 @@ export async function moveExpiredEventsToTrash(): Promise<DeletionResult> {
         
         // Determine the reason for trashing
         const downloadExpired = event.isPublished && new Date(event.downloadWindowEnd) < now
-        const freeEventOldEnough = event.plan === 'free' && new Date(event.createdAt) < oneYearAgo
+        const freeEventOldEnough = (event.plan === 'free' || event.plan === 'free_trial') && new Date(event.createdAt) < oneYearAgo
         
         let reason = 'unknown'
         let reasonDescription = ''

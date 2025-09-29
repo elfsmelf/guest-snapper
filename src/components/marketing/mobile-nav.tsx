@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Menu, X } from "lucide-react"
 import type { User } from "better-auth/types"
-import { logoutAction } from "@/app/actions/logout"
+import { authClient } from "@/lib/auth-client"
 
 interface MobileNavProps {
   user: User | null
@@ -20,18 +20,24 @@ export function MobileNav({ user }: MobileNavProps) {
   const handleSignOut = async () => {
     setOpen(false)
     try {
-      // Call server action to properly invalidate caches
-      await logoutAction()
-      
-      // Force router refresh to get fresh server components
-      router.refresh()
-      
-      // Redirect to home page
-      router.push("/")
+      // Use Better Auth client signOut - this automatically updates useSession hooks
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            // Redirect to home page after successful signout
+            router.push("/")
+          },
+          onError: (ctx) => {
+            console.error('Sign out error:', ctx.error)
+            // Fallback redirect in case of error
+            router.push("/")
+          }
+        }
+      })
     } catch (error) {
       console.error('Sign out error:', error)
       // Fallback redirect in case of error
-      window.location.href = "/"
+      router.push("/")
     }
   }
 

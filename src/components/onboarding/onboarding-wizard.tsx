@@ -49,7 +49,7 @@ import { TestImagesStep } from "./steps/test-images-step"
 import { CoverPhotoStep } from "./steps/cover-photo-step"
 import { PrivacyStep } from "./steps/privacy-step"
 import { ThemeStep } from "./steps/theme-step"
-import { GuestCountStep } from "./steps/guest-count-step"
+import { PricingStep } from "./steps/pricing-step"
 import { PublishStep } from "./steps/publish-step"
 import { AlbumsStep } from "./steps/albums-step"
 import { QRCodeStep } from "./steps/qr-code-step"
@@ -67,7 +67,7 @@ const STEPS = [
   { id: ONBOARDING_STEPS.TEST_IMAGES, title: "Upload Test Images", icon: Upload, required: true },
   { id: ONBOARDING_STEPS.COVER_PHOTO, title: "Add Cover Photo", icon: Camera, required: false },
   { id: ONBOARDING_STEPS.PRIVACY, title: "Configure Privacy", icon: Shield, required: true },
-  { id: ONBOARDING_STEPS.GUEST_COUNT, title: "Set Guest Count", icon: Users, required: true },
+  { id: ONBOARDING_STEPS.GUEST_COUNT, title: "Choose Plan", icon: Users, required: true },
   { id: ONBOARDING_STEPS.PUBLISH, title: "Publish Gallery", icon: Globe, required: true },
   { id: ONBOARDING_STEPS.ALBUMS, title: "Create Albums", icon: FolderPlus, required: false },
   { id: ONBOARDING_STEPS.QR_CODE, title: "Download QR Code", icon: QrCode, required: false },
@@ -240,11 +240,11 @@ export function OnboardingWizard({
 
     switch (currentStep) {
       case 1: return <TestImagesStep {...props} />
-      case 2: 
+      case 2:
         console.log('🧙‍♂️ Rendering CoverPhotoStep with state:', onboardingData)
         return <CoverPhotoStep {...props} />
       case 3: return <PrivacyStep {...props} />
-      case 4: return <GuestCountStep {...props} />
+      case 4: return <PricingStep {...props} />
       case 5: return <PublishStep {...props} />
       case 6: return <AlbumsStep {...props} />
       case 7: return <QRCodeStep {...props} />
@@ -270,7 +270,7 @@ export function OnboardingWizard({
       case ONBOARDING_STEPS.PRIVACY:
         return onboardingData.privacyConfigured
       case ONBOARDING_STEPS.GUEST_COUNT:
-        return onboardingData.guestCountSet || onboardingData.paymentCompleted
+        return onboardingData.guestCountSet || onboardingData.paymentCompleted || ('paymentPlan' in onboardingData && onboardingData.paymentPlan)
       case ONBOARDING_STEPS.PUBLISH:
         return onboardingData.eventPublished || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PUBLISH))
       case ONBOARDING_STEPS.ALBUMS:
@@ -304,7 +304,7 @@ export function OnboardingWizard({
       case ONBOARDING_STEPS.PRIVACY:
         return onboardingData.privacyConfigured
       case ONBOARDING_STEPS.GUEST_COUNT:
-        return onboardingData.guestCountSet || onboardingData.paymentCompleted
+        return onboardingData.guestCountSet || onboardingData.paymentCompleted || ('paymentPlan' in onboardingData && onboardingData.paymentPlan)
       case ONBOARDING_STEPS.PUBLISH:
         return onboardingData.eventPublished || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PUBLISH))
       case ONBOARDING_STEPS.ALBUMS:
@@ -412,8 +412,8 @@ export function OnboardingWizard({
           </Button>
 
           <div className="flex gap-2">
-            {/* Skip button - show for optional steps OR required steps that haven't been completed */}
-            {(!currentStepData?.required || !isCurrentStepActionComplete()) && !isLastStep && (
+            {/* Skip button - show for optional steps OR required steps that haven't been completed, but hide for pricing step */}
+            {(!currentStepData?.required || !isCurrentStepActionComplete()) && !isLastStep && currentStep !== 4 && (
               <Button
                 variant={currentStepData?.required && !isCurrentStepActionComplete() ? "outline" : "ghost"}
                 onClick={handleSkipStep}

@@ -44,6 +44,13 @@ export async function PATCH(
       privacySettings,
       settings: additionalSettings = {}
     } = body
+
+    // Check if trying to publish with free trial
+    if (isPublished === true && (event.plan === 'free_trial' || event.plan === 'free' || !event.plan)) {
+      return Response.json({
+        error: "A paid plan is required to publish your gallery"
+      }, { status: 400 })
+    }
     
     if (process.env.NODE_ENV === 'development') {
       console.log(`📝 Settings update request for event ${id}:`, {

@@ -200,7 +200,7 @@ export function QRCodeStep({
               </p>
 
               <Button
-                onClick={() => window.open('#', '_blank')} // Replace # with actual Canva template link
+                onClick={() => window.open('/canva-templates', '_blank')}
               >
                 <ExternalLink className="w-4 h-4 mr-2" />
                 View our templates
@@ -209,11 +209,11 @@ export function QRCodeStep({
 
             {/* Hero Image */}
             <div className="order-first lg:order-last">
-              <div className="relative rounded-lg overflow-hidden shadow-lg">
+              <div className="relative rounded-lg overflow-hidden shadow-lg aspect-square">
                 <img
-                  src="https://assets.guestsnapper.com/marketing/gallery/resources-hero-CFfCVpHQ-min.jpg"
+                  src="https://assets.guestsnapper.com/marketing/gallery/welcome%20sign.jpg"
                   alt="Canva template examples for QR codes"
-                  className="w-full h-48 lg:h-56 object-cover"
+                  className="w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
               </div>

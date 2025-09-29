@@ -36,9 +36,9 @@ const currencies = [
 const guestCounts = [10, 50, 100, 999999] // 999999 represents unlimited
 const guestCountToPlans: Record<number, { plan: Plan | 'free'; name: string }> = {
   10: { plan: 'free', name: 'Free Plan' },
-  50: { plan: 'guest50', name: '50 Guest Plan' },
-  100: { plan: 'guest100', name: '100 Guest Plan' },
-  999999: { plan: 'unlimited', name: 'Unlimited Guest Plan' }
+  50: { plan: 'bliss', name: 'Bliss Plan' },
+  100: { plan: 'radiance', name: 'Radiance Plan' },
+  999999: { plan: 'eternal', name: 'Eternal Plan' }
 }
 
 // Features for each guest count

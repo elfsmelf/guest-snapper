@@ -4,10 +4,12 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
+import Image from "next/image"
 
 import { Button } from "./ui/button"
 import { UserButton } from "./user-button"
 import { ModeToggle } from "./mode-toggle"
+import { Skeleton } from "./ui/skeleton"
 
 interface HeaderProps {
     galleryTheme?: string
@@ -32,11 +34,11 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
     // Determine header classes based on gallery theme
     const getHeaderClasses = () => {
         if (!isGalleryPage || !galleryTheme) {
-            return "sticky top-0 z-50 flex h-12 justify-between border-b bg-background px-4 md:h-14 md:px-6"
+            return "sticky top-0 z-50 border-b bg-white"
         }
-        
+
         // Use gallery theme variables - these will be available from the gallery-app container
-        return `sticky top-0 z-50 flex h-12 justify-between border-b border-border bg-card px-4 md:h-14 md:px-6`
+        return `sticky top-0 z-50 border-b border-border bg-card`
     }
 
     const getTextClasses = () => {
@@ -48,14 +50,21 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
 
     return (
         <header className={getHeaderClasses()}>
-            <Link href="/" className="flex items-center" prefetch={false}>
-                <span className={getTextClasses()}>Guest Snapper</span>
-            </Link>
+            <div className="container mx-auto flex h-16 justify-between items-center px-6 md:h-18">
+                <Link href="/" className="flex items-center" prefetch={false}>
+                    <Image
+                        src="https://assets.guestsnapper.com/marketing/logos/Guest%20Snapper%20v6%20logo.png"
+                        alt="Guest Snapper"
+                        width={156}
+                        height={42}
+                        className="h-10 w-auto"
+                    />
+                </Link>
 
-            <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
                 <ModeToggle />
                 {(isUploadPage || isVoicePage) && gallerySlug ? (
-                    <Button asChild variant="outline" size="sm">
+                    <Button asChild variant="outline">
                         <Link href={`/gallery/${gallerySlug}`} prefetch={false}>
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Back to Gallery
@@ -64,15 +73,15 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
                 ) : !isPending && session?.user ? (
                     <>
                         {isOnboardingPage && eventSlug ? (
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild variant="outline">
                                 <Link href={`/gallery/${eventSlug}`} prefetch={false}>View Gallery</Link>
                             </Button>
                         ) : showOnboardingSetup && eventSlug ? (
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild variant="outline">
                                 <Link href={`/onboarding?slug=${eventSlug}&step=${onboardingStep}`} prefetch={false}>Continue Setup</Link>
                             </Button>
                         ) : (
-                            <Button asChild variant="outline" size="sm">
+                            <Button asChild variant="outline">
                                 <Link href="/dashboard" prefetch={false}>Dashboard</Link>
                             </Button>
                         )}
@@ -80,18 +89,22 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
                     </>
                 ) : !isPending ? (
                     <>
-                        <Button asChild variant="outline" size="sm">
+                        <Button asChild variant="outline">
                             <Link href="/auth/sign-in" prefetch={false}>Login</Link>
                         </Button>
-                        <Button asChild size="sm">
+                        <Button asChild>
                             <Link href="/auth/sign-up" prefetch={false}>Create Account</Link>
                         </Button>
                     </>
                 ) : (
-                    // Loading state - show nothing to prevent flash
-                    <div className="w-32 h-8" />
+                    // Loading state - show skeleton buttons
+                    <div className="flex items-center gap-2">
+                        <Skeleton className="h-8 w-16" />
+                        <Skeleton className="h-8 w-28" />
+                    </div>
                 )}
-                
+
+                </div>
             </div>
         </header>
     )

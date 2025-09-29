@@ -141,19 +141,19 @@ export async function POST(req: NextRequest) {
             .then(results => results[0]);
 
           if (relatedEvent) {
-            // Revert to free plan on refund
+            // Revert to free trial on refund
             await db
               .update(events)
               .set({
-                plan: 'free',
+                plan: 'free_trial',
                 paidAt: null,
-                isPublished: false, // Free plan cannot be public
-                guestCount: 10, // Reset to free plan limit
+                isPublished: false, // Free trial cannot be public
+                guestCount: 999999, // Reset to unlimited guests
                 updatedAt: new Date().toISOString(),
               })
               .where(eq(events.id, relatedEvent.id));
 
-            console.log(`⬇️ Reverted event ${relatedEvent.id} to free plan due to refund`);
+            console.log(`⬇️ Reverted event ${relatedEvent.id} to free trial due to refund`);
           }
         }
         break;

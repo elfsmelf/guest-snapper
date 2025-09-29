@@ -17,7 +17,7 @@ const config: Config = {
         serif: ["var(--font-serif)", "ui-serif", "Georgia", "serif"],
         // Direct access to specific fonts for non-gallery use
         lora: ["var(--font-lora)", "Georgia", "serif"],
-        playfair: ["var(--font-playfair)", "Georgia", "serif"],
+        playfair: ["var(--font-playfair-display)", "Georgia", "serif"],
       },
       colors: {
         background: "hsl(var(--background))",

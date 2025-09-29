@@ -30,8 +30,8 @@ export default async function AuthPage({
         if (!sessionData) redirect("/auth/sign-in?redirectTo=/auth/settings")
     }
 
-    // Get redirectTo from search params
-    const redirectTo = searchParamsData.redirectTo as string | undefined
+    // Get redirectTo from search params, default to /dashboard
+    const redirectTo = (searchParamsData.redirectTo as string) || "/dashboard"
 
     // Keep original pathnames - no redirects
 

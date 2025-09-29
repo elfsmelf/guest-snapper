@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { headers } from "next/headers"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -32,9 +33,15 @@ export async function Navbar() {
         <Link
           href="/"
           className="flex items-center gap-2"
-          aria-label="Home - QR Code App"
+          aria-label="Home - Guest Snapper"
         >
-          <span className="text-xl font-bold">QR Code App</span>
+          <Image
+            src="https://assets.guestsnapper.com/marketing/logos/Guest%20Snapper%20v6%20logo.png"
+            alt="Guest Snapper"
+            width={120}
+            height={32}
+            className="h-8 w-auto"
+          />
         </Link>
 
         {/* Desktop nav */}

@@ -2,28 +2,28 @@
 // Do not edit manually - run the script again to regenerate
 
 export const stripePriceIds = {
-  guest50: {
-    AUD: "price_1S8DO7RZSAuj4M4XHpLODLLY",
-    USD: "price_1S8DO7RZSAuj4M4XJCnSik3y",
-    GBP: "price_1S8DO8RZSAuj4M4XosNhN359",
-    EUR: "price_1S8DO8RZSAuj4M4XJzRFp313",
-    CAD: "price_1S8DO8RZSAuj4M4XRVy9CxBM",
-    NZD: "price_1S8DO9RZSAuj4M4X9GpWCLgY",
+  bliss: {
+    AUD: "price_1SBS2kRZSAuj4M4XmP6ll82u",
+    USD: "price_1SBS2kRZSAuj4M4XBSW47Ceu",
+    GBP: "price_1SBS2kRZSAuj4M4XoxF5y45V",
+    EUR: "price_1SBS2lRZSAuj4M4XlbHVWITK",
+    CAD: "price_1SBS2lRZSAuj4M4Xe7R1VUqV",
+    NZD: "price_1SBS2lRZSAuj4M4XxyxpNMvg",
   },
-  guest100: {
-    AUD: "price_1S8DO9RZSAuj4M4XRG01eB7R",
-    USD: "price_1S8DOARZSAuj4M4XJXcylrjO",
-    GBP: "price_1S8DOARZSAuj4M4XRk6DER5x",
-    EUR: "price_1S8DOARZSAuj4M4XOsmU7ArL",
-    CAD: "price_1S8DOBRZSAuj4M4XtIVBMdjN",
-    NZD: "price_1S8DOBRZSAuj4M4X7mSnOgdw",
+  radiance: {
+    AUD: "price_1SBS2mRZSAuj4M4XAYJbHkfg",
+    USD: "price_1SBS2mRZSAuj4M4XjRlzRaIX",
+    GBP: "price_1SBS2mRZSAuj4M4XH6TJaims",
+    EUR: "price_1SBS2nRZSAuj4M4XwGUDrRq4",
+    CAD: "price_1SBS2nRZSAuj4M4XvBen4Y4t",
+    NZD: "price_1SBS2nRZSAuj4M4XdS3EXJjP",
   },
-  unlimited: {
-    AUD: "price_1S8DOCRZSAuj4M4XeqtwdFDr",
-    USD: "price_1S8DOCRZSAuj4M4X1W1XW1wu",
-    GBP: "price_1S8DOCRZSAuj4M4XFZIdkZbX",
-    EUR: "price_1S8DODRZSAuj4M4X7AcfeQtS",
-    CAD: "price_1S8DODRZSAuj4M4XKMSjAnwc",
-    NZD: "price_1S8DODRZSAuj4M4XqpBo3Jy8",
+  eternal: {
+    AUD: "price_1SBS2oRZSAuj4M4XaiCwc9EM",
+    USD: "price_1SBS2oRZSAuj4M4XsoMTPO14",
+    GBP: "price_1SBS2pRZSAuj4M4X4pYi20yF",
+    EUR: "price_1SBS2pRZSAuj4M4Xu1bNnFUY",
+    CAD: "price_1SBS2pRZSAuj4M4XoBb5ijt8",
+    NZD: "price_1SBS2pRZSAuj4M4XW0FQlkHW",
   },
 } as const;

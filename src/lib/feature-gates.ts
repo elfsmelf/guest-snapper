@@ -24,7 +24,7 @@ export interface FeatureGateResult {
  * Check if user can create a new album for an event
  */
 export function canCreateAlbum(event: EventForFeatureGating, currentAlbumCount: number): FeatureGateResult {
-  const plan = event.plan || 'free'
+  const plan = event.plan || 'free_trial'
   const features = getPlanFeatures(plan)
   
   if (currentAlbumCount >= features.albumLimit) {
@@ -49,14 +49,14 @@ export function canCreateAlbum(event: EventForFeatureGating, currentAlbumCount: 
  * Check if event can be published
  */
 export function canPublishEvent(event: EventForFeatureGating): FeatureGateResult {
-  const plan = event.plan || 'free'
+  const plan = event.plan || 'free_trial'
   const features = getPlanFeatures(plan)
   
   if (!features.publicAccess) {
     return {
       allowed: false,
       reason: 'Free galleries cannot be made public. Upgrade to publish your gallery.',
-      suggestedPlan: 'guest50',
+      suggestedPlan: 'bliss',
       upgradeRequired: true
     }
   }
@@ -69,37 +69,30 @@ export function canPublishEvent(event: EventForFeatureGating): FeatureGateResult
 
 /**
  * Check if more guests can upload to event
+ * Note: All paid plans now have unlimited guests, so this mainly handles free trial limits
  */
 export function canAcceptMoreGuests(event: EventForFeatureGating, currentGuestCount: number): FeatureGateResult {
-  const plan = event.plan || 'free'
+  const plan = event.plan || 'free_trial'
   const features = getPlanFeatures(plan)
-  
-  if (currentGuestCount >= features.guestLimit) {
-    const suggestedPlan = getSuggestedPlanForGuests(currentGuestCount + 10) // Add buffer
-    
-    return {
-      allowed: false,
-      reason: `Your ${features.name} supports up to ${features.guestLimit === 999999 ? 'unlimited' : features.guestLimit} guests. You currently have ${currentGuestCount}.`,
-      currentLimit: features.guestLimit,
-      suggestedPlan,
-      upgradeRequired: true
-    }
-  }
-  
-  // Warn when approaching limit (80% capacity)
-  const warningThreshold = Math.floor(features.guestLimit * 0.8)
-  if (currentGuestCount >= warningThreshold && features.guestLimit !== 999999) {
-    const suggestedPlan = getSuggestedPlanForGuests(features.guestLimit + 10)
-    
+
+  // All paid plans have unlimited guests
+  if (plan !== 'free_trial' && features.guestLimit === 999999) {
     return {
       allowed: true,
-      reason: `You're approaching your guest limit (${currentGuestCount}/${features.guestLimit}). Consider upgrading for more capacity.`,
-      currentLimit: features.guestLimit,
-      suggestedPlan,
       upgradeRequired: false
     }
   }
-  
+
+  // For free trial, there might still be some practical limits
+  if (plan === 'free_trial' && currentGuestCount >= 50) {
+    return {
+      allowed: true,
+      reason: `You have ${currentGuestCount} guests on your free trial. Consider upgrading to a paid plan for the best experience.`,
+      suggestedPlan: 'bliss',
+      upgradeRequired: false
+    }
+  }
+
   return {
     allowed: true,
     upgradeRequired: false
@@ -110,18 +103,18 @@ export function canAcceptMoreGuests(event: EventForFeatureGating, currentGuestCo
  * Check if user can access video guestbook feature
  */
 export function canUseVideoGuestbook(event: EventForFeatureGating): FeatureGateResult {
-  const plan = event.plan || 'free'
+  const plan = event.plan || 'free_trial'
   const features = getPlanFeatures(plan)
-  
+
   if (!features.videoGuestbook) {
     return {
       allowed: false,
-      reason: 'Video guestbook is available on 50 Guest plans and above.',
-      suggestedPlan: 'guest50',
+      reason: 'Video guestbook is available on all paid plans.',
+      suggestedPlan: 'bliss',
       upgradeRequired: true
     }
   }
-  
+
   return {
     allowed: true,
     upgradeRequired: false
@@ -132,18 +125,18 @@ export function canUseVideoGuestbook(event: EventForFeatureGating): FeatureGateR
  * Check if user can access custom branding features
  */
 export function canUseCustomBranding(event: EventForFeatureGating): FeatureGateResult {
-  const plan = event.plan || 'free'
+  const plan = event.plan || 'free_trial'
   const features = getPlanFeatures(plan)
-  
+
   if (!features.customBranding) {
     return {
       allowed: false,
-      reason: 'Custom branding is available on Unlimited plans.',
-      suggestedPlan: 'unlimited',
+      reason: 'Custom branding is available on the Eternal plan.',
+      suggestedPlan: 'eternal',
       upgradeRequired: true
     }
   }
-  
+
   return {
     allowed: true,
     upgradeRequired: false
@@ -154,7 +147,7 @@ export function canUseCustomBranding(event: EventForFeatureGating): FeatureGateR
  * Check theme access based on plan
  */
 export function canUseTheme(event: EventForFeatureGating, themeIndex: number): FeatureGateResult {
-  const plan = event.plan || 'free'
+  const plan = event.plan || 'free_trial'
   const features = getPlanFeatures(plan)
   
   // Theme index 0 is always available (default theme)
@@ -190,7 +183,7 @@ export function getPlanUsageSummary(event: EventForFeatureGating, stats: {
   guestCount: number
   uploadCount: number
 }) {
-  const plan = event.plan || 'free'
+  const plan = event.plan || 'free_trial'
   const features = getPlanFeatures(plan)
   
   return {
@@ -220,21 +213,20 @@ export function getPlanUsageSummary(event: EventForFeatureGating, stats: {
 // Helper functions to suggest appropriate plans
 
 function getSuggestedPlanForAlbums(requiredAlbums: number): Plan {
-  if (requiredAlbums <= 3) return 'guest50'
-  if (requiredAlbums <= 6) return 'guest100'
-  return 'unlimited'
+  if (requiredAlbums <= 1) return 'bliss'
+  if (requiredAlbums <= 9) return 'radiance'
+  return 'eternal'
 }
 
 function getSuggestedPlanForGuests(requiredGuests: number): Plan {
-  if (requiredGuests <= 50) return 'guest50'
-  if (requiredGuests <= 100) return 'guest100'
-  return 'unlimited'
+  // All plans have unlimited guests now, so suggest based on other factors
+  return 'bliss' // Start with the most basic paid plan
 }
 
 function getSuggestedPlanForThemes(requiredThemes: number): Plan {
-  if (requiredThemes <= 5) return 'guest50'
-  if (requiredThemes <= 10) return 'guest100'
-  return 'unlimited'
+  if (requiredThemes <= 1) return 'bliss'
+  if (requiredThemes <= 25) return 'radiance'
+  return 'eternal'
 }
 
 /**
@@ -244,15 +236,15 @@ export function shouldShowUpgradeSuggestion(event: EventForFeatureGating, stats:
   albumCount: number
   guestCount: number
 }): { show: boolean, suggestion?: { feature: string, plan: Plan, reason: string } } {
-  const plan = event.plan || 'free'
+  const plan = event.plan || 'free_trial'
   const features = getPlanFeatures(plan)
-  
-  // Don't suggest upgrades for unlimited plan
-  if (plan === 'unlimited') {
+
+  // Don't suggest upgrades for the highest plan
+  if (plan === 'eternal') {
     return { show: false }
   }
-  
-  // Suggest upgrade when approaching limits
+
+  // Suggest upgrade when approaching album limits
   if (features.albumLimit !== 999999 && stats.albumCount >= features.albumLimit * 0.8) {
     return {
       show: true,
@@ -263,17 +255,18 @@ export function shouldShowUpgradeSuggestion(event: EventForFeatureGating, stats:
       }
     }
   }
-  
-  if (features.guestLimit !== 999999 && stats.guestCount >= features.guestLimit * 0.8) {
+
+  // For free trial users, suggest upgrading after some usage
+  if (plan === 'free_trial' && stats.guestCount > 10) {
     return {
       show: true,
       suggestion: {
-        feature: 'guests',
-        plan: getSuggestedPlanForGuests(features.guestLimit + 10),
-        reason: `You have ${stats.guestCount} of ${features.guestLimit} guests. Upgrade for more capacity.`
+        feature: 'upgrade',
+        plan: 'bliss',
+        reason: `You have ${stats.guestCount} guests! Upgrade to unlock all features and extended access.`
       }
     }
   }
-  
+
   return { show: false }
 }

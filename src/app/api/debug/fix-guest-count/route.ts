@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the correct guest count for the plan
-    const planFeatures = getPlanFeatures(event.plan || 'free');
+    const planFeatures = getPlanFeatures(event.plan || 'free_trial');
     const correctGuestCount = planFeatures.guestLimit === 999999 ? 999999 : planFeatures.guestLimit;
 
     console.log(`Debug: Event ${eventId} has plan "${event.plan}" which should have ${correctGuestCount} guests, but database shows ${event.guestCount}`);

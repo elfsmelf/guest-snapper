@@ -29,7 +29,7 @@ export const events = pgTable("events", {
   revealSetting: text('reveal_setting').default('immediately'),
   guestCount: integer('guest_count').default(0),
   // Payment-related fields
-  plan: text('plan').default('free').notNull(), // 'free', 'guest50', 'guest100', 'unlimited'
+  plan: text('plan').default('free_trial').notNull(), // 'free_trial', 'bliss', 'radiance', 'eternal'
   currency: text('currency').default('AUD').notNull(), // 'AUD', 'USD', 'GBP', 'EUR', 'CAD', 'NZD'
   paidAt: timestamp('paid_at', { mode: 'string' }),
   stripeSessionId: text('stripe_session_id'),

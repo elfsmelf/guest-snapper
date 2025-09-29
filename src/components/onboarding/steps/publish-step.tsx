@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import { type OnboardingState } from "@/types/onboarding"
 import { updateOnboardingProgress } from "@/app/actions/onboarding"
 import { useEventData, eventKeys } from "@/hooks/use-onboarding"
+import { getPlanFeatures } from "@/lib/pricing"
 
 interface PublishStepProps {
   eventId: string
@@ -78,6 +79,13 @@ export function PublishStep({
       return
     }
 
+    // Check if user has a paid plan
+    const currentPlan = event?.plan || 'free_trial'
+    if (currentPlan === 'free_trial' || currentPlan === 'free') {
+      toast.error('Please select a paid plan before publishing your gallery')
+      return
+    }
+
     setIsPublishing(true)
     try {
       const response = await fetch(`/api/events/${eventId}/settings`, {
@@ -113,11 +121,15 @@ export function PublishStep({
   }
 
   const getUploadEndDate = () => {
-    return activationDate ? addMonths(activationDate, 3) : null
+    if (!activationDate || !event?.plan) return null
+    const planFeatures = getPlanFeatures(event.plan)
+    return addMonths(activationDate, planFeatures.uploadWindowMonths)
   }
 
   const getDownloadEndDate = () => {
-    return activationDate ? addMonths(activationDate, 12) : null
+    if (!activationDate || !event?.plan) return null
+    const planFeatures = getPlanFeatures(event.plan)
+    return addMonths(activationDate, planFeatures.downloadWindowMonths)
   }
 
 
@@ -169,11 +181,22 @@ export function PublishStep({
           </div>
         </div>
 
+        {/* Plan Requirement Notice */}
+        {!event?.isPublished && (event?.plan === 'free_trial' || event?.plan === 'free' || !event?.plan) && (
+          <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800">
+            <div className="font-medium text-orange-900 dark:text-orange-100 mb-1">💳 Paid Plan Required</div>
+            <p className="text-sm text-orange-700 dark:text-orange-300">
+              You need to select a paid plan (Bliss, Radiance, or Eternal) before you can publish your gallery.
+              Go back to Step 4 to choose your plan.
+            </p>
+          </div>
+        )}
+
         {/* Publish Button */}
         {!event?.isPublished && (
-          <Button 
+          <Button
             onClick={handlePublishEvent}
-            disabled={!activationDate || isPublishing}
+            disabled={!activationDate || isPublishing || event?.plan === 'free_trial' || event?.plan === 'free' || !event?.plan}
             className="w-full"
             size="lg"
           >
@@ -195,7 +218,7 @@ export function PublishStep({
             <p className="text-sm text-green-700 dark:text-green-300">Your gallery is now publicly accessible to all guests.</p>
             {event?.publishedAt && (
               <div className="text-xs text-green-600 dark:text-green-400 mt-2">
-                Published on {new Date(event.publishedAt).toLocaleString('en-US', {
+                Published on {new Date(event.publishedAt).toLocaleString(undefined, {
                   year: 'numeric',
                   month: 'long',
                   day: 'numeric',
@@ -222,7 +245,9 @@ export function PublishStep({
                   <div className="text-xs text-muted-foreground">
                     {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">3 months duration</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {event?.plan ? `${getPlanFeatures(event.plan).uploadWindowMonths} months duration` : 'Duration varies by plan'}
+                  </div>
                 </CardContent>
               </Card>
               <Card>
@@ -231,7 +256,9 @@ export function PublishStep({
                   <div className="text-xs text-muted-foreground">
                     {format(activationDate, "MMM d, yyyy")} - {getDownloadEndDate() ? format(getDownloadEndDate()!, "MMM d, yyyy") : "N/A"}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">12 months duration</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {event?.plan ? `${getPlanFeatures(event.plan).downloadWindowMonths} months duration` : 'Duration varies by plan'}
+                  </div>
                 </CardContent>
               </Card>
             </div>

@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
+import Image from "next/image"
 
 import { Button } from "./ui/button"
 import { ModeToggle } from "./mode-toggle"
@@ -45,7 +46,13 @@ export function PublicGalleryHeader({ galleryTheme, eventSlug, showAuthButtons =
     return (
         <header className={getHeaderClasses()}>
             <Link href="/" className="flex items-center" prefetch={false}>
-                <span className={getTextClasses()}>Guest Snapper</span>
+                <Image
+                    src="https://assets.guestsnapper.com/marketing/logos/Guest%20Snapper%20v6%20logo.png"
+                    alt="Guest Snapper"
+                    width={120}
+                    height={32}
+                    className="h-8 w-auto"
+                />
             </Link>
 
             <div className="flex items-center gap-2">

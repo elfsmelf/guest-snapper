@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Handle plan upgrades vs new purchases
-    const currentPlan = event.plan || 'free';
-    const isUpgrade = currentPlan !== 'free' && event.paidAt;
+    const currentPlan = event.plan || 'free_trial';
+    const isUpgrade = currentPlan !== 'free_trial' && currentPlan !== 'free' && event.paidAt;
     
     // Validate that this is a valid upgrade
     if (isUpgrade && !isPlanUpgrade(currentPlan, plan as Plan)) {

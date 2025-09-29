@@ -130,7 +130,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const { event } = result
 
     return {
-      title: `${formatEventTitle(event.coupleNames, event.eventType || 'wedding')} | Dashboard`,
+      title: formatEventTitle(event.coupleNames, event.eventType || 'wedding'),
       description: `Manage your event gallery for ${formatEventTitle(event.coupleNames, event.eventType || 'wedding')}. View uploads, manage settings, and share with guests.`,
       openGraph: {
         title: formatEventTitle(event.coupleNames, event.eventType || 'wedding'),
@@ -257,7 +257,7 @@ export default async function EventDetailPage({ params }: PageProps) {
         <div className="absolute inset-0 px-6 py-10 sm:px-8 sm:py-12 flex flex-col justify-end">
           <div className="max-w-4xl">
             <h1 className="text-xl sm:text-4xl md:text-5xl font-bold text-white mb-2 sm:mb-4 drop-shadow-lg font-serif">
-              {formatEventTitle(event.coupleNames, event.eventType || 'wedding')}
+              {event.name}
             </h1>
             <div className="space-y-2 sm:space-y-3">
               <p className="text-base sm:text-xl text-white/95 font-medium drop-shadow flex items-center gap-2">

@@ -1,6 +1,6 @@
 "use client"
 
-import { Calendar, Eye, Users, Lock, Shield, ChevronRight, Globe, Clock, Loader2 } from "lucide-react"
+import { Calendar, Eye, Users, Lock, Shield, ChevronRight, Globe, Clock, Loader2, Heart } from "lucide-react"
 import { useState, useCallback } from "react"
 import { format, addMonths } from "date-fns"
 import { parseLocalDate, formatLocalDate } from "@/lib/date-utils"
@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/popover"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { GuestCountPricingDialog } from "./guest-count-pricing-dialog"
+import { PricingCards } from "./pricing-cards"
 import { UpgradePrompt } from "./upgrade-prompt"
 import { canPublishEvent } from "@/lib/feature-gates"
+import { planFeatures, type Currency, type Plan } from "@/lib/pricing"
 import { toast } from "sonner"
 
 interface Event {
@@ -42,6 +43,8 @@ interface Event {
   paidAt?: string | null
   stripeSessionId?: string | null
   stripePaymentIntent?: string | null
+  // Trial tracking
+  createdAt?: string
 }
 
 interface EventSettingsFormProps {
@@ -70,8 +73,29 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
     const privacySettings = getPrivacySettings()
     return privacySettings.allow_guest_downloads ?? false // Default to false
   })
-  const [guestCountDialogOpen, setGuestCountDialogOpen] = useState(false)
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>((event.currency as Currency) || 'USD')
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false)
+  const [isSelectingPlan, setIsSelectingPlan] = useState(false)
+
+  // Calculate trial days remaining
+  const getTrialDaysRemaining = () => {
+    if (!event.createdAt || (event.plan && event.plan !== 'free_trial' && event.plan !== 'free')) {
+      return 0
+    }
+
+    const trialStartDate = new Date(event.createdAt)
+    const currentDate = new Date()
+    const trialEndDate = new Date(trialStartDate)
+    trialEndDate.setDate(trialStartDate.getDate() + 7) // 7-day trial
+
+    const timeDiff = trialEndDate.getTime() - currentDate.getTime()
+    const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
+
+    return Math.max(0, daysRemaining)
+  }
+
+  const trialDaysRemaining = getTrialDaysRemaining()
+
   const [publishError, setPublishError] = useState<{
     reason: string
     suggestedPlan: any
@@ -79,20 +103,24 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
   // Calculate guest count based on plan if database value seems outdated
   const getGuestCountFromPlan = (plan: string) => {
     switch (plan) {
-      case 'guest50': return 50
-      case 'guest100': return 100
-      case 'unlimited': return 999999
-      default: return 10 // free plan
+      case 'guest50': return 50 // legacy
+      case 'guest100': return 100 // legacy
+      case 'unlimited': return 999999 // legacy
+      case 'bliss': return 999999 // unlimited guests
+      case 'radiance': return 999999 // unlimited guests
+      case 'eternal': return 999999 // unlimited guests
+      case 'free_trial': return 999999 // unlimited guests during trial
+      default: return 999999 // default to unlimited
     }
   }
 
   // Use plan-based guest count if database value is inconsistent with plan
-  const planBasedGuestCount = getGuestCountFromPlan(event.plan || 'free')
+  const planBasedGuestCount = getGuestCountFromPlan(event.plan || 'free_trial')
   const databaseGuestCount = event.guestCount || calculatedGuestCount
 
   // If database shows old values (8 or inconsistent with plan), use plan-based count
   const intelligentGuestCount = (databaseGuestCount === 8 ||
-    (event.plan !== 'free' && databaseGuestCount < planBasedGuestCount))
+    (event.plan !== 'free_trial' && databaseGuestCount < planBasedGuestCount))
     ? planBasedGuestCount
     : databaseGuestCount
 
@@ -176,11 +204,46 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
   const handleGuestCountChange = useCallback(async (newCount: number) => {
     setCurrentGuestCount(newCount)
-    setGuestCountDialogOpen(false)
     await updateEventSettings({
       guestCount: newCount,
     })
   }, [updateEventSettings])
+
+  const handleSelectPlan = useCallback(async (plan: Plan) => {
+    if (isSelectingPlan) return
+
+    setIsSelectingPlan(true)
+
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan,
+          currency: selectedCurrency,
+          eventId: event.id,
+          context: 'dashboard',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout')
+      }
+
+      if (data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+    } catch (error: any) {
+      console.error('Purchase error:', error)
+      toast.error(error.message || 'Failed to start checkout process')
+      setIsSelectingPlan(false)
+    }
+  }, [selectedCurrency, event.id, isSelectingPlan])
 
   const handlePublishEvent = useCallback(async () => {
     if (!activationDate) {
@@ -305,29 +368,57 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
             </p>
           </div>
 
-          {/* Guest Count */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Number of Guests</label>
-            <Button
-              variant="outline"
-              className="w-full justify-start text-left font-normal"
-              onClick={() => setGuestCountDialogOpen(true)}
-              disabled={isUpdating}
-            >
-              <Users className="mr-2 h-4 w-4" />
-{(event.plan === 'free' || currentGuestCount === 10) ? "FREE" : currentGuestCount >= 999999 ? "Unlimited" : currentGuestCount} guests
-              <ChevronRight className="ml-auto h-4 w-4" />
-              {isUpdating && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-            </Button>
-            {/* Free Trial Notice */}
-            {(event.plan === 'free' || currentGuestCount === 10) && (
-              <div className="text-center text-sm text-muted-foreground bg-orange-50 border border-orange-200 rounded-lg p-3">
-                Change the amount of guests to make your gallery public
-              </div>
-            )}
-          </div>
         </CardContent>
       </Card>
+
+      {/* Choose Your Plan Card */}
+      {(event.plan === 'free' || event.plan === 'free_trial' || !event.plan) && (
+        <Card data-section="choose-plan">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Choose Your Plan
+              </div>
+              <Badge variant="secondary">
+                {(() => {
+                  const currentPlan = event.plan || 'free_trial';
+                  if (currentPlan === 'free_trial' || currentPlan === 'free') {
+                    return 'Free Trial';
+                  }
+                  return planFeatures[currentPlan as keyof typeof planFeatures]?.name || 'Free Trial';
+                })()}
+              </Badge>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Free Trial Status Banner */}
+            <div className="bg-muted/50 border rounded-lg p-4">
+              <div className="flex items-center justify-center gap-2 text-foreground">
+                <span className="font-semibold">
+                  You are currently on a free trial
+                  {trialDaysRemaining > 0 && (
+                    <span className="text-primary"> • {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} left</span>
+                  )}
+                </span>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2 text-center">
+                As the owner of the gallery you can upload photos and videos to test your gallery, but your gallery isn't able to be published.
+              </p>
+            </div>
+
+            <PricingCards
+              selectedCurrency={selectedCurrency}
+              onCurrencyChange={setSelectedCurrency}
+              onSelectPlan={handleSelectPlan}
+              currentPlan={event.plan || 'free_trial'}
+              showFreeTrial={false}
+              trialDaysRemaining={trialDaysRemaining}
+              className=""
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Privacy & Moderation Settings Card */}
       <Card data-section="privacy-moderation">
@@ -419,7 +510,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
           {event.publishedAt && (
             <div className="text-xs text-muted-foreground">
-              Published on {new Date(event.publishedAt).toLocaleString('en-US', {
+              Published on {new Date(event.publishedAt).toLocaleString(undefined, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -521,6 +612,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
             </div>
           </div>
 
+
           {/* Duration Display */}
           {activationDate && (
             <div className="space-y-3">
@@ -554,18 +646,6 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       </Card>
 
 
-      {/* Guest Count Pricing Dialog */}
-      <GuestCountPricingDialog
-        key={`${event.id}-${event.plan}`}
-        isOpen={guestCountDialogOpen}
-        onClose={() => setGuestCountDialogOpen(false)}
-        eventId={event.id}
-        currentPlan={event.plan || 'free'}
-        eventCurrency={(event.currency as any) || 'AUD'}
-        paymentSuccess={false}
-        paymentData={undefined}
-      />
-      
       {/* Publish Upgrade Prompt */}
       {publishError && (
         <UpgradePrompt
@@ -575,7 +655,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
             setPublishError(null)
           }}
           eventId={event.id}
-          currentPlan={event.plan || 'free'}
+          currentPlan={event.plan || 'free_trial'}
           eventCurrency={(event.currency as any) || 'AUD'}
           reason={publishError.reason}
           suggestedPlan={publishError.suggestedPlan}

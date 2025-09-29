@@ -18,15 +18,26 @@ export default function CreateGalleryPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    coupleNames: '',
     eventDate: '',
     venue: '',
     eventType: 'wedding',
   })
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null)
 
-  const generateSlug = (coupleNames: string) => {
-    return coupleNames
+  // Get placeholder text based on event type
+  const getEventNamePlaceholder = (eventType: string) => {
+    switch (eventType) {
+      case 'wedding':
+        return 'John & Jane Wedding, Smith-Johnson Wedding, etc.'
+      case 'party':
+        return 'Birthday Bash, Anniversary Party, Graduation Celebration, etc.'
+      default:
+        return 'My Event'
+    }
+  }
+
+  const generateSlug = (eventName: string) => {
+    return eventName
       .toLowerCase()
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
@@ -38,7 +49,7 @@ export default function CreateGalleryPage() {
     setIsLoading(true)
 
     try {
-      const slug = generateSlug(formData.coupleNames)
+      const slug = generateSlug(formData.name)
       
       // Start the API call
       const apiCall = fetch('/api/events', {
@@ -48,7 +59,7 @@ export default function CreateGalleryPage() {
         },
         body: JSON.stringify({
           slug,
-          coupleNames: formData.coupleNames,
+          name: formData.name,
           venue: formData.venue,
           eventType: formData.eventType,
           date: selectedDate ? new Date(selectedDate.year, selectedDate.month - 1, selectedDate.day) : null,
@@ -58,13 +69,13 @@ export default function CreateGalleryPage() {
       // Generate optimistic event data
       const optimisticEvent = {
         id: 'temp-' + Date.now(), // Temporary ID
-        name: formData.coupleNames,
-        coupleNames: formData.coupleNames,
+        name: formData.name,
+        coupleNames: formData.name, // Keep for backward compatibility
         venue: formData.venue,
         eventDate: selectedDate ? selectedDate.toString() : new Date().toISOString().split('T')[0],
         slug: slug,
         isPublished: false,
-        plan: 'free',
+        plan: 'free_trial',
         currency: 'USD',
         guestCount: 0,
         themeId: 'default',
@@ -127,14 +138,14 @@ export default function CreateGalleryPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="coupleNames">Event Participants *</Label>
+              <Label htmlFor="eventName">Event Name *</Label>
               <Input
-                id="coupleNames"
+                id="eventName"
                 type="text"
-                placeholder="John & Jane, Team Building Event, etc."
-                value={formData.coupleNames}
+                placeholder={getEventNamePlaceholder(formData.eventType)}
+                value={formData.name}
                 onChange={(e) =>
-                  setFormData({ ...formData, coupleNames: e.target.value })
+                  setFormData({ ...formData, name: e.target.value })
                 }
                 required
               />
@@ -145,9 +156,9 @@ export default function CreateGalleryPage() {
               <RadioGroup
                 value={formData.eventType}
                 onValueChange={(value) => setFormData({ ...formData, eventType: value })}
-                className="grid grid-cols-5 gap-3 mt-3"
+                className="grid grid-cols-2 gap-3 mt-3"
               >
-                {Object.values(eventTypes).map((type) => {
+                {Object.values(eventTypes).filter(type => type.id === 'wedding' || type.id === 'party').map((type) => {
                   const IconComponent = type.icon
                   return (
                     <div key={type.id}>
@@ -192,7 +203,7 @@ export default function CreateGalleryPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={isLoading || !formData.coupleNames}>
+              <Button type="submit" disabled={isLoading || !formData.name}>
                 {isLoading ? 'Creating...' : 'Create Event'}
               </Button>
               <Button type="button" variant="outline" asChild>

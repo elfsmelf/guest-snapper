@@ -66,7 +66,7 @@ export function checkGuestCountStatus(event: Event): StepStatus {
 export function checkPrivacySettingsStatus(event: Event): StepStatus {
   // Since these have defaults, we'll consider them "completed" if the user has any non-free plan
   // or if they've published (indicating they've reviewed settings)
-  const hasReviewedSettings = event.isPublished || (event.plan && event.plan !== 'free')
+  const hasReviewedSettings = event.isPublished || (event.plan && event.plan !== 'free_trial' && event.plan !== 'free')
   return hasReviewedSettings ? 'completed' : 'incomplete'
 }
 
