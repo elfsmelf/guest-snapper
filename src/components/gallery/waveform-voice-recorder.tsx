@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback, memo } from "react"
+import { useState, useRef, useCallback, memo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
 import { useReactMediaRecorder } from 'react-media-recorder'
@@ -76,7 +76,7 @@ const AudioPlayer = memo(({ audioMessage, onRemove, isUploading }: {
     <div className="border rounded-lg p-4">
       <div className="space-y-4">
         {/* Audio Player - Full Width */}
-        <div className="bg-gray-50 rounded-lg p-3">
+        <div className="bg-muted rounded-lg p-3">
           <audio
             src={audioMessage.url}
             controls
@@ -93,19 +93,19 @@ const AudioPlayer = memo(({ audioMessage, onRemove, isUploading }: {
             </span>
             
             {audioMessage.status === 'success' && (
-              <span className="text-xs bg-pink-100 text-pink-800 px-2 py-1 rounded flex items-center gap-1">
+              <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded flex items-center gap-1">
                 <CheckCircle className="h-3 w-3" />
                 Uploaded
               </span>
             )}
             {audioMessage.status === 'error' && (
-              <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded flex items-center gap-1">
+              <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 Failed
               </span>
             )}
             {audioMessage.status === 'uploading' && (
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1">
+              <span className="text-xs bg-secondary text-secondary-foreground px-2 py-1 rounded flex items-center gap-1">
                 <Loader2 className="h-3 w-3 animate-spin" />
                 Uploading
               </span>
@@ -159,8 +159,9 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
   const [audioMessages, setAudioMessages] = useState<AudioMessage[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const [recordingStartTime, setRecordingStartTime] = useState<number>(0)
+  const [recordingDuration, setRecordingDuration] = useState<number>(0)
   const router = useRouter()
-  
+
   // Check session for authenticated users
   const { data: session } = authClient.useSession()
 
@@ -171,11 +172,12 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
     stopRecording,
     mediaBlobUrl,
     clearBlobUrl,
-  } = useReactMediaRecorder({ 
+  } = useReactMediaRecorder({
     audio: true,
     video: false,
     onStart: () => {
       setRecordingStartTime(Date.now())
+      setRecordingDuration(0)
     },
     onStop: (blobUrl: string, blob: Blob) => {
       if (blob && blobUrl) {
@@ -183,8 +185,22 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
         addRecordingToQueue(blob, blobUrl, duration)
         clearBlobUrl() // Clear the media recorder's blob URL since we're managing our own
       }
+      setRecordingDuration(0)
     },
   })
+
+  // Timer effect - updates every second while recording
+  useEffect(() => {
+    if (status !== 'recording') return
+
+    const intervalId = setInterval(() => {
+      // Functional update to avoid stale closure
+      setRecordingDuration(prev => prev + 1)
+    }, 1000)
+
+    // Cleanup on unmount or when recording stops
+    return () => clearInterval(intervalId)
+  }, [status])
 
   // Add recording to queue when recording stops
   const addRecordingToQueue = useCallback((blob: Blob, url: string, duration: number) => {
@@ -374,18 +390,21 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
           <CardContent className="space-y-4">
 
             {/* Simple Recording Interface */}
-            <div className="border rounded-lg p-4 bg-white">
+            <div className="border rounded-lg p-4 bg-card">
               {status === 'recording' ? (
                 <div className="space-y-4">
                   <div className="text-center">
-                    <div className="text-2xl font-mono font-bold text-red-500 animate-pulse">
+                    <div className="text-2xl font-mono font-bold text-destructive animate-pulse">
                       ● REC
+                    </div>
+                    <div className="text-3xl font-mono font-bold text-foreground my-2">
+                      {formatDuration(recordingDuration)}
                     </div>
                     <p className="text-sm text-muted-foreground">Recording in progress...</p>
                   </div>
-                  
+
                   {/* Simple Recording Animation */}
-                  <div className="bg-white rounded-lg p-4 flex items-center justify-center">
+                  <div className="bg-muted/50 rounded-lg p-4 flex items-center justify-center">
                     <div className="flex items-center space-x-2">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <div
@@ -399,12 +418,12 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
                       ))}
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-center">
                     <Button
                       onClick={stopRecording}
                       size="lg"
-                      className="bg-red-500 hover:bg-red-600 text-white"
+                      variant="destructive"
                     >
                       <Square className="h-5 w-5 mr-2" />
                       Stop Recording
@@ -419,11 +438,11 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
                   </div>
                   
                   {/* Preview Player */}
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <audio 
-                      src={mediaBlobUrl} 
-                      controls 
-                      className="w-full" 
+                  <div className="bg-muted rounded-lg p-3">
+                    <audio
+                      src={mediaBlobUrl}
+                      controls
+                      className="w-full"
                       style={{ height: '40px' }}
                     />
                   </div>
@@ -445,7 +464,7 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
                     Click to start recording your voice message
                   </p>
                   {status === 'permission_denied' && (
-                    <p className="text-sm text-red-500 mt-2">
+                    <p className="text-sm text-destructive mt-2">
                       Microphone permission denied. Please allow access and try again.
                     </p>
                   )}

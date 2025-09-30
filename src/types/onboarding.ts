@@ -59,7 +59,6 @@ export interface OnboardingStep {
 // Onboarding step IDs
 export const ONBOARDING_STEPS = {
   TEST_IMAGES: 'test-images',
-  COVER_PHOTO: 'cover-photo',
   PRIVACY: 'privacy',
   THEME: 'theme',
   GUEST_COUNT: 'guest-count',

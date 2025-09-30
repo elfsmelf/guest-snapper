@@ -1,8 +1,8 @@
 {
   "crons": [
     {
-      "path": "/api/cron/scheduled-deletion",
-      "schedule": "0 2 * * *"
+      "path": "/api/cron/trash-expired-events",
+      "schedule": "0 0 * * *"
     }
   ]
 }

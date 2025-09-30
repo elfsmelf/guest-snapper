@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { Shield, Eye, EyeOff, CheckCircle, Loader2, Users, Lock, Camera, Download } from "lucide-react"
+import { Shield, Eye, EyeOff, CheckCircle, Loader2, Users, Lock, Camera, Download, MessageSquare, Mic } from "lucide-react"
 import { toast } from "sonner"
 import { type OnboardingState } from "@/types/onboarding"
 import { updateOnboardingProgress } from "@/app/actions/onboarding"
@@ -28,12 +28,6 @@ export function PrivacyStep({
   onUpdate,
   onComplete
 }: PrivacyStepProps) {
-  const [guestCanView, setGuestCanView] = useState<boolean | null>(null) // null until loaded
-  const [approveUploads, setApproveUploads] = useState<boolean | null>(null) // null until loaded
-  const [allowGuestDownloads, setAllowGuestDownloads] = useState<boolean | null>(null) // null until loaded
-  const [isUpdating, setIsUpdating] = useState(false)
-  const isComplete = state.privacyConfigured
-
   // Use prefetched event data
   const { data: eventData, isLoading } = useEventData(eventId)
 
@@ -46,17 +40,14 @@ export function PrivacyStep({
     }
   }
 
-  // Sync with prefetched event data
-  useEffect(() => {
-    if (eventData) {
-      setGuestCanView(eventData.guestCanViewAlbum ?? true)
-      setApproveUploads(eventData.approveUploads ?? false)
-
-      // Parse privacy settings for guest downloads
-      const privacySettings = getPrivacySettings()
-      setAllowGuestDownloads(privacySettings.allow_guest_downloads ?? false)
-    }
-  }, [eventData])
+  const privacySettings = getPrivacySettings()
+  const [guestCanView, setGuestCanView] = useState(eventData?.guestCanViewAlbum ?? true)
+  const [guestCanViewGuestbook, setGuestCanViewGuestbook] = useState(eventData?.guestCanViewGuestbook ?? true)
+  const [guestCanViewAudioMessages, setGuestCanViewAudioMessages] = useState(eventData?.guestCanViewAudioMessages ?? true)
+  const [approveUploads, setApproveUploads] = useState(eventData?.approveUploads ?? false)
+  const [allowGuestDownloads, setAllowGuestDownloads] = useState(privacySettings.allow_guest_downloads ?? false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const isComplete = state.privacyConfigured
 
   const updateEventSettings = async (updates: any) => {
     setIsUpdating(true)
@@ -87,7 +78,7 @@ export function PrivacyStep({
     const previousValue = guestCanView
     // Optimistic update - update UI immediately
     setGuestCanView(checked)
-    
+
     try {
       await updateEventSettings({
         guestCanViewAlbum: checked,
@@ -95,6 +86,36 @@ export function PrivacyStep({
     } catch (error) {
       // Revert on error
       setGuestCanView(previousValue)
+    }
+  }
+
+  const handleGuestViewGuestbookChange = async (checked: boolean) => {
+    const previousValue = guestCanViewGuestbook
+    // Optimistic update - update UI immediately
+    setGuestCanViewGuestbook(checked)
+
+    try {
+      await updateEventSettings({
+        guestCanViewGuestbook: checked,
+      })
+    } catch (error) {
+      // Revert on error
+      setGuestCanViewGuestbook(previousValue)
+    }
+  }
+
+  const handleGuestViewAudioMessagesChange = async (checked: boolean) => {
+    const previousValue = guestCanViewAudioMessages
+    // Optimistic update - update UI immediately
+    setGuestCanViewAudioMessages(checked)
+
+    try {
+      await updateEventSettings({
+        guestCanViewAudioMessages: checked,
+      })
+    } catch (error) {
+      // Revert on error
+      setGuestCanViewAudioMessages(previousValue)
     }
   }
 
@@ -154,12 +175,6 @@ export function PrivacyStep({
     <div className="space-y-6">
       {/* Step Introduction */}
       <div className="text-center space-y-3">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900/20 rounded-full flex items-center justify-center">
-            <Shield className="h-8 w-8 text-purple-600 dark:text-purple-400" />
-          </div>
-        </div>
-        <h2 className="text-xl font-semibold">Configure Privacy & Security</h2>
         <p className="text-muted-foreground">
           Control who can view your gallery and how uploads are moderated. You can change these settings anytime.
         </p>
@@ -217,6 +232,44 @@ export function PrivacyStep({
               />
             </div>
 
+            {/* Guest can view guestbook */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4 text-muted-foreground" />
+                  <div className="text-sm font-medium">Allow guests to view guestbook messages</div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Let guests see guestbook messages from other guests
+                </div>
+              </div>
+              <Switch
+                checked={guestCanViewGuestbook ?? true}
+                onCheckedChange={handleGuestViewGuestbookChange}
+                className="data-[state=checked]:bg-primary"
+                disabled={isUpdating || isLoading}
+              />
+            </div>
+
+            {/* Guest can view audio messages */}
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <Mic className="w-4 h-4 text-muted-foreground" />
+                  <div className="text-sm font-medium">Allow guests to view audio messages</div>
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Let guests listen to audio messages from other guests
+                </div>
+              </div>
+              <Switch
+                checked={guestCanViewAudioMessages ?? true}
+                onCheckedChange={handleGuestViewAudioMessagesChange}
+                className="data-[state=checked]:bg-primary"
+                disabled={isUpdating || isLoading}
+              />
+            </div>
+
             {/* Approve Uploads */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
@@ -229,7 +282,7 @@ export function PrivacyStep({
                 </div>
               </div>
               <Switch
-                checked={approveUploads === null ? false : approveUploads}
+                checked={approveUploads ?? false}
                 onCheckedChange={handleApproveUploadsChange}
                 className="data-[state=checked]:bg-primary"
                 disabled={isUpdating || isLoading}
@@ -248,7 +301,7 @@ export function PrivacyStep({
                 </div>
               </div>
               <Switch
-                checked={allowGuestDownloads === null ? false : allowGuestDownloads}
+                checked={allowGuestDownloads ?? false}
                 onCheckedChange={handleAllowGuestDownloadsChange}
                 className="data-[state=checked]:bg-primary"
                 disabled={isUpdating || isLoading}

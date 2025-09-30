@@ -10,8 +10,8 @@ import { toast } from "sonner"
 import { CheckCircle } from "lucide-react"
 import { type OnboardingState } from "@/types/onboarding"
 import { updateOnboardingProgress, completeOnboardingStep } from "@/app/actions/onboarding"
-import { useEventData, eventKeys } from "@/hooks/use-onboarding"
-import { useQueryClient } from "@tanstack/react-query"
+import { eventKeys } from "@/hooks/use-onboarding"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { CoverImageUpload } from "@/components/cover-image-upload"
 
 interface CoverPhotoStepProps {
@@ -68,7 +68,19 @@ export function CoverPhotoStep({
   })
   
   const router = useRouter()
-  const { data: eventData, isLoading, error } = useEventData(eventId)
+  // Use React Query with proper refetch settings for cover photo step
+  const { data: eventData, isLoading, error } = useQuery({
+    queryKey: eventKeys.detail(eventId),
+    queryFn: async () => {
+      const response = await fetch(`/api/events/${eventId}`)
+      if (!response.ok) throw new Error('Failed to fetch event data')
+      return response.json()
+    },
+    staleTime: 0, // Always consider data stale for cover photo step
+    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  })
   const isComplete = state.coverPhotoSet || state.completedSteps.includes('cover-photo')
   
   console.log('📸 CoverPhotoStep EVENT DATA:', {

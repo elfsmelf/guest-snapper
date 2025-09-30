@@ -40,22 +40,28 @@ export default async function AuthPage({
             <AuthCard
                 pathname={pathname}
                 redirectTo={redirectTo}
+                localization={{
+                    SIGN_IN: "Welcome to Guest Snapper",
+                    SIGN_IN_DESCRIPTION: "Create your wedding photo gallery or access your existing one. Choose Google or enter your email to continue.",
+                    SIGN_UP: "Welcome to Guest Snapper",
+                    SIGN_UP_DESCRIPTION: "Create your wedding photo gallery or access your existing one. Choose Google or enter your email to continue.",
+                    EMAIL_PLACEHOLDER: "Enter your email address",
+                    MAGIC_LINK: "Continue with email",
+                    MAGIC_LINK_DESCRIPTION: "Enter your email to continue",
+                    MAGIC_LINK_ACTION: "Continue",
+                    EMAIL_OTP: "Continue with email",
+                    EMAIL_OTP_DESCRIPTION: "Enter your email to continue",
+                    EMAIL_OTP_SEND_ACTION: "Send verification code",
+                    EMAIL_OTP_VERIFY_ACTION: "Verify and continue",
+                    OR_CONTINUE_WITH: "Or continue with",
+                    SIGN_IN_WITH: "Continue with",
+                    DONT_HAVE_AN_ACCOUNT: "New to Guest Snapper?",
+                    ALREADY_HAVE_AN_ACCOUNT: "Already have an account?",
+                    SIGN_IN_ACTION: "Continue",
+                    SIGN_UP_ACTION: "Continue",
+                    SIGN_IN_USERNAME_DESCRIPTION: "Enter your email to continue to your wedding gallery",
+                }}
             />
-
-            {["sign-in", "sign-up", "magic-link", "email-otp", "forgot-password"].includes(
-                pathname
-            ) && (
-                <p className="text-muted-foreground text-xs">
-                    Powered by{" "}
-                    <Link
-                        className="text-warning underline"
-                        href="https://better-auth.com"
-                        target="_blank"
-                    >
-                        better-auth.
-                    </Link>
-                </p>
-            )}
         </main>
     )
 }

@@ -141,12 +141,14 @@ export const guests = pgTable("guests", {
 	userAgent: text("user_agent"),
 	createdAt: timestamp("created_at", { mode: 'string' }).notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).notNull(),
+	cookieId: text("cookie_id").notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.eventId],
 			foreignColumns: [events.id],
 			name: "guests_event_id_events_id_fk"
 		}).onDelete("cascade"),
+	unique("guests_cookie_id_event_id_unique").on(table.eventId, table.cookieId),
 ]);
 
 export const guestbookEntries = pgTable("guestbook_entries", {
@@ -220,7 +222,7 @@ export const events = pgTable("events", {
 	slideDuration: integer("slide_duration").default(5),
 	revealSetting: text("reveal_setting").default('immediately'),
 	guestCount: integer("guest_count").default(0),
-	plan: text().default('free').notNull(),
+	plan: text().default('free_trial').notNull(),
 	currency: text().default('AUD').notNull(),
 	paidAt: timestamp("paid_at", { mode: 'string' }),
 	stripeSessionId: text("stripe_session_id"),
@@ -232,6 +234,8 @@ export const events = pgTable("events", {
 	trashedAt: timestamp("trashed_at", { mode: 'string' }),
 	deleteAt: timestamp("delete_at", { mode: 'string' }),
 	quickStartProgress: text("quick_start_progress").default('{}').notNull(),
+	eventType: text("event_type").default('wedding').notNull(),
+	guestCanViewGuestbook: boolean("guest_can_view_guestbook").default(true),
 }, (table) => [
 	foreignKey({
 			columns: [table.organizationId],
@@ -250,6 +254,7 @@ export const albums = pgTable("albums", {
 	sortOrder: integer("sort_order").default(0).notNull(),
 	createdAt: timestamp("created_at", { mode: 'string' }).notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).notNull(),
+	isVisible: boolean("is_visible").default(true).notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.eventId],

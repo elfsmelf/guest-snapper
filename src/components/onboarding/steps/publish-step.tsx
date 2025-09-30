@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Globe, Calendar as CalendarIcon, Clock, Loader2 } from "lucide-react"
+import { Globe, Calendar as CalendarIcon, Clock, Loader2, Gift, ArrowRight } from "lucide-react"
 import { format, addMonths } from "date-fns"
 import { parseLocalDate, formatLocalDate } from "@/lib/date-utils"
 import { cn } from "@/lib/utils"
@@ -15,7 +15,9 @@ import { toast } from "sonner"
 import { type OnboardingState } from "@/types/onboarding"
 import { updateOnboardingProgress } from "@/app/actions/onboarding"
 import { useEventData, eventKeys } from "@/hooks/use-onboarding"
-import { getPlanFeatures } from "@/lib/pricing"
+import { getPlanFeatures, type Plan, type Currency } from "@/lib/pricing"
+import { PricingCards } from "@/components/pricing-cards"
+import { detectUserCurrency } from "@/lib/currency-detection"
 
 interface PublishStepProps {
   eventId: string
@@ -36,6 +38,9 @@ export function PublishStep({
 }: PublishStepProps) {
   const [isUpdatingDate, setIsUpdatingDate] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [showPaymentOptions, setShowPaymentOptions] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(detectUserCurrency())
   const queryClient = useQueryClient()
 
   // Use React Query to get event data (should be prefetched from layout)
@@ -73,7 +78,7 @@ export function PublishStep({
     }
   }
 
-  const handlePublishEvent = async () => {
+  const handleInitiatePublish = async () => {
     if (!activationDate) {
       toast.error('Please set an activation date first')
       return
@@ -81,11 +86,17 @@ export function PublishStep({
 
     // Check if user has a paid plan
     const currentPlan = event?.plan || 'free_trial'
-    if (currentPlan === 'free_trial' || currentPlan === 'free') {
-      toast.error('Please select a paid plan before publishing your gallery')
+    if (currentPlan === 'free_trial' || currentPlan === 'free' || !event?.plan) {
+      // Show payment options
+      setShowPaymentOptions(true)
       return
     }
 
+    // User has paid plan, proceed with publishing
+    await publishGallery()
+  }
+
+  const publishGallery = async () => {
     setIsPublishing(true)
     try {
       const response = await fetch(`/api/events/${eventId}/settings`, {
@@ -93,7 +104,7 @@ export function PublishStep({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           isPublished: true,
-          publishedAt: new Date().toISOString(), // This is fine for timestamp
+          publishedAt: new Date().toISOString(),
         }),
       })
 
@@ -109,7 +120,7 @@ export function PublishStep({
       onUpdate({ eventPublished: true })
 
       toast.success('🎉 Gallery published successfully!')
-      
+
       // Complete this step
       await onComplete()
     } catch (error) {
@@ -120,26 +131,112 @@ export function PublishStep({
     }
   }
 
+  const handleStartFreeTrial = async () => {
+    setLoading(true)
+
+    try {
+      // Update the onboarding state to reflect free trial selection
+      const updates = {
+        guestCountSet: true,
+        selectedPlan: 'free_trial' as Plan,
+        paymentCompleted: false,
+        currency: selectedCurrency
+      }
+
+      onUpdate(updates)
+
+      // Also persist to database
+      await updateOnboardingProgress(eventId, updates)
+
+      // Mark step as complete and move to next step
+      await onComplete()
+
+      toast.success('Free trial started! You can upgrade anytime.')
+    } catch (error) {
+      console.error('Failed to start free trial:', error)
+      toast.error('Failed to start free trial. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSelectPlan = async (plan: Plan) => {
+    if (loading) return
+
+    setLoading(true)
+
+    try {
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan,
+          currency: selectedCurrency,
+          eventId,
+          context: 'onboarding',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout')
+      }
+
+      if (data.url) {
+        // Store the selected plan before redirecting
+        const updates = {
+          selectedPlan: plan,
+          currency: selectedCurrency,
+          guestCountSet: true
+        }
+
+        onUpdate(updates)
+        await updateOnboardingProgress(eventId, updates)
+
+        // Redirect to Stripe checkout
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+    } catch (error: any) {
+      console.error('Purchase error:', error)
+      toast.error(error.message || 'Failed to start checkout process')
+      setLoading(false)
+    }
+  }
+
   const getUploadEndDate = () => {
-    if (!activationDate || !event?.plan) return null
-    const planFeatures = getPlanFeatures(event.plan)
+    if (!activationDate) return null
+    // Use the current plan, or default to bliss if no paid plan selected
+    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+    const planFeatures = getPlanFeatures(planToUse)
     return addMonths(activationDate, planFeatures.uploadWindowMonths)
   }
 
   const getDownloadEndDate = () => {
-    if (!activationDate || !event?.plan) return null
-    const planFeatures = getPlanFeatures(event.plan)
+    if (!activationDate) return null
+    // Use the current plan, or default to bliss if no paid plan selected
+    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+    const planFeatures = getPlanFeatures(planToUse)
     return addMonths(activationDate, planFeatures.downloadWindowMonths)
   }
 
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
-        <h3 className="text-lg font-semibold">Publish Your Gallery</h3>
+      {/* Step Header */}
+      <div className="text-center space-y-3">
         <p className="text-muted-foreground">
-          Set when you want your gallery to go live for guests to access. This can be different from your event date.
+          You've built an amazing gallery! Now let's activate it for your guests to enjoy.
         </p>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 border-t border-muted-foreground/20"></div>
+        <span className="text-sm font-medium text-muted-foreground">STEP 6</span>
+        <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
       {/* Activation Date */}
@@ -181,57 +278,7 @@ export function PublishStep({
           </div>
         </div>
 
-        {/* Plan Requirement Notice */}
-        {!event?.isPublished && (event?.plan === 'free_trial' || event?.plan === 'free' || !event?.plan) && (
-          <div className="p-4 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800">
-            <div className="font-medium text-orange-900 dark:text-orange-100 mb-1">💳 Paid Plan Required</div>
-            <p className="text-sm text-orange-700 dark:text-orange-300">
-              You need to select a paid plan (Bliss, Radiance, or Eternal) before you can publish your gallery.
-              Go back to Step 4 to choose your plan.
-            </p>
-          </div>
-        )}
-
-        {/* Publish Button */}
-        {!event?.isPublished && (
-          <Button
-            onClick={handlePublishEvent}
-            disabled={!activationDate || isPublishing || event?.plan === 'free_trial' || event?.plan === 'free' || !event?.plan}
-            className="w-full"
-            size="lg"
-          >
-            {isPublishing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Publishing...
-              </>
-            ) : (
-              'Publish Gallery'
-            )}
-          </Button>
-        )}
-
-        {/* Success message for published galleries */}
-        {event?.isPublished && (
-          <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-            <div className="font-medium text-green-900 dark:text-green-100 mb-1">🎉 Your gallery is live!</div>
-            <p className="text-sm text-green-700 dark:text-green-300">Your gallery is now publicly accessible to all guests.</p>
-            {event?.publishedAt && (
-              <div className="text-xs text-green-600 dark:text-green-400 mt-2">
-                Published on {new Date(event.publishedAt).toLocaleString(undefined, {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit',
-                  hour12: true
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Duration Display */}
+        {/* Gallery Windows - Show immediately after activation date */}
         {activationDate && (
           <div className="space-y-3">
             <div className="flex items-center gap-2">
@@ -246,7 +293,12 @@ export function PublishStep({
                     {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {event?.plan ? `${getPlanFeatures(event.plan).uploadWindowMonths} months duration` : 'Duration varies by plan'}
+                    {(() => {
+                      const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+                      const features = getPlanFeatures(planToUse)
+                      const isDefaultPlan = !event?.plan || event.plan === 'free_trial'
+                      return `${features.uploadWindowMonths} months duration${isDefaultPlan ? ' (with paid plan)' : ''}`
+                    })()}
                   </div>
                 </CardContent>
               </Card>
@@ -257,13 +309,161 @@ export function PublishStep({
                     {format(activationDate, "MMM d, yyyy")} - {getDownloadEndDate() ? format(getDownloadEndDate()!, "MMM d, yyyy") : "N/A"}
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    {event?.plan ? `${getPlanFeatures(event.plan).downloadWindowMonths} months duration` : 'Duration varies by plan'}
+                    {(() => {
+                      const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+                      const features = getPlanFeatures(planToUse)
+                      const isDefaultPlan = !event?.plan || event.plan === 'free_trial'
+                      return `${features.downloadWindowMonths} months duration${isDefaultPlan ? ' (with paid plan)' : ''}`
+                    })()}
                   </div>
                 </CardContent>
               </Card>
             </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Note: These windows are based on your selected plan and can be extended.
+            </p>
           </div>
         )}
+
+        {/* Payment Options Modal */}
+        {showPaymentOptions && !event?.isPublished && (
+          <div className="space-y-6">
+            <div className="p-4 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20">
+              <div className="font-medium text-primary mb-3 flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                Choose Your Plan to Publish
+              </div>
+              <p className="text-sm text-muted-foreground mb-3">
+                Your gallery is ready! Select a plan to make it publicly accessible to your guests.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                💡 Your gallery needs a plan to be published. Until you choose a plan, guests won't be able to view or upload to your gallery.
+              </p>
+            </div>
+
+            {/* Pricing Cards */}
+            <div className="max-w-4xl mx-auto">
+              <PricingCards
+                selectedCurrency={selectedCurrency}
+                onCurrencyChange={setSelectedCurrency}
+                onSelectPlan={handleSelectPlan}
+                currentPlan={event?.plan || 'free_trial'}
+                showFreeTrial={false}
+                className="scale-90"
+              />
+            </div>
+
+            {/* Or Divider */}
+            <div className="flex items-center justify-center">
+              <div className="border-t border-muted flex-1"></div>
+              <span className="px-4 text-sm text-muted-foreground bg-background">or continue later</span>
+              <div className="border-t border-muted flex-1"></div>
+            </div>
+
+            {/* Free Trial Option */}
+            <Card>
+              <CardContent className="p-6 text-center">
+                <div className="flex items-center justify-center gap-2 mb-4">
+                  <Gift className="w-6 h-6" />
+                  <h4 className="text-xl font-bold">Skip Publishing for Now</h4>
+                </div>
+
+                <p className="text-muted-foreground mb-4">
+                  Continue setting up your gallery and publish it later when you're ready.
+                  <br />
+                  <span className="text-sm font-medium">Note: Your gallery won't be publicly visible until you upgrade and publish.</span>
+                </p>
+
+                <Button
+                  onClick={handleStartFreeTrial}
+                  disabled={loading}
+                  size="lg"
+                  variant="outline"
+                  className="px-8"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Continuing...
+                    </>
+                  ) : (
+                    <>
+                      <ArrowRight className="w-4 h-4 mr-2" />
+                      Continue Setup
+                    </>
+                  )}
+                </Button>
+
+                <p className="text-xs text-muted-foreground mt-2">
+                  You can always come back and publish later
+                </p>
+              </CardContent>
+            </Card>
+
+            <div className="text-center">
+              <Button
+                variant="ghost"
+                onClick={() => setShowPaymentOptions(false)}
+                className="text-muted-foreground"
+              >
+                Back to Gallery Settings
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons - only show if not showing payment options */}
+        {!event?.isPublished && !showPaymentOptions && (
+          <div className="space-y-3">
+            <Button
+              onClick={handleInitiatePublish}
+              disabled={!activationDate || isPublishing}
+              className="w-full"
+              size="lg"
+            >
+              {isPublishing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Activating Gallery...
+                </>
+              ) : (
+                <>
+                  <Globe className="mr-2 h-4 w-4" />
+                  Publish Gallery
+                </>
+              )}
+            </Button>
+            <p className="text-xs text-center text-muted-foreground">
+              {(event?.plan === 'free_trial' || event?.plan === 'free' || !event?.plan)
+                ? "We'll help you choose the right plan for your needs"
+                : "Your gallery will be immediately accessible to guests"
+              }
+            </p>
+          </div>
+        )}
+
+        {/* Success message for published galleries */}
+        {event?.isPublished && (
+          <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+            <div className="font-medium text-green-900 dark:text-green-100 mb-1">🎉 Your gallery is live and ready for guests!</div>
+            <p className="text-sm text-green-700 dark:text-green-300">
+              Your gallery is now publicly accessible. Guests can view, upload, and engage with your beautiful wedding memories!
+            </p>
+            {event?.publishedAt && (
+              <div className="text-xs text-green-600 dark:text-green-400 mt-2">
+                Activated on {new Date(event.publishedAt).toLocaleString(undefined, {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   )

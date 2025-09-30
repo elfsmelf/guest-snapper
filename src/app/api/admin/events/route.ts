@@ -124,6 +124,7 @@ export async function GET(request: NextRequest) {
       total: totalCount,
       active: statusCounts.find(s => s.status === 'active')?.count || 0,
       trashed: statusCounts.find(s => s.status === 'trashed')?.count || 0,
+      deleted: statusCounts.find(s => s.status === 'deleted')?.count || 0,
       published: eventsResult.filter(e => e.isPublished).length,
     }
 

@@ -92,13 +92,13 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
                 )}
                 
                 {/* Event Header */}
-                <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <div className="mb-8 text-center">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
                     {(() => {
                       const EventIcon = getEventTypeInfo(eventWithAlbums.eventType || 'wedding').icon
                       return <EventIcon className="w-8 h-8" />
                     })()}
-                    {formatEventTitle(eventWithAlbums.coupleNames, eventWithAlbums.eventType || 'wedding')}
+                    {eventWithAlbums.name}
                   </h1>
                   <p className="text-lg text-gray-600 mb-4">{getEventTypeInfo(eventWithAlbums.eventType || 'wedding').label}</p>
                   <p className="text-gray-500">
@@ -124,7 +124,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
                       This gallery is currently being prepared by the hosts. Check back soon to view and share photos from this special celebration!
                     </p>
                     
-                    {eventWithAlbums.activationDate && (
+                    {eventWithAlbums.isPublished && eventWithAlbums.activationDate && parseLocalDate(eventWithAlbums.activationDate) > new Date() && (
                       <div className="p-3 rounded-lg bg-pink-50 border border-pink-200">
                         <p className="text-sm text-pink-800">
                           <strong>Expected to go live:</strong><br />

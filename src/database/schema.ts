@@ -23,6 +23,8 @@ export const events = pgTable("events", {
   moderationSettings: text('moderation_settings').default('{"nsfw_filter":true,"auto_approve":true}').notNull(),
   coverImageUrl: text('cover_image_url'),
   guestCanViewAlbum: boolean('guest_can_view_album').default(true),
+  guestCanViewGuestbook: boolean('guest_can_view_guestbook').default(true),
+  guestCanViewAudioMessages: boolean('guest_can_view_audio_messages').default(true),
   approveUploads: boolean('approve_uploads').default(false),
   realtimeSlideshow: boolean('realtime_slideshow').default(true),
   slideDuration: integer('slide_duration').default(5),

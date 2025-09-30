@@ -1,0 +1,1 @@
+ALTER TABLE "events" ADD COLUMN "guest_can_view_audio_messages" boolean DEFAULT true;

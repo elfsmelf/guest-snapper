@@ -81,6 +81,7 @@ interface PricingCardsProps {
   showFreeTrial?: boolean
   trialDaysRemaining?: number
   className?: string
+  showUpgradeOnly?: boolean
 }
 
 export function PricingCards({
@@ -90,7 +91,8 @@ export function PricingCards({
   currentPlan,
   showFreeTrial = true,
   trialDaysRemaining = 7,
-  className
+  className,
+  showUpgradeOnly = false
 }: PricingCardsProps) {
   const [currency, setCurrency] = useState<Currency>(selectedCurrency || detectUserCurrency())
 
@@ -101,54 +103,72 @@ export function PricingCards({
 
   const currentCurrencyData = currencies.find(c => c.code === currency)
 
+  // Plan hierarchy for upgrade filtering
+  const planHierarchy = ['bliss', 'radiance', 'eternal'] as Plan[]
+
+  // Filter plans based on showUpgradeOnly
+  const getAvailablePlans = () => {
+    if (!showUpgradeOnly || !currentPlan) {
+      return Object.entries(planDetails) as [keyof typeof planDetails, typeof planDetails[keyof typeof planDetails]][]
+    }
+
+    const currentPlanIndex = planHierarchy.indexOf(currentPlan as Plan)
+    if (currentPlanIndex === -1) {
+      // If current plan is not in hierarchy (free_trial, free), show all plans
+      return Object.entries(planDetails) as [keyof typeof planDetails, typeof planDetails[keyof typeof planDetails]][]
+    }
+
+    // Only show plans that are higher than current plan
+    const upgradeablePlans = planHierarchy.slice(currentPlanIndex + 1)
+    return Object.entries(planDetails).filter(([key]) =>
+      upgradeablePlans.includes(key as Plan)
+    ) as [keyof typeof planDetails, typeof planDetails[keyof typeof planDetails]][]
+  }
+
+  const availablePlans = getAvailablePlans()
+
+  // If no plans to show (shouldn't happen, but safety check)
+  if (availablePlans.length === 0) {
+    return null
+  }
+
   return (
     <div className={cn("w-full", className)}>
       {/* Header */}
       <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-4">Wedding Gallery Pricing</h2>
-        <p className="text-lg text-muted-foreground mb-6">
-          Here for the moments you don't want to miss!
-        </p>
 
-        {/* Included in Every Package */}
-        <div className="mb-8 text-center max-w-4xl mx-auto">
-          <h3 className="text-lg font-bold mb-4">INCLUDED IN EVERY PACKAGE</h3>
-          <div className="grid grid-cols-1 gap-2 text-sm">
-            <div className="flex items-center justify-center gap-2">
-              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-              <span><strong>Unlimited</strong> Guests & Co-Hosts</span>
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-              <span><strong>Unlimited</strong> Photo and Video Uploads</span>
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-              <span>Live Slideshow</span>
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-              <span>Gallery Privacy Settings</span>
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-              <span>Audio and Messages Guestbook</span>
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-              <span>20+ Canva Templates</span>
+        {/* Included in Every Package - only show for new users */}
+        {!showUpgradeOnly && (
+          <div className="mb-12 text-center max-w-5xl mx-auto">
+            <h3 className="text-2xl font-bold mb-8 tracking-wide">INCLUDED IN EVERY PACKAGE</h3>
+            <div className="grid grid-cols-1 gap-4 text-lg">
+              <div className="flex items-center justify-center gap-3">
+                <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                <span><strong>Unlimited</strong> Guests & Co-Hosts</span>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                <span><strong>Unlimited</strong> Photo and Video Uploads</span>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                <span>Live Slideshow</span>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                <span>Gallery Privacy Settings</span>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                <span>Audio and Messages Guestbook</span>
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <Check className="h-5 w-5 text-primary flex-shrink-0" />
+                <span>20+ Canva Templates</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        {/* Why Choose a Plan */}
-        <div className="bg-primary/15 border border-primary/30 rounded-lg p-6 mb-8 max-w-4xl mx-auto">
-          <div className="text-sm text-foreground text-center">
-            <p>
-              Try everything privately for 7 days, then unlock guest access with any plan below. <strong>Purchase now for peace of mind, you can activate it later</strong>—your gallery won't go live until YOU decide it's time.
-            </p>
-          </div>
-        </div>
+        )}
 
         {/* Currency Selector */}
         <div className="flex justify-center mb-12">
@@ -180,8 +200,13 @@ export function PricingCards({
       </div>
 
       {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl mx-auto">
-        {(Object.entries(planDetails) as [keyof typeof planDetails, typeof planDetails[keyof typeof planDetails]][]).map(([key, details]) => {
+      <div className={cn(
+        "grid gap-6 max-w-7xl mx-auto",
+        availablePlans.length === 1 ? "grid-cols-1 max-w-md" :
+        availablePlans.length === 2 ? "grid-cols-1 md:grid-cols-2 max-w-4xl" :
+        "grid-cols-1 md:grid-cols-3"
+      )}>
+        {availablePlans.map(([key, details]) => {
           const features = getPlanFeatures(details.plan)
           const price = getPrice(details.plan, currency)
           const isCurrentPlan = currentPlan === details.plan
@@ -258,7 +283,7 @@ export function PricingCards({
                     onClick={() => onSelectPlan?.(details.plan)}
                     size="lg"
                   >
-                    Create My Gallery
+                    {showUpgradeOnly ? 'Upgrade' : 'Choose This Plan'}
                   </Button>
                 )}
               </CardFooter>

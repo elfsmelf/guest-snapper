@@ -35,6 +35,8 @@ export async function PATCH(
       eventDate,
       activationDate,
       guestCanViewAlbum,
+      guestCanViewGuestbook,
+      guestCanViewAudioMessages,
       approveUploads,
       guestCount,
       coverImageUrl,
@@ -96,6 +98,8 @@ export async function PATCH(
         console.log(`🔄 Also updating privacySettings JSON: allow_guest_viewing=${guestCanViewAlbum}`)
       }
     }
+    if (typeof guestCanViewGuestbook === 'boolean') updateData.guestCanViewGuestbook = guestCanViewGuestbook
+    if (typeof guestCanViewAudioMessages === 'boolean') updateData.guestCanViewAudioMessages = guestCanViewAudioMessages
     if (typeof approveUploads === 'boolean') updateData.approveUploads = approveUploads
     if (typeof guestCount === 'number') updateData.guestCount = guestCount
     if (coverImageUrl !== undefined) updateData.coverImageUrl = coverImageUrl

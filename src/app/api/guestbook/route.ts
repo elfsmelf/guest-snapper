@@ -4,6 +4,12 @@ import { guestbookEntries, events } from "@/database/schema"
 import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
+import { PostHog } from 'posthog-node'
+
+const posthogClient = new PostHog(
+  process.env.NEXT_PUBLIC_POSTHOG_KEY!,
+  { host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,6 +56,24 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       })
       .returning()
+
+    // Track guestbook message in PostHog
+    const event = eventResult[0]
+    const distinctId = session?.user?.id || `guest_${guestName.trim()}`
+    posthogClient.capture({
+      distinctId,
+      event: 'guestbook_message_created',
+      properties: {
+        event_id: eventId,
+        event_slug: event.slug,
+        message_length: message.trim().length,
+        is_authenticated: !!session?.user?.id,
+        guest_name: guestName.trim(),
+      }
+    })
+
+    // Don't wait for PostHog shutdown for performance
+    posthogClient.shutdown()
 
     return NextResponse.json({
       success: true,

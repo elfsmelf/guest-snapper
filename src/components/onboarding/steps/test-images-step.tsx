@@ -56,8 +56,8 @@ export function TestImagesStep({
       <div className="text-center space-y-2">
         <h3 className="text-xl font-semibold">Let's Upload Some Test Photos</h3>
         <p className="text-muted-foreground">
-          Start by uploading a few test photos to see how your gallery looks. 
-          Don't worry - you can delete these later!
+          Start by uploading a few test photos to see how your gallery looks.
+          Don't worry - you can hide these later!
         </p>
       </div>
 

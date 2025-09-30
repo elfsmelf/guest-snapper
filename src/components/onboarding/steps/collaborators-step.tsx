@@ -2,11 +2,12 @@
 
 import React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { UserPlus, Users, Crown, Shield, User, CheckCircle } from "lucide-react"
+import { UserPlus, Users, Crown, Shield, User, CheckCircle, Lock } from "lucide-react"
 import { type OnboardingState } from "@/types/onboarding"
 import { updateOnboardingProgress } from "@/app/actions/onboarding"
 import { CollaboratorsSection } from "@/components/collaborators-section"
-import { useCollaboratorsData, useCollaboratorProgress } from "@/hooks/use-onboarding"
+import { useCollaboratorsData, useCollaboratorProgress, useEventData } from "@/hooks/use-onboarding"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface CollaboratorsStepProps {
   eventId: string
@@ -25,16 +26,20 @@ export function CollaboratorsStep({
   onUpdate,
   onComplete
 }: CollaboratorsStepProps) {
-  // Use prefetched collaborators data
+  // Use prefetched event and collaborators data
+  const { data: event } = useEventData(eventId)
   const { data: collaboratorsData } = useCollaboratorsData(eventId)
   const collaboratorProgress = useCollaboratorProgress(eventId)
-  
+
+  // Check if user is on free trial
+  const isFreeTrialPlan = event?.plan === 'free_trial' || event?.plan === 'free' || !event?.plan
+
   // Calculate if user has collaborators
-  const hasCollaborators = collaboratorsData?.success ? 
-    ((collaboratorsData.members?.length || 0) + (collaboratorsData.invitations?.length || 0)) > 1 : 
+  const hasCollaborators = collaboratorsData?.success ?
+    ((collaboratorsData.members?.length || 0) + (collaboratorsData.invitations?.length || 0)) > 1 :
     false
-  
-  const collaboratorCount = collaboratorsData?.success ? 
+
+  const collaboratorCount = collaboratorsData?.success ?
     ((collaboratorsData.members?.length || 0) + (collaboratorsData.invitations?.length || 0)) : 0
 
   // Handle collaborator changes through React Query mutation
@@ -43,6 +48,111 @@ export function CollaboratorsStep({
     collaboratorProgress.mutate()
   }
 
+  // Show locked message for free trial users
+  if (isFreeTrialPlan) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold">Add Team Members</h3>
+          <p className="text-muted-foreground">
+            Invite team members to help manage your gallery (optional but helpful for larger events).
+          </p>
+        </div>
+
+        <Alert>
+          <Lock className="h-4 w-4" />
+          <AlertDescription>
+            <div className="space-y-2">
+              <p className="font-medium">Team Collaboration is a Premium Feature</p>
+              <p className="text-sm">
+                Upgrade to a paid plan to invite team members and collaborate on your gallery.
+                Team features include role management, shared access, and multi-user editing.
+              </p>
+            </div>
+          </AlertDescription>
+        </Alert>
+
+        {/* Benefits Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5" />
+              Team Benefits
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Role Information */}
+            <div className="space-y-4">
+              <div className="text-sm font-medium">Team Roles:</div>
+
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-yellow-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Crown className="w-4 h-4 text-yellow-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Owner</div>
+                    <div className="text-xs text-muted-foreground">Full access including team management</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Shield className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Admin</div>
+                    <div className="text-xs text-muted-foreground">Can manage gallery settings and uploads</div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <User className="w-4 h-4 text-gray-600" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-medium">Member</div>
+                    <div className="text-xs text-muted-foreground">Can view and upload photos</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Benefits */}
+            <div className="space-y-4">
+              <div className="text-sm font-medium">Why add team members?</div>
+
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground">
+                  • Share gallery management workload
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  • Multiple people can upload and organize
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  • Perfect for wedding planners & photographers
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  • Family members can help manage content
+                </div>
+              </div>
+            </div>
+
+            {/* Usage Examples */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="text-sm font-medium text-blue-900 mb-2">💡 Common Uses</div>
+              <div className="text-xs text-blue-700 space-y-1">
+                <div>• Wedding: Invite photographer & planner</div>
+                <div>• Corporate: Add event organizers</div>
+                <div>• Family: Include relatives as helpers</div>
+                <div>• Birthday: Let friends help organize</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

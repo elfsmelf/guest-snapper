@@ -6,6 +6,12 @@ import { events } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import { addMonths } from "date-fns";
 import { getPlanFeatures } from "@/lib/pricing";
+import { PostHog } from 'posthog-node'
+
+const posthogClient = new PostHog(
+  process.env.NEXT_PUBLIC_POSTHOG_KEY!,
+  { host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }
+)
 
 async function upgradeEvent(opts: {
   userId: string;
@@ -40,9 +46,16 @@ async function upgradeEvent(opts: {
     const planFeatures = getPlanFeatures(plan);
     const now = new Date();
     const activationDate = event.activationDate ? new Date(event.activationDate) : now;
-    
+
     // Calculate new windows based on plan
-    const uploadWindowEnd = addMonths(activationDate, planFeatures.uploadWindowMonths);
+    // Check if plan has day-based window (shouldn't happen for paid plans, but be safe)
+    let uploadWindowEnd: Date;
+    if ('uploadWindowDays' in planFeatures && planFeatures.uploadWindowDays) {
+      uploadWindowEnd = new Date(activationDate);
+      uploadWindowEnd.setDate(uploadWindowEnd.getDate() + planFeatures.uploadWindowDays);
+    } else {
+      uploadWindowEnd = addMonths(activationDate, planFeatures.uploadWindowMonths);
+    }
     const downloadWindowEnd = addMonths(activationDate, planFeatures.downloadWindowMonths);
 
     // Update event with paid plan and payment details
@@ -64,6 +77,22 @@ async function upgradeEvent(opts: {
       .where(eq(events.id, eventId));
 
     console.log(`✅ Successfully upgraded event ${eventId} to ${plan} plan`);
+
+    // Track plan upgrade in PostHog
+    posthogClient.capture({
+      distinctId: userId,
+      event: 'plan_upgraded',
+      properties: {
+        event_id: eventId,
+        plan: plan,
+        currency: currency,
+        stripe_session_id: stripeSessionId,
+        previous_plan: 'free_trial',
+      }
+    })
+
+    // Flush PostHog events
+    await posthogClient.shutdown()
 
   } catch (error) {
     console.error(`Failed to upgrade event ${eventId}:`, error);

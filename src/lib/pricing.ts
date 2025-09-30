@@ -8,7 +8,8 @@ export const planFeatures = {
     guestLimit: 999999, // unlimited guests
     albumLimit: 1,
     themeLimit: 1,
-    uploadWindowMonths: 1, // trial month
+    uploadWindowMonths: 0, // Use uploadWindowDays instead for trial
+    uploadWindowDays: 7, // 7 days for trial
     downloadWindowMonths: 12,
     customBranding: false,
     videoGuestbook: true,
@@ -140,4 +141,33 @@ export function getAvailableUpgrades(currentPlan: string): Plan[] {
   const currentIndex = planHierarchy.indexOf(currentPlan || 'free_trial');
 
   return planHierarchy.slice(currentIndex + 1) as Plan[];
+}
+
+/**
+ * Calculate upload window end date based on plan
+ * Handles both day-based (free trial) and month-based (paid plans) windows
+ */
+export function calculateUploadWindowEnd(plan: string, startDate: Date = new Date()): Date {
+  const features = getPlanFeatures(plan);
+  const endDate = new Date(startDate);
+
+  // Check if plan has day-based window (free trial)
+  if ('uploadWindowDays' in features && features.uploadWindowDays) {
+    endDate.setDate(endDate.getDate() + features.uploadWindowDays);
+  } else if (features.uploadWindowMonths) {
+    // Month-based window for paid plans
+    endDate.setMonth(endDate.getMonth() + features.uploadWindowMonths);
+  }
+
+  return endDate;
+}
+
+/**
+ * Calculate download window end date based on plan
+ */
+export function calculateDownloadWindowEnd(plan: string, startDate: Date = new Date()): Date {
+  const features = getPlanFeatures(plan);
+  const endDate = new Date(startDate);
+  endDate.setMonth(endDate.getMonth() + features.downloadWindowMonths);
+  return endDate;
 }

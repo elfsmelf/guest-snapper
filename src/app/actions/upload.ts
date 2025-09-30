@@ -6,6 +6,12 @@ import { eq, count, countDistinct, and, isNotNull, inArray } from 'drizzle-orm'
 import { auth } from '@/lib/auth'
 import { headers, cookies } from 'next/headers'
 import { canAcceptMoreGuests } from '@/lib/feature-gates'
+import { PostHog } from 'posthog-node'
+
+const posthogClient = new PostHog(
+  process.env.NEXT_PUBLIC_POSTHOG_KEY!,
+  { host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }
+)
 
 interface UploadData {
   eventId: string
@@ -181,6 +187,28 @@ export async function createUpload(uploadData: UploadData) {
       .returning()
 
     console.log('Upload created:', newUpload[0].id)
+
+    // Track upload in PostHog
+    const distinctId = session?.user?.id || `guest_${guestId || 'anonymous'}`
+    posthogClient.capture({
+      distinctId,
+      event: 'media_uploaded',
+      properties: {
+        event_id: uploadData.eventId,
+        event_slug: event.slug,
+        file_type: uploadData.fileType,
+        file_size: uploadData.fileSize,
+        mime_type: uploadData.mimeType,
+        has_caption: !!uploadData.caption,
+        album_id: uploadData.albumId || null,
+        is_authenticated: !!session?.user?.id,
+        is_new_guest: isNewGuest,
+        auto_approved: moderationStatus,
+      }
+    })
+
+    // Don't wait for PostHog shutdown in upload action for performance
+    posthogClient.shutdown()
 
     return {
       success: true,

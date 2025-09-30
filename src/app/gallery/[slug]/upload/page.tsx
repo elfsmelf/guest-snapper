@@ -6,10 +6,12 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import Image from "next/image"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
 import { UploadInterface } from "@/components/upload/upload-interface"
-import { GuestTrackingProvider } from "@/components/guest-tracking-provider"
+import { GalleryPageWrapper } from "@/components/gallery/gallery-page-wrapper"
+import { getTrialStatus } from "@/lib/trial-utils"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { AlertCircle, CreditCard } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface UploadPageProps {
   params: Promise<{ slug: string }>
@@ -37,6 +39,9 @@ export default async function UploadPage({ params, searchParams }: UploadPagePro
       moderationSettings: events.moderationSettings,
       coverImageUrl: events.coverImageUrl,
       guestCanViewAlbum: events.guestCanViewAlbum,
+      plan: events.plan,
+      paidAt: events.paidAt,
+      createdAt: events.createdAt,
     })
     .from(events)
     .where(eq(events.slug, slug))
@@ -108,72 +113,92 @@ export default async function UploadPage({ params, searchParams }: UploadPagePro
 
   const uploadWindowOpen = isOwner || new Date(event.uploadWindowEnd) > new Date()
 
+  // Check trial status
+  const trialStatus = getTrialStatus({
+    plan: event.plan,
+    createdAt: event.createdAt,
+    paidAt: event.paidAt
+  })
+
   return (
-    <GuestTrackingProvider forcePublicView={forcePublicView}>
+    <GalleryPageWrapper eventData={event} eventSlug={slug}>
       <div className="min-h-screen bg-background">
-        {/* Compact Cover Image Header with Nav Overlay */}
-      {event.coverImageUrl && (
-      <div className="relative h-32 md:h-40 overflow-hidden">
-        <Image
-          src={event.coverImageUrl}
-          alt={`${event.coupleNames} - ${event.name}`}
-          fill
-          className="object-cover"
-          priority
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-black/40" />
-        
-        {/* Back Button */}
-        <div className="absolute top-4 left-4 z-10">
-          <Button
-            asChild
-            variant="secondary"
-            size="sm"
-            className="bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white border-white/20"
-          >
-            <Link href={`/gallery/${slug}`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Gallery
-            </Link>
-          </Button>
-        </div>
-        
-        {/* Content Overlay */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center text-white">
-            <h1 className="text-xl md:text-2xl font-bold mb-1">
-              Share Your Photos
-            </h1>
-            <p className="text-sm md:text-base opacity-90">
-              {event.coupleNames} • {event.name}
+        {/* Compact Cover Image Header */}
+        {event.coverImageUrl && (
+          <div className="relative h-32 md:h-40 overflow-hidden">
+            <Image
+              src={event.coverImageUrl}
+              alt={`${event.coupleNames} - ${event.name}`}
+              fill
+              className="object-cover"
+              priority
+              sizes="100vw"
+            />
+            <div className="absolute inset-0 bg-black/40" />
+
+            {/* Content Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center text-white">
+                <h1 className="text-xl md:text-2xl font-bold mb-1">
+                  Share Your Photos
+                </h1>
+                <p className="text-sm md:text-base opacity-90">
+                  {event.coupleNames} • {event.name}
             </p>
           </div>
         </div>
       </div>
-    )}
-    
-    {/* Owner badge - more compact (hide when forcing public view) */}
-    {isOwner && !forcePublicView && (
-      <div className="bg-secondary border-b border-border">
-        <div className="container mx-auto px-4 py-2">
-          <p className="text-xs text-secondary-foreground flex items-center justify-center gap-1">
-            <span className="text-primary">👑</span>
-            <strong>Owner</strong> - Upload anytime
-          </p>
-        </div>
+        )}
+
+        {/* Owner badge - more compact (hide when forcing public view) */}
+        {isOwner && !forcePublicView && !trialStatus.isExpired && (
+          <div className="bg-secondary border-b border-border">
+            <div className="container mx-auto px-4 py-2">
+              <p className="text-xs text-secondary-foreground flex items-center justify-center gap-1">
+                <span className="text-primary">👑</span>
+                <strong>Owner</strong> - Upload anytime
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Expired Trial Alert */}
+        {isOwner && trialStatus.isExpired && (
+          <div className="container mx-auto px-4 py-6">
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription>
+                <div className="space-y-3">
+                  <div>
+                    <p className="font-semibold text-red-900">Free Trial Expired</p>
+                    <p className="text-sm text-red-800 mt-1">
+                      You are currently on a free trial. Choose a plan to be able to upload media.
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="bg-red-600 hover:bg-red-700">
+                    <Link href={`/dashboard/events/${event.id}?tab=pricing`}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Choose Your Plan
+                    </Link>
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Only show upload interface if trial is not expired */}
+        {!trialStatus.isExpired && (
+          <UploadInterface
+            event={eventWithAlbums}
+            uploadWindowOpen={uploadWindowOpen}
+            isOwner={isOwner}
+            guestCanUpload={event.guestCanViewAlbum ?? false}
+            forcePublicView={forcePublicView}
+            shouldShowCounts={shouldShowCounts}
+          />
+        )}
       </div>
-    )}
-    
-        <UploadInterface 
-          event={eventWithAlbums}
-          uploadWindowOpen={uploadWindowOpen}
-          isOwner={isOwner}
-          guestCanUpload={event.guestCanViewAlbum ?? false}
-          forcePublicView={forcePublicView}
-          shouldShowCounts={shouldShowCounts}
-        />
-      </div>
-    </GuestTrackingProvider>
+    </GalleryPageWrapper>
   )
 }

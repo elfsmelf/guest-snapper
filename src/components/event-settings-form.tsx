@@ -21,6 +21,7 @@ import { UpgradePrompt } from "./upgrade-prompt"
 import { canPublishEvent } from "@/lib/feature-gates"
 import { planFeatures, type Currency, type Plan } from "@/lib/pricing"
 import { toast } from "sonner"
+import { getTrialStatus, formatTrialStatus } from "@/lib/trial-utils"
 
 interface Event {
   id: string
@@ -29,6 +30,8 @@ interface Event {
   isPublished: boolean
   publishedAt?: string | null
   guestCanViewAlbum: boolean
+  guestCanViewGuestbook: boolean
+  guestCanViewAudioMessages: boolean
   approveUploads: boolean
   revealSetting: string
   themeId: string
@@ -58,6 +61,8 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
     event.activationDate ? parseLocalDate(event.activationDate) : undefined
   )
   const [guestCanView, setGuestCanView] = useState(event.guestCanViewAlbum)
+  const [guestCanViewGuestbook, setGuestCanViewGuestbook] = useState(event.guestCanViewGuestbook)
+  const [guestCanViewAudioMessages, setGuestCanViewAudioMessages] = useState(event.guestCanViewAudioMessages)
   const [autoApprove, setAutoApprove] = useState(event.approveUploads)
 
   // Parse privacy settings to get guest downloads setting
@@ -77,22 +82,15 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
   const [upgradePromptOpen, setUpgradePromptOpen] = useState(false)
   const [isSelectingPlan, setIsSelectingPlan] = useState(false)
 
-  // Calculate trial days remaining
-  const getTrialDaysRemaining = () => {
-    if (!event.createdAt || (event.plan && event.plan !== 'free_trial' && event.plan !== 'free')) {
-      return 0
-    }
+  // Get trial status using utility function
+  const trialStatus = getTrialStatus({
+    plan: event.plan,
+    createdAt: event.createdAt || new Date().toISOString(),
+    paidAt: event.paidAt
+  })
 
-    const trialStartDate = new Date(event.createdAt)
-    const currentDate = new Date()
-    const trialEndDate = new Date(trialStartDate)
-    trialEndDate.setDate(trialStartDate.getDate() + 7) // 7-day trial
-
-    const timeDiff = trialEndDate.getTime() - currentDate.getTime()
-    const daysRemaining = Math.ceil(timeDiff / (1000 * 3600 * 24))
-
-    return Math.max(0, daysRemaining)
-  }
+  // Backward compatibility with old code
+  const getTrialDaysRemaining = () => trialStatus.daysRemaining
 
   const trialDaysRemaining = getTrialDaysRemaining()
 
@@ -177,6 +175,20 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
     setGuestCanView(checked)
     await updateEventSettings({
       guestCanViewAlbum: checked,
+    })
+  }, [updateEventSettings])
+
+  const handleGuestViewGuestbookChange = useCallback(async (checked: boolean) => {
+    setGuestCanViewGuestbook(checked)
+    await updateEventSettings({
+      guestCanViewGuestbook: checked,
+    })
+  }, [updateEventSettings])
+
+  const handleGuestViewAudioMessagesChange = useCallback(async (checked: boolean) => {
+    setGuestCanViewAudioMessages(checked)
+    await updateEventSettings({
+      guestCanViewAudioMessages: checked,
     })
   }, [updateEventSettings])
 
@@ -327,157 +339,117 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
   return (
     <div className="space-y-6">
-      {/* Event Details Card */}
-      <Card data-section="event-details">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Event Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Date of Event */}
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Event Date</label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                  disabled={isUpdating}
-                >
-                  <Calendar className="mr-2 h-4 w-4" />
-                  {date ? format(date, "EEEE, MMMM do, yyyy") : "When did/will your event happen?"}
-                  {isUpdating && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <CalendarComponent
-                  mode="single"
-                  selected={date}
-                  onSelect={handleDateChange}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
-            <p className="text-xs text-muted-foreground">
-              The actual date when your event took place (wedding, party, etc.)
-            </p>
-          </div>
-
-        </CardContent>
-      </Card>
 
       {/* Choose Your Plan Card */}
-      {(event.plan === 'free' || event.plan === 'free_trial' || !event.plan) && (
-        <Card data-section="choose-plan">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                Choose Your Plan
-              </div>
-              <Badge variant="secondary">
-                {(() => {
-                  const currentPlan = event.plan || 'free_trial';
-                  if (currentPlan === 'free_trial' || currentPlan === 'free') {
-                    return 'Free Trial';
-                  }
-                  return planFeatures[currentPlan as keyof typeof planFeatures]?.name || 'Free Trial';
-                })()}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Free Trial Status Banner */}
-            <div className="bg-muted/50 border rounded-lg p-4">
-              <div className="flex items-center justify-center gap-2 text-foreground">
-                <span className="font-semibold">
-                  You are currently on a free trial
-                  {trialDaysRemaining > 0 && (
-                    <span className="text-primary"> • {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} left</span>
-                  )}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground mt-2 text-center">
-                As the owner of the gallery you can upload photos and videos to test your gallery, but your gallery isn't able to be published.
-              </p>
-            </div>
+      {(() => {
+        const currentPlan = event.plan || 'free_trial';
+        const isFreeTrial = currentPlan === 'free' || currentPlan === 'free_trial' || !event.plan;
+        const isEternal = currentPlan === 'eternal';
 
-            <PricingCards
-              selectedCurrency={selectedCurrency}
-              onCurrencyChange={setSelectedCurrency}
-              onSelectPlan={handleSelectPlan}
-              currentPlan={event.plan || 'free_trial'}
-              showFreeTrial={false}
-              trialDaysRemaining={trialDaysRemaining}
-              className=""
-            />
-          </CardContent>
-        </Card>
-      )}
+        // If user has eternal plan, just show a simple status message
+        if (isEternal) {
+          return (
+            <Card data-section="current-plan">
+              <CardContent className="py-6">
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    <span className="font-semibold">Your current plan is Eternal</span>
+                    <Badge variant="default" className="bg-primary text-primary-foreground">
+                      Premium
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    You're on our most premium plan with all features unlocked.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        }
 
-      {/* Privacy & Moderation Settings Card */}
-      <Card data-section="privacy-moderation">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5" />
-            Privacy & Moderation
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Guest can view album */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="text-sm font-medium">Guest can view album</div>
-              <div className="text-xs text-muted-foreground">
-                Allow guests to view photos and videos in the gallery
-              </div>
-            </div>
-            <Switch 
-              checked={guestCanView}
-              onCheckedChange={handleGuestViewChange}
-              className="data-[state=checked]:bg-primary"
-              disabled={isUpdating}
-            />
-          </div>
+        // For free trial or paid plans that can be upgraded
+        return (
+          <Card data-section="choose-plan">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  {isFreeTrial ? 'Choose Your Plan' : 'Your Plan & Upgrades'}
+                </div>
+                <Badge variant={trialStatus.isExpired ? "destructive" : (isFreeTrial ? "secondary" : "default")}>
+                  {(() => {
+                    if (isFreeTrial) {
+                      return trialStatus.isExpired ? 'Free Trial - Expired' : 'Free Trial';
+                    }
+                    return planFeatures[currentPlan as keyof typeof planFeatures]?.name || 'Free Trial';
+                  })()}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Free Trial Status Banner - only for free trial users */}
+              {isFreeTrial && (
+                <div className={cn(
+                  "border rounded-lg p-4",
+                  trialStatus.isExpired
+                    ? "bg-red-50 border-red-200"
+                    : "bg-muted/50"
+                )}>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className={cn(
+                      "font-semibold",
+                      trialStatus.isExpired ? "text-red-900" : "text-foreground"
+                    )}>
+                      {trialStatus.isExpired ? (
+                        <>Free Trial - Expired</>
+                      ) : (
+                        <>
+                          You are currently on a free trial
+                          {trialDaysRemaining > 0 && (
+                            <span className="text-primary"> • {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} left</span>
+                          )}
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <p className={cn(
+                    "text-sm mt-2 text-center",
+                    trialStatus.isExpired ? "text-red-800" : "text-muted-foreground"
+                  )}>
+                    Choose a plan to be able to publish your gallery so it will be able to be viewed publicly!
+                  </p>
+                </div>
+              )}
 
-          {/* Approve Uploads */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="text-sm font-medium">Approve uploads</div>
-              <div className="text-xs text-muted-foreground">
-                Manually review and approve photos before they appear in the gallery
-              </div>
-            </div>
-            <Switch
-              checked={autoApprove}
-              onCheckedChange={handleAutoApproveChange}
-              className="data-[state=checked]:bg-primary"
-              disabled={isUpdating}
-            />
-          </div>
+              {/* Paid Plan Status Banner - only for paid users */}
+              {!isFreeTrial && (
+                <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+                  <div className="flex items-center justify-center gap-2 text-foreground">
+                    <span className="font-semibold">
+                      Your current plan is {planFeatures[currentPlan as keyof typeof planFeatures]?.name}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2 text-center">
+                    Upgrade to unlock additional features and longer windows.
+                  </p>
+                </div>
+              )}
 
-          {/* Guest Downloads */}
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <div className="text-sm font-medium">Allow guest downloads</div>
-              <div className="text-xs text-muted-foreground">
-                Allow guests to download photos and videos from the gallery
-              </div>
-            </div>
-            <Switch
-              checked={guestCanDownload}
-              onCheckedChange={handleGuestDownloadChange}
-              className="data-[state=checked]:bg-primary"
-              disabled={isUpdating}
-            />
-          </div>
-        </CardContent>
-      </Card>
+              <PricingCards
+                selectedCurrency={selectedCurrency}
+                onCurrencyChange={setSelectedCurrency}
+                onSelectPlan={handleSelectPlan}
+                currentPlan={currentPlan}
+                showFreeTrial={false}
+                trialDaysRemaining={trialDaysRemaining}
+                className=""
+                showUpgradeOnly={!isFreeTrial}
+              />
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Publication Status Card */}
       <Card data-section="event-publication-status">
@@ -496,11 +468,11 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 {event.isPublished ? 'Your gallery is live and accessible to guests' : 'Your gallery is private and only visible to you'}
               </div>
             </div>
-            <Badge 
+            <Badge
               variant={event.isPublished ? 'default' : 'destructive'}
               className={cn(
-                event.isPublished 
-                  ? 'bg-muted text-muted-foreground border border-border' 
+                event.isPublished
+                  ? 'bg-muted text-muted-foreground border border-border'
                   : 'bg-secondary text-secondary-foreground border border-border font-semibold'
               )}
             >
@@ -553,23 +525,18 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
             </Popover>
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground">
-                When your gallery becomes publicly accessible to guests. This can be different from your event date - for example, you might want to activate it the day after your wedding.
+                When your gallery becomes publicly accessible to guests. You may want to activate your gallery a couple of months before your wedding so that you can include multiple events before your wedding such as a hen's night etc.
                 {event.isPublished && " (Cannot be changed after publishing)"}
               </p>
-              {activationDate && !event.isPublished && (
-                <div className="text-xs text-blue-600 bg-blue-50 border border-blue-200 rounded p-2">
-                  💡 <strong>Tip:</strong> You can set this for any date - before, during, or after your event date. Common choices are the day of the event or the day after.
-                </div>
-              )}
             </div>
           </div>
 
           {/* Publish Button */}
           {!event.isPublished && (
             <div className="pt-4 border-t">
-              <Button 
+              <Button
                 onClick={handlePublishEvent}
-                disabled={!activationDate || isUpdating}
+                disabled={!activationDate || isUpdating || (event.plan === 'free' || event.plan === 'free_trial' || !event.plan)}
                 className="w-full"
               >
                 {isUpdating ? (
@@ -581,37 +548,31 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                   'Publish Gallery'
                 )}
               </Button>
-              <p className="text-xs text-muted-foreground mt-2 text-center">
-                Once published, the activation date cannot be changed
-              </p>
-            </div>
-          )}
 
-          {/* Gallery Setup Information */}
-          <div className={cn(
-            "p-4 rounded-lg border",
-            event.isPublished 
-              ? "bg-muted border-border" 
-              : "bg-secondary border-border"
-          )}>
-            <div className={cn(
-              "text-sm",
-              event.isPublished ? "text-muted-foreground" : "text-secondary-foreground"
-            )}>
-              {event.isPublished ? (
-                <div>
-                  <div className="font-medium mb-1">🎉 Your gallery is live!</div>
-                  <p>Your gallery is now publicly accessible to all guests. The activation date is locked and cannot be changed.</p>
-                </div>
-              ) : (
-                <div>
-                  <div className="font-medium mb-1">📝 Gallery Setup</div>
-                  <p>Your gallery is currently private and only visible to you as the owner. Once you set an activation date and publish your gallery, it will become accessible to all guests. Please note that after publishing, you won't be able to modify the activation date, so make sure you're happy with your chosen date before proceeding.</p>
+              {/* Free trial message under disabled button */}
+              {(event.plan === 'free' || event.plan === 'free_trial' || !event.plan) && (
+                <div className="bg-muted/50 border rounded-lg p-4 mt-4">
+                  <div className="flex items-center justify-center gap-2 text-foreground">
+                    <span className="font-semibold">
+                      You are currently on a free trial
+                      {trialDaysRemaining > 0 && (
+                        <span className="text-primary"> • {trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''} left</span>
+                      )}
+                    </span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2 text-center">
+                    Choose a plan to be able to publish your gallery so it will be able to be viewed publicly!
+                  </p>
                 </div>
               )}
-            </div>
-          </div>
 
+              {!(event.plan === 'free' || event.plan === 'free_trial' || !event.plan) && (
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Once published, the activation date cannot be changed
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Duration Display */}
           {activationDate && (
@@ -644,6 +605,98 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
           )}
         </CardContent>
       </Card>
+
+      {/* Privacy & Moderation Settings Card */}
+      <Card data-section="privacy-moderation">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="w-5 h-5" />
+            Privacy & Moderation
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Guest can view album */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Guest can view album</div>
+              <div className="text-xs text-muted-foreground">
+                Allow guests to view photos and videos in the gallery
+              </div>
+            </div>
+            <Switch 
+              checked={guestCanView}
+              onCheckedChange={handleGuestViewChange}
+              className="data-[state=checked]:bg-primary"
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Approve Uploads */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Approve uploads</div>
+              <div className="text-xs text-muted-foreground">
+                Manually review and approve photos before they appear in the gallery
+              </div>
+            </div>
+            <Switch
+              checked={autoApprove}
+              onCheckedChange={handleAutoApproveChange}
+              className="data-[state=checked]:bg-primary"
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Guest can view guestbook */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Allow guests to view guestbook messages</div>
+              <div className="text-xs text-muted-foreground">
+                Allow guests to see guestbook messages from other guests
+              </div>
+            </div>
+            <Switch
+              checked={guestCanViewGuestbook}
+              onCheckedChange={handleGuestViewGuestbookChange}
+              className="data-[state=checked]:bg-primary"
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Guest can view audio messages */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Allow guests to view audio messages</div>
+              <div className="text-xs text-muted-foreground">
+                Allow guests to listen to audio messages from other guests
+              </div>
+            </div>
+            <Switch
+              checked={guestCanViewAudioMessages}
+              onCheckedChange={handleGuestViewAudioMessagesChange}
+              className="data-[state=checked]:bg-primary"
+              disabled={isUpdating}
+            />
+          </div>
+
+          {/* Guest Downloads */}
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Allow guest downloads</div>
+              <div className="text-xs text-muted-foreground">
+                Allow guests to download photos and videos from the gallery
+              </div>
+            </div>
+            <Switch
+              checked={guestCanDownload}
+              onCheckedChange={handleGuestDownloadChange}
+              className="data-[state=checked]:bg-primary"
+              disabled={isUpdating}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
 
 
       {/* Publish Upgrade Prompt */}

@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { db } from "@/database/db"
-import { events, uploads, albums, guestbookEntries } from "@/database/schema"
+import { events, uploads } from "@/database/schema"
 import { eq } from "drizzle-orm"
 import { canUserAccessEvent } from "@/lib/auth-helpers"
 import { r2Client, bucketName } from "@/lib/r2/client"
@@ -110,28 +110,19 @@ export async function deleteEvent(eventId: string) {
       }
     }
 
-    // Step 3: Delete from database (cascade deletion via foreign keys)
-    // The database schema should handle cascade deletion automatically
-    // But we'll be explicit for safety
-
+    // Step 3: Update event status to deleted instead of permanently deleting
+    // This preserves the event record for analytics while marking it as deleted
     try {
-      // Delete in proper order to respect foreign key constraints
-      await db.transaction(async (tx) => {
-        // Delete guestbook entries
-        await tx.delete(guestbookEntries).where(eq(guestbookEntries.eventId, eventId))
-        
-        // Delete uploads
-        await tx.delete(uploads).where(eq(uploads.eventId, eventId))
-        
-        // Delete albums
-        await tx.delete(albums).where(eq(albums.eventId, eventId))
-        
-        // Finally delete the event
-        await tx.delete(events).where(eq(events.id, eventId))
-      })
+      await db
+        .update(events)
+        .set({
+          status: 'deleted',
+          updatedAt: new Date().toISOString()
+        })
+        .where(eq(events.id, eventId))
     } catch (dbError) {
-      console.error('Database deletion error:', dbError)
-      return { success: false, error: "Failed to delete event data" }
+      console.error('Database update error:', dbError)
+      return { success: false, error: "Failed to update event status" }
     }
 
     return { success: true }

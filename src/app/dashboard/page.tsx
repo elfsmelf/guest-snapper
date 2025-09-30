@@ -12,7 +12,8 @@ import {
   Camera,
   ArrowRight,
   Clock,
-  Rocket
+  Rocket,
+  CreditCard
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { parseOnboardingState } from "@/types/onboarding"
 import { formatEventTitle, getEventTypeInfo } from "@/lib/event-types"
+import { getTrialStatus, formatTrialStatus } from "@/lib/trial-utils"
 
 function SectionTitle({
   title,
@@ -83,6 +85,16 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     console.error('Error loading user events:', error)
   }
 
+  // Check for expired trials
+  const expiredTrialEvents = userEvents.filter(event => {
+    const trialStatus = getTrialStatus({
+      plan: event.plan,
+      createdAt: event.createdAt,
+      paidAt: event.paidAt
+    })
+    return trialStatus.isExpired
+  })
+
   return (
     <div className="space-y-6">
       {/* Invitation Status Messages */}
@@ -94,7 +106,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </AlertDescription>
         </Alert>
       )}
-      
+
       {invitationStatus === 'rejected' && (
         <Alert className="border-border bg-muted">
           <XCircle className="h-4 w-4 text-primary" />
@@ -103,7 +115,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </AlertDescription>
         </Alert>
       )}
-      
+
       {invitationStatus === 'error' && (
         <Alert className="border-border bg-muted">
           <AlertCircle className="h-4 w-4 text-destructive" />
@@ -112,7 +124,30 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           </AlertDescription>
         </Alert>
       )}
-      
+
+      {/* Expired Trial Alert */}
+      {expiredTrialEvents.length > 0 && (
+        <Alert className="border-orange-200 bg-orange-50">
+          <AlertCircle className="h-4 w-4 text-orange-600" />
+          <AlertDescription>
+            <div className="space-y-3">
+              <div>
+                <p className="font-semibold text-orange-900">Free Trial Expired</p>
+                <p className="text-sm text-orange-800 mt-1">
+                  You are currently on a free trial. Choose a plan to be able to publish your gallery so it will be able to be viewed publicly!
+                </p>
+              </div>
+              <Button asChild size="sm" className="bg-orange-600 hover:bg-orange-700">
+                <Link href={`/dashboard/events/${expiredTrialEvents[0].id}?tab=pricing`}>
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Choose Your Plan
+                </Link>
+              </Button>
+            </div>
+          </AlertDescription>
+        </Alert>
+      )}
+
       {userEvents.length > 0 ? (
         <main className="mx-auto max-w-7xl">
           {/* Header */}
@@ -199,10 +234,6 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
           {/* Events Grid */}
           <section className="mb-8">
-            <SectionTitle 
-              title="Your Galleries"
-              description="View and manage your completed events"
-            />
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {userEvents.map((event) => {
                 const eventUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/gallery/${event.slug}`
@@ -227,13 +258,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                       <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                         {/* Published Status */}
                         <div className={`px-2 py-1 rounded-full text-xs font-medium text-center ${
-                          event.isPublished 
-                            ? 'bg-muted text-muted-foreground border border-border' 
+                          event.isPublished
+                            ? 'bg-muted text-muted-foreground border border-border'
                             : 'bg-secondary text-secondary-foreground border border-border'
                         }`}>
                           {event.isPublished ? 'Published' : 'Private'}
                         </div>
-                        
+
                         {/* Member Type */}
                         <div className={`px-2 py-1 rounded-full text-xs font-medium text-center ${
                           event.isOwner
@@ -241,6 +272,41 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                             : 'bg-secondary text-secondary-foreground border border-border'
                         }`}>
                           {event.isOwner ? 'Owner' : 'Member'}
+                        </div>
+
+                        {/* Plan Badge */}
+                        <div className={`px-2 py-1 rounded-full text-xs font-medium text-center capitalize ${
+                          (() => {
+                            const trialStatus = getTrialStatus({
+                              plan: event.plan,
+                              createdAt: event.createdAt,
+                              paidAt: event.paidAt
+                            })
+                            if (trialStatus.isExpired) {
+                              return 'bg-red-100 text-red-800 border border-red-300'
+                            }
+                            if (event.plan === 'free_trial' || event.plan === 'free' || !event.plan) {
+                              return 'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                            }
+                            return 'bg-green-100 text-green-800 border border-green-300'
+                          })()
+                        }`}>
+                          {(() => {
+                            const plan = event.plan || 'free_trial'
+                            const trialStatus = getTrialStatus({
+                              plan: event.plan,
+                              createdAt: event.createdAt,
+                              paidAt: event.paidAt
+                            })
+
+                            // Show trial status if on trial
+                            if (trialStatus.isOnTrial) {
+                              return formatTrialStatus(trialStatus)
+                            }
+
+                            // Replace underscores with spaces and capitalize
+                            return plan.replace(/_/g, ' ')
+                          })()}
                         </div>
                       </div>
                     </div>

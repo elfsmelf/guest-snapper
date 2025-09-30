@@ -44,7 +44,7 @@ export async function POST(
     const organizationResult = await (auth.api as any).createOrganization({
       headers: await headers(),
       body: {
-        name: `${event.coupleNames} - ${event.name}`,
+        name: event.name,
         slug: `${event.slug}-org`,
         metadata: {
           eventId: eventId,

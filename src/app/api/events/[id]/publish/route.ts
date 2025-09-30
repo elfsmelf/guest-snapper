@@ -8,6 +8,12 @@ import { addMonths } from 'date-fns'
 import { parseLocalDate } from '@/lib/date-utils'
 import { validateEventAccess } from '@/lib/auth-helpers'
 import { canPublishEvent } from '@/lib/feature-gates'
+import { PostHog } from 'posthog-node'
+
+const posthogClient = new PostHog(
+  process.env.NEXT_PUBLIC_POSTHOG_KEY!,
+  { host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }
+)
 
 export async function POST(
   request: NextRequest,
@@ -77,6 +83,22 @@ export async function POST(
       })
       .where(eq(events.id, id))
       .returning()
+
+    // Track event publish in PostHog
+    posthogClient.capture({
+      distinctId: session.user.id,
+      event: 'event_published',
+      properties: {
+        event_id: id,
+        event_slug: event.slug,
+        event_type: event.eventType,
+        plan: event.plan,
+        activation_date: event.activationDate,
+      }
+    })
+
+    // Flush PostHog events
+    await posthogClient.shutdown()
 
     // Revalidate the gallery page cache when event is published
     // This ensures the gallery immediately reflects the published status

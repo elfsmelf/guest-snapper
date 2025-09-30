@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/database/db"
-import { guestbookEntries } from "@/database/schema"
+import { guestbookEntries, events } from "@/database/schema"
 import { eq, desc } from "drizzle-orm"
 
 export async function GET(
@@ -9,6 +9,23 @@ export async function GET(
 ) {
   try {
     const { eventId } = await params
+
+    // Check if guests can view guestbook for this event
+    const event = await db
+      .select({
+        guestCanViewGuestbook: events.guestCanViewGuestbook,
+      })
+      .from(events)
+      .where(eq(events.id, eventId))
+      .limit(1)
+
+    if (!event.length || event[0].guestCanViewGuestbook === false) {
+      return NextResponse.json({
+        success: false,
+        entries: [],
+        message: "Guestbook viewing is disabled for this event"
+      })
+    }
 
     // Get all approved guestbook entries for this event
     const entries = await db

@@ -215,18 +215,8 @@ export function GalleryThemeManager({ eventId, currentThemeId, onThemeChange, ev
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
-          Gallery Theme
-        </CardTitle>
-        <CardDescription>
-          Choose a theme for your wedding gallery. This will only affect the gallery pages.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {Object.values(GALLERY_THEMES).map((theme) => (
             <div key={theme.id} className="space-y-2">
               <ThemePreview theme={theme} />
@@ -238,26 +228,25 @@ export function GalleryThemeManager({ eventId, currentThemeId, onThemeChange, ev
           ))}
         </div>
 
-        {selectedTheme !== currentThemeId && (
-          <div className="flex items-center gap-3 pt-4 border-t">
-            <Button 
-              onClick={handleSave} 
-              disabled={isPending}
-              className="flex items-center gap-2"
-            >
-              {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save Theme
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => setSelectedTheme(currentThemeId)}
-              disabled={isPending}
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      {selectedTheme !== currentThemeId && (
+        <div className="flex items-center gap-3 pt-4 border-t">
+          <Button
+            onClick={handleSave}
+            disabled={isPending}
+            className="flex items-center gap-2"
+          >
+            {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Save Theme
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setSelectedTheme(currentThemeId)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+        </div>
+      )}
+    </div>
   )
 }

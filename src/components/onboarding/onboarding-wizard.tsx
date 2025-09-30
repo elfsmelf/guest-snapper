@@ -9,22 +9,23 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Camera, 
-  Shield, 
-  Palette, 
-  Users, 
-  Globe, 
-  FolderPlus, 
-  QrCode, 
-  Play, 
+import {
+  Camera,
+  Shield,
+  Palette,
+  Users,
+  Globe,
+  FolderPlus,
+  QrCode,
+  Play,
   UserPlus,
   Upload,
   ChevronLeft,
   ChevronRight,
   X,
   Check,
-  Rocket
+  Rocket,
+  Eye
 } from "lucide-react"
 import { toast } from "sonner"
 // import { motion, AnimatePresence } from "framer-motion" // Commenting out for now
@@ -46,10 +47,8 @@ import { SkipConfirmationModal } from "./skip-confirmation-modal"
 
 // Import step components (we'll create these next)
 import { TestImagesStep } from "./steps/test-images-step"
-import { CoverPhotoStep } from "./steps/cover-photo-step"
 import { PrivacyStep } from "./steps/privacy-step"
 import { ThemeStep } from "./steps/theme-step"
-import { PricingStep } from "./steps/pricing-step"
 import { PublishStep } from "./steps/publish-step"
 import { AlbumsStep } from "./steps/albums-step"
 import { QRCodeStep } from "./steps/qr-code-step"
@@ -65,15 +64,13 @@ interface OnboardingWizardProps {
 
 const STEPS = [
   { id: ONBOARDING_STEPS.TEST_IMAGES, title: "Upload Test Images", icon: Upload, required: true },
-  { id: ONBOARDING_STEPS.COVER_PHOTO, title: "Add Cover Photo", icon: Camera, required: false },
   { id: ONBOARDING_STEPS.PRIVACY, title: "Configure Privacy", icon: Shield, required: true },
-  { id: ONBOARDING_STEPS.GUEST_COUNT, title: "Choose Plan", icon: Users, required: true },
-  { id: ONBOARDING_STEPS.PUBLISH, title: "Publish Gallery", icon: Globe, required: true },
-  { id: ONBOARDING_STEPS.ALBUMS, title: "Create Albums", icon: FolderPlus, required: false },
+  { id: ONBOARDING_STEPS.THEME, title: "Choose Theme", icon: Palette, required: false },
+  { id: ONBOARDING_STEPS.PUBLISH, title: "Activate Your Gallery", icon: Globe, required: true },
   { id: ONBOARDING_STEPS.QR_CODE, title: "Download QR Code", icon: QrCode, required: false },
+  { id: ONBOARDING_STEPS.ALBUMS, title: "Create Albums", icon: FolderPlus, required: false },
   { id: ONBOARDING_STEPS.SLIDESHOW, title: "Test Slideshow", icon: Play, required: false },
-  { id: ONBOARDING_STEPS.COLLABORATORS, title: "Add Team", icon: UserPlus, required: false },
-  { id: ONBOARDING_STEPS.THEME, title: "Choose Theme", icon: Palette, required: false }
+  { id: ONBOARDING_STEPS.COLLABORATORS, title: "Add Team", icon: UserPlus, required: false }
 ]
 
 export function OnboardingWizard({
@@ -240,17 +237,13 @@ export function OnboardingWizard({
 
     switch (currentStep) {
       case 1: return <TestImagesStep {...props} />
-      case 2:
-        console.log('🧙‍♂️ Rendering CoverPhotoStep with state:', onboardingData)
-        return <CoverPhotoStep {...props} />
-      case 3: return <PrivacyStep {...props} />
-      case 4: return <PricingStep {...props} />
-      case 5: return <PublishStep {...props} />
+      case 2: return <PrivacyStep {...props} />
+      case 3: return <ThemeStep {...props} />
+      case 4: return <PublishStep {...props} />
+      case 5: return <QRCodeStep {...props} />
       case 6: return <AlbumsStep {...props} />
-      case 7: return <QRCodeStep {...props} />
-      case 8: return <SlideshowStep {...props} />
-      case 9: return <CollaboratorsStep {...props} />
-      case 10: return <ThemeStep {...props} />
+      case 7: return <SlideshowStep {...props} />
+      case 8: return <CollaboratorsStep {...props} />
       default: return null
     }
   }
@@ -260,29 +253,25 @@ export function OnboardingWizard({
     if (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(stepId)) {
       return true
     }
-    
+
     // Also check individual completion flags
     switch (stepId) {
       case ONBOARDING_STEPS.TEST_IMAGES:
         return onboardingData.testImagesUploaded && onboardingData.testImageCount > 0
-      case ONBOARDING_STEPS.COVER_PHOTO:
-        return onboardingData.coverPhotoSet
       case ONBOARDING_STEPS.PRIVACY:
         return onboardingData.privacyConfigured
-      case ONBOARDING_STEPS.GUEST_COUNT:
-        return onboardingData.guestCountSet || onboardingData.paymentCompleted || ('paymentPlan' in onboardingData && onboardingData.paymentPlan)
+      case ONBOARDING_STEPS.THEME:
+        return onboardingData.themeSelected
       case ONBOARDING_STEPS.PUBLISH:
         return onboardingData.eventPublished || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PUBLISH))
-      case ONBOARDING_STEPS.ALBUMS:
-        return onboardingData.albumsCreated > 0
       case ONBOARDING_STEPS.QR_CODE:
         return onboardingData.qrDownloaded
+      case ONBOARDING_STEPS.ALBUMS:
+        return onboardingData.albumsCreated > 0
       case ONBOARDING_STEPS.SLIDESHOW:
         return onboardingData.slideshowTested
       case ONBOARDING_STEPS.COLLABORATORS:
         return onboardingData.collaboratorsInvited > 0
-      case ONBOARDING_STEPS.THEME:
-        return onboardingData.themeSelected
       default:
         return false
     }
@@ -295,28 +284,24 @@ export function OnboardingWizard({
   // Check if current step's required action is completed
   const isCurrentStepActionComplete = () => {
     if (!currentStepData) return false
-    
+
     switch (currentStepData.id) {
       case ONBOARDING_STEPS.TEST_IMAGES:
         return (onboardingData.testImagesUploaded && onboardingData.testImageCount > 0) || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.TEST_IMAGES))
-      case ONBOARDING_STEPS.COVER_PHOTO:
-        return onboardingData.coverPhotoSet || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.COVER_PHOTO))
       case ONBOARDING_STEPS.PRIVACY:
         return onboardingData.privacyConfigured
-      case ONBOARDING_STEPS.GUEST_COUNT:
-        return onboardingData.guestCountSet || onboardingData.paymentCompleted || ('paymentPlan' in onboardingData && onboardingData.paymentPlan)
+      case ONBOARDING_STEPS.THEME:
+        return onboardingData.themeSelected
       case ONBOARDING_STEPS.PUBLISH:
         return onboardingData.eventPublished || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PUBLISH))
-      case ONBOARDING_STEPS.ALBUMS:
-        return onboardingData.albumsCreated > 0
       case ONBOARDING_STEPS.QR_CODE:
         return onboardingData.qrDownloaded
+      case ONBOARDING_STEPS.ALBUMS:
+        return onboardingData.albumsCreated > 0
       case ONBOARDING_STEPS.SLIDESHOW:
         return onboardingData.slideshowTested
       case ONBOARDING_STEPS.COLLABORATORS:
         return onboardingData.collaboratorsInvited > 0
-      case ONBOARDING_STEPS.THEME:
-        return onboardingData.themeSelected
       default:
         return false
     }
@@ -412,7 +397,7 @@ export function OnboardingWizard({
           </Button>
 
           <div className="flex gap-2">
-            {/* Skip button - show for optional steps OR required steps that haven't been completed, but hide for pricing step */}
+            {/* Skip button - show for optional steps OR required steps that haven't been completed */}
             {(!currentStepData?.required || !isCurrentStepActionComplete()) && !isLastStep && currentStep !== 4 && (
               <Button
                 variant={currentStepData?.required && !isCurrentStepActionComplete() ? "outline" : "ghost"}

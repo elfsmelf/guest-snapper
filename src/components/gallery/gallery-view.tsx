@@ -58,6 +58,8 @@ interface Event {
   moderationSettings: string
   coverImageUrl?: string
   guestCanViewAlbum: boolean
+  guestCanViewGuestbook: boolean
+  guestCanViewAudioMessages: boolean
   approveUploads: boolean
   userId: string
   albums: { id: string; name: string; sortOrder: number; isVisible: boolean }[]
@@ -612,17 +614,21 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                 <TabsTrigger value="photos" className="data-[state=active]:bg-background flex-shrink-0">
                   Photos ({approvedPhotoCount})
                 </TabsTrigger>
-                <TabsTrigger value="audio" className="data-[state=active]:bg-background flex-shrink-0">
-                  Audio Messages ({approvedAudioCount})
-                </TabsTrigger>
+                {(uiMode === 'OWNER_UI' || event.guestCanViewAudioMessages) && (
+                  <TabsTrigger value="audio" className="data-[state=active]:bg-background flex-shrink-0">
+                    Audio Messages ({approvedAudioCount})
+                  </TabsTrigger>
+                )}
                 {uiMode === 'OWNER_UI' && event.approveUploads && (
                   <TabsTrigger value="pending" className="data-[state=active]:bg-background flex-shrink-0">
                     Pending ({pendingPhotoCount + pendingAudioCount})
                   </TabsTrigger>
                 )}
-                <TabsTrigger value="guestbook" className="data-[state=active]:bg-background flex-shrink-0">
-                  Messages ({guestbookCount})
-                </TabsTrigger>
+                {(uiMode === 'OWNER_UI' || event.guestCanViewGuestbook) && (
+                  <TabsTrigger value="guestbook" className="data-[state=active]:bg-background flex-shrink-0">
+                    Messages ({guestbookCount})
+                  </TabsTrigger>
+                )}
               </TabsList>
             </Tabs>
 
@@ -648,34 +654,47 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
             {selectedTab === 'audio' ? (
               <div>
-                {/* Audio Messages List */}
-                <div className="space-y-4">
-                  {displayAudioUploads.map((upload) => (
-                    <AudioPlayer
-                      key={upload.id}
-                      upload={upload}
-                      onApprove={undefined}
-                      onReject={undefined}
-                      showApprovalButtons={false}
-                    />
-                  ))}
-                </div>
+                {/* Check audio messages viewing permission */}
+                {(uiMode === 'OWNER_UI' || event.guestCanViewAudioMessages) ? (
+                  <>
+                    {/* Audio Messages List */}
+                    <div className="space-y-4">
+                      {displayAudioUploads.map((upload) => (
+                        <AudioPlayer
+                          key={upload.id}
+                          upload={upload}
+                          onApprove={undefined}
+                          onReject={undefined}
+                          showApprovalButtons={false}
+                        />
+                      ))}
+                    </div>
 
-                {displayAudioUploads.length === 0 && (
+                    {displayAudioUploads.length === 0 && (
+                      <div className="text-center py-12">
+                        <Mic className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium mb-2">No audio messages yet</h3>
+                        <p className="text-muted-foreground mb-4">
+                          Be the first to share an audio message from this event!
+                        </p>
+                        {uploadWindowOpen && (
+                          <Button onClick={() => {
+                            window.location.href = `/gallery/${eventSlug}/voice`
+                          }}>
+                            <Mic className="h-4 w-4 mr-2" />
+                            Record Audio Message
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
                   <div className="text-center py-12">
                     <Mic className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No audio messages yet</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Be the first to share an audio message from this event!
+                    <h3 className="text-lg font-medium mb-2">Audio Messages Hidden</h3>
+                    <p className="text-muted-foreground">
+                      The event host has chosen to keep audio messages private.
                     </p>
-                    {uploadWindowOpen && (
-                      <Button onClick={() => {
-                        window.location.href = `/gallery/${eventSlug}/voice`
-                      }}>
-                        <Mic className="h-4 w-4 mr-2" />
-                        Record Audio Message
-                      </Button>
-                    )}
                   </div>
                 )}
               </div>
@@ -1091,11 +1110,22 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               </div>
             ) : (
               <div>
-                <GuestbookEntries 
-                  eventId={event.id} 
-                  onMessageAdded={handleMessageAdded}
-                  customEntries={isGuestOwnContent ? guestbookEntries : undefined}
-                />
+                {/* Check guestbook viewing permission */}
+                {(uiMode === 'OWNER_UI' || event.guestCanViewGuestbook) ? (
+                  <GuestbookEntries
+                    eventId={event.id}
+                    onMessageAdded={handleMessageAdded}
+                    customEntries={isGuestOwnContent ? guestbookEntries : undefined}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">Guestbook Messages Hidden</h3>
+                    <p className="text-muted-foreground">
+                      The event host has chosen to keep guestbook messages private.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
         </>

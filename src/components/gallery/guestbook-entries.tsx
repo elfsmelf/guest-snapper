@@ -56,7 +56,12 @@ export function GuestbookEntries({ eventId, onMessageAdded, customEntries }: Gue
         const response = await fetch(`/api/guestbook/${eventId}`)
         if (response.ok) {
           const data = await response.json()
-          setEntries(data.entries || [])
+          // Check if guestbook viewing is disabled
+          if (data.success === false) {
+            setEntries([])
+          } else {
+            setEntries(data.entries || [])
+          }
         }
       } catch (error) {
         console.error('Failed to fetch guestbook entries:', error)

@@ -50,3 +50,4 @@ yarn-error.log*
 better-auth-ui-main/
 *.txt
 debug-*.js
+.env.local

@@ -134,6 +134,20 @@
       "when": 1757996552959,
       "tag": "0018_modern_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1759199190874,
+      "tag": "0019_mysterious_mister_sinister",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1759199724267,
+      "tag": "0020_zippy_nemesis",
+      "breakpoints": true
     }
   ]
 }

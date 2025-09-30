@@ -65,14 +65,9 @@ export function PublicGalleryHeader({ galleryTheme, eventSlug, showAuthButtons =
                         </Link>
                     </Button>
                 ) : showAuthButtons ? (
-                    <>
-                        <Button asChild variant="outline" size="sm">
-                            <Link href="/auth/sign-in" prefetch={false}>Login</Link>
-                        </Button>
-                        <Button asChild size="sm">
-                            <Link href="/auth/sign-up" prefetch={false}>Create Account</Link>
-                        </Button>
-                    </>
+                    <Button asChild size="sm">
+                        <Link href="/" prefetch={false}>Create QR Gallery</Link>
+                    </Button>
                 ) : null}
             </div>
         </header>

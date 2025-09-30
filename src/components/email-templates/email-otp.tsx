@@ -32,7 +32,7 @@ export function EmailOTPTemplate({ otp, type, email }: EmailOTPTemplateProps) {
   const getHeading = () => {
     switch (type) {
       case 'sign-in':
-        return 'Sign in to Guest Snapper'
+        return 'Welcome to Guest Snapper!'
       case 'email-verification':
         return 'Verify your email address'
       case 'forget-password':
@@ -45,9 +45,9 @@ export function EmailOTPTemplate({ otp, type, email }: EmailOTPTemplateProps) {
   const getMessage = () => {
     switch (type) {
       case 'sign-in':
-        return 'Use the code below to sign in to your Guest Snapper account:'
+        return 'Ready to create your wedding photo gallery? Use the code below to continue:'
       case 'email-verification':
-        return 'Use the code below to verify your email address for Guest Snapper:'
+        return 'Use the code below to verify your email address and start creating beautiful wedding memories:'
       case 'forget-password':
         return 'Use the code below to reset your password for Guest Snapper:'
       default:
@@ -61,7 +61,13 @@ export function EmailOTPTemplate({ otp, type, email }: EmailOTPTemplateProps) {
       <Body style={main}>
         <Container style={container}>
           <Section style={logoSection}>
-            <Text style={logoText}>Guest Snapper</Text>
+            <img
+              src="https://assets.guestsnapper.com/marketing/logos/Guest%20Snapper%20v6%20logo.png"
+              alt="Guest Snapper"
+              width="156"
+              height="42"
+              style={{ maxWidth: '156px', height: 'auto' }}
+            />
           </Section>
           
           <Section style={section}>
@@ -76,15 +82,19 @@ export function EmailOTPTemplate({ otp, type, email }: EmailOTPTemplateProps) {
             <Text style={text}>
               This code will expire in 10 minutes for security reasons.
             </Text>
-            
+
             <Text style={text}>
               If you didn't request this code, you can safely ignore this email.
             </Text>
-            
+
             <Hr style={hr} />
-            
+
+            <Text style={subtleText}>
+              ✨ Guest Snapper helps you capture every precious moment from your special day with unlimited photo uploads from all your guests.
+            </Text>
+
             <Text style={footer}>
-              This email was sent to {email}. If you have any questions, please contact us.
+              This email was sent to {email}. Questions? We're here to help!
             </Text>
           </Section>
         </Container>
@@ -95,7 +105,7 @@ export function EmailOTPTemplate({ otp, type, email }: EmailOTPTemplateProps) {
 
 // Styles
 const main = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#f8f9fa',
   fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
 }
 
@@ -106,62 +116,70 @@ const container = {
 }
 
 const logoSection = {
-  padding: '0 0 20px',
+  padding: '32px 0 24px',
   textAlign: 'center' as const,
-}
-
-const logoText = {
-  fontSize: '24px',
-  fontWeight: 'bold',
-  color: '#2563eb',
-  margin: '0',
+  backgroundColor: '#ffffff',
+  borderRadius: '12px 12px 0 0',
 }
 
 const section = {
-  padding: '24px',
-  border: 'solid 1px #dedede',
-  borderRadius: '5px',
+  padding: '32px 24px',
+  backgroundColor: '#ffffff',
+  borderRadius: '0 0 12px 12px',
   textAlign: 'center' as const,
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
 }
 
 const heading = {
   fontSize: '28px',
   fontWeight: 'bold',
-  color: '#000',
-  margin: '0 0 30px',
+  color: '#1f2937',
+  margin: '0 0 16px',
+  fontFamily: 'Georgia, serif',
 }
 
 const text = {
   fontSize: '16px',
-  color: '#000',
-  lineHeight: '26px',
+  color: '#374151',
+  lineHeight: '24px',
   margin: '16px 0',
 }
 
 const codeSection = {
-  backgroundColor: '#f4f4f4',
-  borderRadius: '4px',
+  backgroundColor: '#f3f4f6',
+  borderRadius: '12px',
   margin: '32px 0',
-  padding: '24px',
+  padding: '32px 24px',
+  border: '2px dashed #d1d5db',
 }
 
 const codeText = {
-  fontSize: '32px',
+  fontSize: '36px',
   fontWeight: 'bold',
-  color: '#000',
-  fontFamily: 'monospace',
-  letterSpacing: '6px',
+  color: '#1f2937',
+  fontFamily: 'Monaco, Consolas, "Courier New", monospace',
+  letterSpacing: '8px',
   margin: '0',
 }
 
 const hr = {
-  borderColor: '#dfe1e4',
-  margin: '42px 0 26px',
+  borderColor: '#e5e7eb',
+  margin: '32px 0 24px',
+  borderStyle: 'solid',
+  borderWidth: '1px 0 0 0',
+}
+
+const subtleText = {
+  color: '#6b7280',
+  fontSize: '14px',
+  margin: '16px 0',
+  lineHeight: '20px',
+  fontStyle: 'italic',
 }
 
 const footer = {
-  color: '#8898aa',
+  color: '#9ca3af',
   fontSize: '12px',
-  margin: '0',
+  margin: '16px 0 0',
   lineHeight: '16px',
 }

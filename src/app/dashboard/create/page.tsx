@@ -8,10 +8,14 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DatePickerRac } from '@/components/ui/date-picker-rac'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Upload as UploadIcon, X } from 'lucide-react'
 import Link from 'next/link'
 import { CalendarDate, parseDate } from '@internationalized/date'
 import { eventTypes } from '@/lib/event-types'
+import Image from 'next/image'
+import { toast } from 'sonner'
+import { calculateUploadWindowEnd, calculateDownloadWindowEnd } from '@/lib/pricing'
+import posthog from 'posthog-js'
 
 export default function CreateGalleryPage() {
   const router = useRouter()
@@ -23,6 +27,8 @@ export default function CreateGalleryPage() {
     eventType: 'wedding',
   })
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null)
+  const [coverImage, setCoverImage] = useState<File | null>(null)
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null)
 
   // Get placeholder text based on event type
   const getEventNamePlaceholder = (eventType: string) => {
@@ -42,6 +48,37 @@ export default function CreateGalleryPage() {
       .replace(/[^a-z0-9\s-]/g, '')
       .replace(/\s+/g, '-')
       .substring(0, 50) + '-' + Math.random().toString(36).substring(2, 8)
+  }
+
+  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file')
+        return
+      }
+
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error('Image must be less than 10MB')
+        return
+      }
+
+      setCoverImage(file)
+
+      // Create preview
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeCoverImage = () => {
+    setCoverImage(null)
+    setCoverImagePreview(null)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,6 +104,8 @@ export default function CreateGalleryPage() {
       })
 
       // Generate optimistic event data
+      const now = new Date()
+      const plan = 'free_trial'
       const optimisticEvent = {
         id: 'temp-' + Date.now(), // Temporary ID
         name: formData.name,
@@ -75,14 +114,14 @@ export default function CreateGalleryPage() {
         eventDate: selectedDate ? selectedDate.toString() : new Date().toISOString().split('T')[0],
         slug: slug,
         isPublished: false,
-        plan: 'free_trial',
+        plan,
         currency: 'USD',
         guestCount: 0,
         themeId: 'default',
         realtimeSlideshow: true,
-        uploadWindowEnd: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
-        downloadWindowEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-        createdAt: new Date().toISOString(),
+        uploadWindowEnd: calculateUploadWindowEnd(plan, now).toISOString(),
+        downloadWindowEnd: calculateDownloadWindowEnd(plan, now).toISOString(),
+        createdAt: now.toISOString(),
         coverImageUrl: null
       }
 
@@ -94,12 +133,65 @@ export default function CreateGalleryPage() {
       }
 
       const event = await response.json()
-      
+
+      // Upload cover image if provided
+      if (coverImage) {
+        try {
+          // Get presigned URL for cover image upload
+          const uploadUrlResponse = await fetch('/api/upload-cover-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              eventId: event.id,
+              fileName: coverImage.name,
+              fileType: coverImage.type,
+            }),
+          })
+
+          if (uploadUrlResponse.ok) {
+            const { uploadUrl, fileUrl } = await uploadUrlResponse.json()
+
+            // Upload to R2 using presigned URL
+            const uploadResponse = await fetch(uploadUrl, {
+              method: 'PUT',
+              body: coverImage,
+              headers: {
+                'Content-Type': coverImage.type,
+              },
+            })
+
+            if (uploadResponse.ok) {
+              // Update event with cover image URL
+              await fetch(`/api/events/${event.id}/cover-image`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ coverImageUrl: fileUrl }),
+              })
+
+              optimisticEvent.coverImageUrl = fileUrl
+            }
+          }
+        } catch (uploadError) {
+          console.error('Error uploading cover image:', uploadError)
+          // Don't fail the whole process if cover upload fails
+        }
+      }
+
       // Store optimistic data in sessionStorage for instant loading
       sessionStorage.setItem(`optimistic-event-${event.id}`, JSON.stringify({
         ...optimisticEvent,
         id: event.id // Use real ID
       }))
+
+      // Track event creation in PostHog
+      posthog.capture('event_created', {
+        event_id: event.id,
+        event_type: formData.eventType,
+        event_name: formData.name,
+        has_cover_image: !!coverImage,
+        has_venue: !!formData.venue,
+        has_date: !!selectedDate,
+      })
 
       // Initialize onboarding state
       const initResponse = await fetch('/api/events/' + event.id + '/onboarding/init', {
@@ -200,6 +292,53 @@ export default function CreateGalleryPage() {
                   setFormData({ ...formData, venue: e.target.value })
                 }
               />
+            </div>
+
+            <div>
+              <Label>Cover Photo (Optional)</Label>
+              <p className="text-sm text-muted-foreground mb-3">
+                Add a beautiful cover photo for your event gallery
+              </p>
+
+              {!coverImagePreview ? (
+                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-muted-foreground/50 transition-colors">
+                  <input
+                    type="file"
+                    id="coverImage"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    className="hidden"
+                  />
+                  <Label
+                    htmlFor="coverImage"
+                    className="cursor-pointer flex flex-col items-center gap-2"
+                  >
+                    <UploadIcon className="h-8 w-8 text-muted-foreground" />
+                    <span className="text-sm font-medium">Click to upload cover photo</span>
+                    <span className="text-xs text-muted-foreground">PNG, JPG up to 10MB</span>
+                  </Label>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="relative aspect-video rounded-lg overflow-hidden border">
+                    <Image
+                      src={coverImagePreview}
+                      alt="Cover preview"
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    onClick={removeCoverImage}
+                    className="absolute top-2 right-2"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-3 pt-4">

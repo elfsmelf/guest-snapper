@@ -62,10 +62,18 @@ export function QRCodeStep({
 
   return (
     <div className="space-y-6">
-      <div className="space-y-2">
+      {/* Step Introduction */}
+      <div className="text-center space-y-3">
         <p className="text-muted-foreground">
-          Share your gallery with guests using this QR code. They can scan it with their phone to instantly access your gallery.
+          Your gallery is live! Now let's make it easy for guests to find and access it.
         </p>
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 border-t border-muted-foreground/20"></div>
+        <span className="text-sm font-medium text-muted-foreground">STEP 7</span>
+        <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
       {/* Landscape Layout */}

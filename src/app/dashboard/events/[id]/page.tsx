@@ -6,7 +6,7 @@ import { Suspense } from "react"
 import type { Metadata } from 'next'
 import { auth } from "@/lib/auth"
 import { db } from "@/database/db"
-import { albums } from "@/database/schema"
+import { albums, events } from "@/database/schema"
 import { eq } from "drizzle-orm"
 import { getEventWithAccess } from "@/lib/auth-helpers"
 import {
@@ -41,6 +41,22 @@ import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CopyButton } from "@/components/copy-button"
 import { EventSettingsForm } from "@/components/event-settings-form"
+// Dynamically import EventDetailsForm to avoid SSR issues
+const EventDetailsForm = dynamic(
+  () => import('@/components/event-details-form').then(m => ({ default: m.EventDetailsForm })),
+  {
+    loading: () => (
+      <div className="animate-pulse">
+        <div className="h-6 w-32 bg-gray-200 rounded mb-4" />
+        <div className="space-y-3">
+          <div className="h-10 bg-gray-200 rounded" />
+          <div className="h-16 bg-gray-200 rounded" />
+          <div className="h-4 w-3/4 bg-gray-100 rounded" />
+        </div>
+      </div>
+    )
+  }
+)
 import { PaymentSuccessHandler } from "@/components/payment-success-handler"
 import { QuickActionsClient } from "@/components/quick-actions-client"
 import { GalleryThemeManager } from "@/components/gallery-theme-manager"
@@ -173,7 +189,50 @@ export default async function EventDetailPage({ params }: PageProps) {
     return null // This should be handled by layout redirect
   }
 
-  // Fetch event details and albums
+  // Fetch event details - first check if it exists at all
+  let eventCheck = null
+  try {
+    const checkResult = await db
+      .select()
+      .from(events)
+      .where(eq(events.id, id))
+      .limit(1)
+
+    if (checkResult.length === 0) {
+      notFound()
+    }
+    eventCheck = checkResult[0]
+  } catch (error) {
+    console.error('Error checking event:', error)
+    notFound()
+  }
+
+  // Check if event has been deleted - show message instead of 404
+  if (eventCheck.status === 'deleted') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center">
+            <Info className="h-8 w-8 text-destructive" />
+          </div>
+          <h1 className="text-2xl font-bold">Event Deleted</h1>
+          <p className="text-muted-foreground">
+            This event has been deleted and is no longer accessible. All associated files have been removed from storage.
+          </p>
+          <div className="pt-4">
+            <Button asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Now fetch full event details with access check
   let event = null
   let isOwner = false
   let eventAlbums: any[] = []
@@ -182,11 +241,11 @@ export default async function EventDetailPage({ params }: PageProps) {
       getEventWithAccess(id, user.id),
       db.select().from(albums).where(eq(albums.eventId, id)).orderBy(albums.sortOrder, albums.name)
     ])
-    
+
     if (!eventResult) {
       notFound()
     }
-    
+
     event = eventResult.event
     isOwner = eventResult.isOwner
     eventAlbums = albumsResult
@@ -330,14 +389,39 @@ export default async function EventDetailPage({ params }: PageProps) {
       <div className="flex flex-col lg:grid gap-6 lg:grid-cols-3 xl:grid-cols-4 w-full min-w-0">
         {/* Main Content Section - but items can be reordered on mobile */}
         <div className="contents lg:block lg:col-span-2 xl:col-span-3 lg:space-y-6 min-w-0">
-          {/* 1. Event Settings (Event Details, Privacy and Moderation) */}
-          <div className="order-1 lg:order-none" data-section="event-details">
+          {/* 1. Event Details Form (NEW) */}
+          <div className="order-1 lg:order-none" data-section="event-details-edit">
+            <Suspense fallback={
+              <div className="animate-pulse">
+                <div className="h-6 w-32 bg-gray-200 rounded mb-4" />
+                <div className="space-y-3">
+                  <div className="h-10 bg-gray-200 rounded" />
+                  <div className="h-16 bg-gray-200 rounded" />
+                  <div className="h-4 w-3/4 bg-gray-100 rounded" />
+                </div>
+              </div>
+            }>
+              <EventDetailsForm
+                event={{
+                  id: event.id,
+                  name: event.name,
+                  venue: event.venue || '',
+                  eventType: event.eventType || 'wedding',
+                  eventDate: event.eventDate
+                }}
+                isOwner={isOwner}
+              />
+            </Suspense>
+          </div>
+
+          {/* 2. Event Settings (Privacy and Moderation) */}
+          <div className="order-2 lg:order-none" data-section="event-settings">
           <Suspense fallback={<EventSettingsSkeleton />}>
             <EventSettingsForm event={event as any} calculatedGuestCount={0} />
           </Suspense>
-          
+
           {/* Payment Success Handler */}
-          <PaymentSuccessHandler 
+          <PaymentSuccessHandler
             eventId={event.id}
             currentPlan={event.plan}
             eventCurrency={event.currency as any}
@@ -351,19 +435,32 @@ export default async function EventDetailPage({ params }: PageProps) {
 
           {/* 4. Theme Manager */}
           <div className="order-4 lg:order-none" data-section="gallery-theme-manager">
-          <GalleryThemeManager
-            eventId={event.id}
-            currentThemeId={event.themeId || 'default'}
-            eventData={{
-              coupleNames: event.coupleNames,
-              eventDate: event.eventDate,
-              coverImageUrl: event.coverImageUrl || undefined
-            }}
-            onThemeChange={async (themeId: string) => {
-              "use server"
-              await updateEventTheme(event.id, themeId)
-            }}
-          />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Settings className="mr-2 h-5 w-5" />
+                  Gallery Theme
+                </CardTitle>
+                <CardDescription>
+                  Choose a theme to customize the look and feel of your gallery
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <GalleryThemeManager
+                  eventId={event.id}
+                  currentThemeId={event.themeId || 'default'}
+                  eventData={{
+                    coupleNames: event.coupleNames,
+                    eventDate: event.eventDate,
+                    coverImageUrl: event.coverImageUrl || undefined
+                  }}
+                  onThemeChange={async (themeId: string) => {
+                    "use server"
+                    await updateEventTheme(event.id, themeId)
+                  }}
+                />
+              </CardContent>
+            </Card>
           </div>
 
           {/* 5. Albums Management - Temporarily disabled for debugging */}
@@ -444,8 +541,8 @@ export default async function EventDetailPage({ params }: PageProps) {
         {/* Sidebar - Takes 1 column, but items can be reordered on mobile */}
         <Suspense fallback={<SidebarSkeleton />}>
           <div className="contents lg:block lg:space-y-6 min-w-0 w-full">
-            {/* 2. Publication Status */}
-            <Card className="order-2 lg:order-none" data-section="publication-status">
+            {/* 9. Publication Status */}
+            <Card className="order-9 lg:order-none" data-section="publication-status">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Upload className="mr-2 h-5 w-5" />
@@ -484,8 +581,8 @@ export default async function EventDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {/* 9. QR Code */}
-            <Card className="order-9 lg:order-none" data-section="qr-code-sharing">
+            {/* 10. QR Code */}
+            <Card className="order-10 lg:order-none" data-section="qr-code-sharing">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <QrCode className="mr-2 h-5 w-5" />
@@ -514,8 +611,8 @@ export default async function EventDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {/* 10. Slideshow */}
-            <div className="order-10 lg:order-none" data-section="slideshow-settings">
+            {/* 11. Slideshow */}
+            <div className="order-11 lg:order-none" data-section="slideshow-settings">
               <SlideshowSettings
                 eventId={event.id}
                 eventSlug={event.slug}
@@ -524,8 +621,8 @@ export default async function EventDetailPage({ params }: PageProps) {
               />
             </div>
 
-            {/* 11. Download All Files */}
-            <Card className="order-11 lg:order-none">
+            {/* 12. Download All Files */}
+            <Card className="order-12 lg:order-none">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Download className="mr-2 h-5 w-5" />

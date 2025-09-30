@@ -30,11 +30,19 @@ import {
   DropdownMenuTrigger,
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { 
-  ChevronDown, 
-  Search, 
+import {
+  ChevronDown,
+  Search,
   Calendar,
   Users,
   HardDrive,
@@ -43,10 +51,12 @@ import {
   Trash2,
   RotateCcw,
   ExternalLink,
-  Filter
+  Filter,
+  UserCog
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatBytes } from '@/lib/utils'
+import { authClient } from '@/lib/auth-client'
 
 interface AdminEvent {
   id: string
@@ -88,14 +98,15 @@ interface AdminEventsData {
     active: number
     trashed: number
     published: number
+    deleted?: number
   }
 }
 
 export default function AdminEventsPage() {
-  const [data, setData] = useState<AdminEventsData>({ 
-    events: [], 
+  const [data, setData] = useState<AdminEventsData>({
+    events: [],
     pagination: { page: 1, limit: 50, totalCount: 0, totalPages: 0, hasNextPage: false, hasPreviousPage: false },
-    stats: { total: 0, active: 0, trashed: 0, published: 0 }
+    stats: { total: 0, active: 0, trashed: 0, published: 0, deleted: 0 }
   })
   const [loading, setLoading] = useState(true)
   const [globalFilter, setGlobalFilter] = useState('')
@@ -104,11 +115,15 @@ export default function AdminEventsPage() {
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState(50)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'trashed' | 'published' | 'deleted'>('all')
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [eventToDelete, setEventToDelete] = useState<AdminEvent | null>(null)
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'default'
       case 'trashed': return 'destructive'
+      case 'deleted': return 'destructive'
       default: return 'secondary'
     }
   }
@@ -119,16 +134,56 @@ export default function AdminEventsPage() {
       const response = await fetch(`/api/events/${eventId}/restore`, {
         method: 'POST',
       })
-      
+
       if (!response.ok) {
         throw new Error('Failed to restore event')
       }
-      
+
       toast.success('Event restored successfully')
       fetchEvents()
     } catch (error) {
       toast.error('Failed to restore event')
       console.error('Restore error:', error)
+    }
+  }
+
+  const handleDeleteEvent = async () => {
+    if (!eventToDelete) return
+
+    try {
+      const response = await fetch(`/api/events/${eventToDelete.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete event')
+      }
+
+      toast.success('Event permanently deleted')
+      setDeleteModalOpen(false)
+      setEventToDelete(null)
+      fetchEvents()
+    } catch (error) {
+      toast.error('Failed to delete event')
+      console.error('Delete error:', error)
+    }
+  }
+
+  const handleImpersonateUser = async (userId: string) => {
+    try {
+      // @ts-ignore - Better Auth admin plugin types may not be fully defined
+      await authClient.admin.impersonateUser({
+        userId,
+      })
+
+      toast.success('Now impersonating user. Redirecting to dashboard...')
+      // Redirect to dashboard after impersonation
+      setTimeout(() => {
+        window.location.href = '/dashboard'
+      }, 1000)
+    } catch (error) {
+      toast.error('Failed to impersonate user')
+      console.error('Impersonate error:', error)
     }
   }
 
@@ -186,6 +241,17 @@ export default function AdminEventsPage() {
             )}
           </div>
         )
+      },
+      filterFn: (row, id, value) => {
+        return row.getValue(id) === value
+      },
+    },
+    {
+      accessorKey: 'isPublished',
+      header: () => null,
+      cell: () => null,
+      filterFn: (row, id, value) => {
+        return row.getValue(id) === value
       },
     },
     {
@@ -267,24 +333,54 @@ export default function AdminEventsPage() {
         const downloadEnd = new Date(event.downloadWindowEnd)
         const now = new Date()
         const isExpired = downloadEnd < now
-        
+
         return (
           <div className="flex flex-col space-y-1">
             <div className={`text-sm ${isExpired ? 'text-red-600' : 'text-muted-foreground'}`}>
-              {downloadEnd.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: '2-digit', 
-                year: 'numeric' 
+              {downloadEnd.toLocaleDateString('en-US', {
+                month: 'short',
+                day: '2-digit',
+                year: 'numeric'
               })}
             </div>
             {event.status === 'trashed' && event.deleteAt && (
               <div className="text-xs text-red-600">
-                Delete: {new Date(event.deleteAt).toLocaleDateString('en-US', { 
-                  month: 'short', 
-                  day: '2-digit' 
+                Delete: {new Date(event.deleteAt).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: '2-digit'
                 })}
               </div>
             )}
+          </div>
+        )
+      },
+    },
+    {
+      accessorKey: 'trashDate',
+      header: 'Trash Date',
+      cell: ({ row }) => {
+        const event = row.original
+        // For free events, trash date is 1 year after creation if not upgraded
+        const isFreeEvent = event.plan === 'free_trial' || event.plan === 'free' || !event.plan
+
+        if (!isFreeEvent) {
+          return <span className="text-sm text-muted-foreground">N/A</span>
+        }
+
+        const createdDate = new Date(event.createdAt)
+        const trashDate = new Date(createdDate)
+        trashDate.setFullYear(trashDate.getFullYear() + 1)
+
+        const now = new Date()
+        const isPastTrashDate = trashDate < now
+
+        return (
+          <div className={`text-sm ${isPastTrashDate ? 'text-red-600 font-medium' : 'text-muted-foreground'}`}>
+            {trashDate.toLocaleDateString('en-US', {
+              month: 'short',
+              day: '2-digit',
+              year: 'numeric'
+            })}
           </div>
         )
       },
@@ -332,12 +428,19 @@ export default function AdminEventsPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem
-                onClick={() => window.open(`/${event.slug}`, '_blank')}
+                onClick={() => window.open(`/gallery/${event.slug}`, '_blank')}
               >
                 <ExternalLink className="mr-2 h-4 w-4" />
                 View Event
               </DropdownMenuItem>
-              
+
+              <DropdownMenuItem
+                onClick={() => handleImpersonateUser(event.userId)}
+              >
+                <UserCog className="mr-2 h-4 w-4" />
+                Impersonate User
+              </DropdownMenuItem>
+
               {event.status === 'trashed' && (
                 <DropdownMenuItem
                   onClick={() => handleRestoreEvent(event.id)}
@@ -346,6 +449,17 @@ export default function AdminEventsPage() {
                   Restore from Trash
                 </DropdownMenuItem>
               )}
+
+              <DropdownMenuItem
+                onClick={() => {
+                  setEventToDelete(event)
+                  setDeleteModalOpen(true)
+                }}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete Permanently
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )
@@ -361,12 +475,12 @@ export default function AdminEventsPage() {
         limit: pageSize.toString(),
         ...(globalFilter && { search: globalFilter }),
       })
-      
+
       const response = await fetch(`/api/admin/events?${params}`)
       if (!response.ok) {
         throw new Error('Failed to fetch events')
       }
-      
+
       const eventsData = await response.json()
       setData(eventsData)
     } catch (error) {
@@ -380,6 +494,17 @@ export default function AdminEventsPage() {
   useEffect(() => {
     fetchEvents()
   }, [pageIndex, pageSize, globalFilter])
+
+  // Apply status filter when it changes
+  useEffect(() => {
+    if (statusFilter === 'all') {
+      setColumnFilters([])
+    } else if (statusFilter === 'published') {
+      setColumnFilters([{ id: 'isPublished', value: true }])
+    } else {
+      setColumnFilters([{ id: 'status', value: statusFilter }])
+    }
+  }, [statusFilter])
 
   const table = useReactTable({
     data: data.events,
@@ -420,47 +545,77 @@ export default function AdminEventsPage() {
       </div>
 
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg border">
-          <div className="flex items-center">
+      {/* Stats Cards with Filter Buttons */}
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Button
+          variant={statusFilter === 'all' ? 'default' : 'outline'}
+          className="h-auto p-6 justify-start"
+          onClick={() => setStatusFilter('all')}
+        >
+          <div className="flex items-center w-full">
             <Calendar className="h-8 w-8 text-blue-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Events</p>
-              <p className="text-2xl font-bold text-gray-900">{data.stats.total}</p>
+            <div className="ml-4 text-left">
+              <p className="text-sm font-medium">Total Events</p>
+              <p className="text-2xl font-bold">{data.stats.total}</p>
             </div>
           </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg border">
-          <div className="flex items-center">
+        </Button>
+
+        <Button
+          variant={statusFilter === 'active' ? 'default' : 'outline'}
+          className="h-auto p-6 justify-start"
+          onClick={() => setStatusFilter('active')}
+        >
+          <div className="flex items-center w-full">
             <Eye className="h-8 w-8 text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Active Events</p>
-              <p className="text-2xl font-bold text-gray-900">{data.stats.active}</p>
+            <div className="ml-4 text-left">
+              <p className="text-sm font-medium">Active Events</p>
+              <p className="text-2xl font-bold">{data.stats.active}</p>
             </div>
           </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg border">
-          <div className="flex items-center">
+        </Button>
+
+        <Button
+          variant={statusFilter === 'published' ? 'default' : 'outline'}
+          className="h-auto p-6 justify-start"
+          onClick={() => setStatusFilter('published')}
+        >
+          <div className="flex items-center w-full">
             <Users className="h-8 w-8 text-purple-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Published</p>
-              <p className="text-2xl font-bold text-gray-900">{data.stats.published}</p>
+            <div className="ml-4 text-left">
+              <p className="text-sm font-medium">Published</p>
+              <p className="text-2xl font-bold">{data.stats.published}</p>
             </div>
           </div>
-        </div>
-        
-        <div className="bg-white p-6 rounded-lg border">
-          <div className="flex items-center">
+        </Button>
+
+        <Button
+          variant={statusFilter === 'trashed' ? 'default' : 'outline'}
+          className="h-auto p-6 justify-start"
+          onClick={() => setStatusFilter('trashed')}
+        >
+          <div className="flex items-center w-full">
             <Trash2 className="h-8 w-8 text-red-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Trashed</p>
-              <p className="text-2xl font-bold text-gray-900">{data.stats.trashed}</p>
+            <div className="ml-4 text-left">
+              <p className="text-sm font-medium">Trashed</p>
+              <p className="text-2xl font-bold">{data.stats.trashed}</p>
             </div>
           </div>
-        </div>
+        </Button>
+
+        <Button
+          variant={statusFilter === 'deleted' ? 'default' : 'outline'}
+          className="h-auto p-6 justify-start"
+          onClick={() => setStatusFilter('deleted')}
+        >
+          <div className="flex items-center w-full">
+            <Trash2 className="h-8 w-8 text-gray-600" />
+            <div className="ml-4 text-left">
+              <p className="text-sm font-medium">Deleted</p>
+              <p className="text-2xl font-bold">{data.stats.deleted || 0}</p>
+            </div>
+          </div>
+        </Button>
       </div>
 
       {/* Table */}
@@ -585,6 +740,37 @@ export default function AdminEventsPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={deleteModalOpen} onOpenChange={setDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Event Permanently?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. This will permanently delete the event
+              <span className="font-semibold"> {eventToDelete?.name}</span> and remove all associated data including uploads, albums, and guest information.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setDeleteModalOpen(false)
+                setEventToDelete(null)
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteEvent}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Delete Permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
