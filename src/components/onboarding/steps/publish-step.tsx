@@ -134,6 +134,28 @@ export function PublishStep({
     }
   }
 
+  const handleStartFreeTrial = async () => {
+    setLoading(true)
+    try {
+      // Mark step as complete
+      await onComplete()
+
+      // Navigate to next step (step 5)
+      const currentStep = parseInt(searchParams.get('step') || '4')
+      const nextStep = currentStep + 1
+
+      toast.success('Continuing with free trial - you can publish anytime!')
+
+      // Use slug parameter (required by onboarding page)
+      router.push(`/onboarding?slug=${eventSlug}&step=${nextStep}`)
+    } catch (error) {
+      console.error('Error continuing with free trial:', error)
+      toast.error('Failed to continue. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const getUploadEndDate = () => {
     if (!activationDate) return null
     // Use the current plan, or default to bliss if no paid plan selected
@@ -167,30 +189,7 @@ export function PublishStep({
         <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
-      {/* Pricing Cards Section - Show when user clicks publish without a paid plan */}
-      {showPricingCards && (
-        <div className="space-y-4">
-          <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">Choose Your Plan</h3>
-            <p className="text-sm text-muted-foreground">
-              Select a plan to publish your gallery and start collecting memories
-            </p>
-          </div>
-          <PricingCards
-            selectedCurrency={selectedCurrency}
-            onCurrencyChange={setSelectedCurrency}
-          />
-          <Button
-            variant="outline"
-            onClick={() => setShowPricingCards(false)}
-            className="w-full"
-          >
-            Back to Gallery Setup
-          </Button>
-        </div>
-      )}
-
-      {/* Activation Date - Hide when showing pricing cards */}
+      {/* Activation Date and Gallery Windows - Always show when set */}
       {!showPricingCards && (
       <div className="space-y-4">
         <div className="space-y-2">
@@ -330,6 +329,136 @@ export function PublishStep({
         )}
 
       </div>
+      )}
+
+      {/* Payment Options Modal */}
+      {showPricingCards && !event?.isPublished && (
+        <div className="space-y-6">
+          {/* Show activation date and gallery windows at the top */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Gallery Activation Date
+              </label>
+              <div className="p-3 rounded-lg border bg-muted/50">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    {activationDate ? format(activationDate, "EEEE, MMMM do, yyyy") : "Not set"}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                When your gallery becomes publicly accessible to guests.
+              </p>
+            </div>
+
+            {/* Gallery Windows */}
+            {activationDate && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm font-medium">Gallery Windows</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Card>
+                    <CardContent className="p-3">
+                      <div className="text-sm font-medium mb-1">Upload Window</div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        3 months duration (with paid plan)
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-3">
+                      <div className="text-sm font-medium mb-1">Download Window</div>
+                      <div className="text-xs text-muted-foreground">
+                        {format(activationDate, "MMM d, yyyy")} - {getDownloadEndDate() ? format(getDownloadEndDate()!, "MMM d, yyyy") : "N/A"}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        12 months duration (with paid plan)
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20 text-center">
+            <div className="font-bold text-lg text-primary mb-3 flex items-center justify-center gap-2">
+              <Globe className="w-5 h-5" />
+              Choose Your Plan to Publish
+            </div>
+            <p className="text-sm text-muted-foreground mb-3">
+              Your gallery is ready! Select a plan to make it publicly accessible to your guests.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              💡 Your gallery needs a plan to be published. Until you choose a plan, guests won't be able to view or upload to your gallery.
+            </p>
+          </div>
+
+          {/* Pricing Cards */}
+          <div className="max-w-4xl mx-auto">
+            <PricingCards
+              selectedCurrency={selectedCurrency}
+              onCurrencyChange={setSelectedCurrency}
+              currentPlan={event?.plan || 'free_trial'}
+              showFreeTrial={false}
+              className="scale-90"
+            />
+          </div>
+
+          {/* Or Divider */}
+          <div className="flex items-center justify-center">
+            <div className="border-t border-muted flex-1"></div>
+            <span className="px-4 text-sm text-muted-foreground bg-background">or continue later</span>
+            <div className="border-t border-muted flex-1"></div>
+          </div>
+
+          {/* Free Trial Option */}
+          <Card>
+            <CardContent className="p-6 text-center">
+              <div className="flex items-center justify-center gap-2 mb-4">
+                <Gift className="w-6 h-6" />
+                <h4 className="text-xl font-bold">Try Free for 7 Days</h4>
+              </div>
+
+              <p className="text-muted-foreground mb-4">
+                Continue setting up your gallery with full access to all features for 7 days. You can publish anytime during your trial.
+                <br />
+                <span className="text-sm font-medium">Note: Your gallery won't be publicly visible until you choose a plan and publish.</span>
+              </p>
+
+              <Button
+                onClick={handleStartFreeTrial}
+                disabled={loading}
+                size="lg"
+                variant="outline"
+                className="px-8"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Starting Trial...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="w-4 h-4 mr-2" />
+                    Start Free Trial
+                  </>
+                )}
+              </Button>
+
+              <p className="text-xs text-muted-foreground mt-2">
+                No credit card required • Full access to all features
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       )}
     </div>
   )
