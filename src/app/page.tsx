@@ -2,8 +2,6 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { headers } from "next/headers"
-import { auth } from "@/lib/auth"
 import { Star, Smartphone, Sparkles, Check, Infinity, X, MapPin } from "lucide-react"
 import { PricingSection } from "@/components/pricing-section"
 import {
@@ -28,11 +26,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 
+// Force static generation
+export const dynamic = 'force-static'
+export const revalidate = 3600 // Revalidate every hour
+
 export default async function HomePage() {
-  // Server-side authentication check
-  const session = await auth.api.getSession({
-    headers: await headers()
-  })
 
   return (
     <div className="min-h-screen">
@@ -69,9 +67,9 @@ export default async function HomePage() {
                     variant="outline"
                     className="border-muted-foreground/20 bg-background text-foreground hover:bg-muted font-semibold px-12 py-6 text-xl rounded-full"
                   >
-                    <Link href="/how-it-works">
+                    <a href="#how-it-works">
                       How It Works
-                    </Link>
+                    </a>
                   </Button>
                 </div>
 
@@ -120,7 +118,7 @@ export default async function HomePage() {
         </section>
 
         {/* How It Works Section */}
-        <section className="py-16 bg-background">
+        <section id="how-it-works" className="py-16 bg-background">
           <div className="container mx-auto px-4">
             {/* Header Section */}
             <div className="text-center mb-16">
@@ -799,8 +797,8 @@ export default async function HomePage() {
 
             {/* CTA */}
             <div className="text-center">
-              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-8">
-                <Link href="/canva-templates">
+              <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground px-12 py-6 text-xl rounded-full font-semibold">
+                <Link href="/auth/sign-in">
                   View All Templates
                 </Link>
               </Button>
@@ -986,7 +984,7 @@ export default async function HomePage() {
         <PricingSection />
 
         {/* FAQ Section */}
-        <section className="py-16 bg-background">
+        <section className="py-16 pb-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               {/* Header */}
@@ -1097,7 +1095,7 @@ export default async function HomePage() {
                   </AccordionContent>
                 </AccordionItem>
 
-                <AccordionItem value="item-12" className="border rounded-lg px-6">
+                <AccordionItem value="item-12" className="border rounded-lg px-6 !border-b">
                   <AccordionTrigger className="text-left hover:no-underline py-4">
                     <span className="font-medium">How can I get help if needed?</span>
                   </AccordionTrigger>

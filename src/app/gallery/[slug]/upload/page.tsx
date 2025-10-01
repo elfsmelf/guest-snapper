@@ -59,6 +59,8 @@ export default async function UploadPage({ params, searchParams }: UploadPagePro
       id: albums.id,
       name: albums.name,
       sortOrder: albums.sortOrder,
+      isVisible: albums.isVisible,
+      isFavorite: albums.isFavorite,
     })
     .from(albums)
     .where(eq(albums.eventId, event.id))
@@ -70,13 +72,18 @@ export default async function UploadPage({ params, searchParams }: UploadPagePro
   })
 
   const isOwner = session?.user?.id === event.userId
-  
+
+  // Filter albums based on visibility for public users
+  const visibleAlbums = (isOwner && !forcePublicView)
+    ? albumsResult // Owners see all albums
+    : albumsResult.filter(album => album.isVisible) // Public users only see visible albums
+
   // Determine if user should see album counts (only for public galleries or owners/members)
   const shouldShowCounts = event.guestCanViewAlbum || (isOwner && !forcePublicView)
 
   // Get upload counts for each album (only if authorized)
   const albumsWithCounts = await Promise.all(
-    albumsResult.map(async (album) => {
+    visibleAlbums.map(async (album) => {
       const uploadCount = shouldShowCounts ? await db
         .select({ count: count() })
         .from(uploads)

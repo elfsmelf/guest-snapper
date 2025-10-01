@@ -95,6 +95,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     return trialStatus.isExpired
   })
 
+
   return (
     <div className="space-y-6">
       {/* Invitation Status Messages */}

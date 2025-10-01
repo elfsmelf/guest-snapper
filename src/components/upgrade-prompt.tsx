@@ -4,9 +4,9 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Check, Crown, Zap, Star, Sparkles, ArrowUp } from "lucide-react"
+import { Check, Crown, Zap, Star, Sparkles, ArrowUp, Loader2 } from "lucide-react"
 import { getPlanFeatures, formatCurrency, getPrice, getUpgradePrice, type Plan, type Currency } from "@/lib/pricing"
-import { GuestCountPricingDialog } from "./guest-count-pricing-dialog"
+import { toast } from "sonner"
 
 interface UpgradePromptProps {
   isOpen: boolean
@@ -41,7 +41,7 @@ export function UpgradePrompt({
   feature,
   actionText = "Continue"
 }: UpgradePromptProps) {
-  const [showFullPricing, setShowFullPricing] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
   const currentFeatures = getPlanFeatures(currentPlan)
   const suggestedFeatures = getPlanFeatures(suggestedPlan)
@@ -49,21 +49,40 @@ export function UpgradePrompt({
   const fullPrice = getPrice(suggestedPlan, eventCurrency)
   const isUpgrade = currentPlan !== 'free'
 
-  const handleUpgradeClick = () => {
-    setShowFullPricing(true)
-  }
+  const handleUpgradeClick = async () => {
+    if (isLoading) return
+    setIsLoading(true)
 
-  if (showFullPricing) {
-    return (
-      <GuestCountPricingDialog
-        key={`${eventId}-${currentPlan}`}
-        isOpen={isOpen}
-        onClose={onClose}
-        eventId={eventId}
-        currentPlan={currentPlan}
-        eventCurrency={eventCurrency}
-      />
-    )
+    try {
+      // Redirect directly to Stripe checkout
+      const response = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: suggestedPlan,
+          currency: eventCurrency,
+          eventId,
+          context: 'upgrade',
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create checkout')
+      }
+
+      if (data.url) {
+        // Redirect to Stripe checkout
+        window.location.href = data.url
+      } else {
+        throw new Error('No checkout URL received')
+      }
+    } catch (error: any) {
+      console.error('Upgrade error:', error)
+      toast.error(error.message || 'Failed to start upgrade process')
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -175,28 +194,38 @@ export function UpgradePrompt({
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <Button 
+            <Button
               onClick={handleUpgradeClick}
               className="w-full"
               size="lg"
+              disabled={isLoading}
             >
-              Upgrade to {suggestedFeatures.name}
+              {isLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Redirecting to checkout...
+                </>
+              ) : (
+                `Upgrade to ${suggestedFeatures.name}`
+              )}
             </Button>
-            
-            <Button 
-              variant="outline" 
+
+            <Button
+              variant="outline"
               onClick={onClose}
               className="w-full"
               size="sm"
+              disabled={isLoading}
             >
               {actionText}
             </Button>
           </div>
 
           {/* View All Plans Link */}
-          <button 
+          <button
             onClick={handleUpgradeClick}
-            className="text-sm text-muted-foreground hover:text-foreground underline"
+            className="text-sm text-muted-foreground hover:text-foreground underline disabled:opacity-50"
+            disabled={isLoading}
           >
             View all plans and pricing
           </button>

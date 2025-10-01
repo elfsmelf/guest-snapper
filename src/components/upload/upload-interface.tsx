@@ -33,7 +33,8 @@ interface Event {
   slug: string
   userId: string
   uploadWindowEnd: string
-  albums: { id: string; name: string; sortOrder: number; uploadsCount?: number }[]
+  plan?: string | null
+  albums: { id: string; name: string; sortOrder: number; uploadsCount?: number; isFavorite?: boolean }[]
   generalUploadsCount?: number
 }
 
@@ -61,9 +62,19 @@ interface UploadInterfaceProps {
 }
 
 export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUpload = false, isOnboardingStep = false, onUploadComplete, forcePublicView = false, shouldShowCounts = false }: UploadInterfaceProps) {
+  // Determine default album: favorite album, or first album, or empty string (unassigned)
+  const getDefaultAlbumId = () => {
+    if (event.albums.length === 0) return ""
+    const favoriteAlbum = event.albums.find(a => a.isFavorite)
+    if (favoriteAlbum) return favoriteAlbum.id
+    // If only one album, make it the default
+    if (event.albums.length === 1) return event.albums[0].id
+    return ""
+  }
+
   const [files, setFiles] = useState<UploadFile[]>([])
   const [uploaderName, setUploaderName] = useState("")
-  const [selectedAlbumId, setSelectedAlbumId] = useState<string>("")
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string>(getDefaultAlbumId())
   const router = useRouter()
   
   // Use React Query batch upload hook
@@ -118,13 +129,18 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
     setFiles(prev => [...prev, ...newFiles])
   }, [uploaderName, selectedAlbumId])
 
+  // Determine max file size based on plan
+  const plan = event.plan || 'free_trial'
+  const maxFileSizeMB = plan === 'free_trial' ? 100 : 100 // 100MB for all plans
+  const maxFileSize = maxFileSizeMB * 1024 * 1024
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic'],
       'video/*': ['.mp4', '.mov', '.avi', '.quicktime']
     },
-    maxSize: 50 * 1024 * 1024, // 50MB
+    maxSize: maxFileSize,
     disabled: !uploadWindowOpen || isUploading
   })
 
@@ -271,7 +287,7 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
             }} className="w-full">
               <TabsList className="grid w-full bg-muted" style={{ gridTemplateColumns: `repeat(${event.albums.length + 1}, minmax(0, 1fr))` }}>
                 <TabsTrigger value="" className="text-xs">
-                  General {shouldShowCounts && `(${event.generalUploadsCount || 0})`}
+                  All Photos {shouldShowCounts && `(${event.generalUploadsCount || 0})`}
                 </TabsTrigger>
                 {event.albums.map((album) => (
                   <TabsTrigger key={album.id} value={album.id} className="text-xs">
@@ -327,6 +343,20 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
                           alt={file.file.name}
                           className="w-full h-full rounded-lg object-cover"
                         />
+                      ) : file.file.type.startsWith('video/') ? (
+                        <div className="w-full h-full rounded-lg bg-black/90 flex items-center justify-center relative overflow-hidden">
+                          <video
+                            src={file.preview}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none bg-black/30">
+                            <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
+                              <Video className="h-6 w-6 text-black" />
+                            </div>
+                          </div>
+                        </div>
                       ) : (
                         <div className="w-full h-full rounded-lg bg-card flex items-center justify-center">
                           <Video className="h-8 w-8 text-muted-foreground" />

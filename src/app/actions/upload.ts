@@ -23,6 +23,10 @@ interface UploadData {
   fileType: 'image' | 'video' | 'audio'
   fileUrl: string
   mimeType: string
+  thumbnailUrl?: string | null
+  duration?: number | null
+  width?: number | null
+  height?: number | null
 }
 
 export async function createUpload(uploadData: UploadData) {
@@ -181,6 +185,10 @@ export async function createUpload(uploadData: UploadData) {
         caption: uploadData.caption || null,
         isApproved: moderationStatus,
         uploaderName: uploadData.uploaderName || null,
+        thumbnailUrl: uploadData.thumbnailUrl || null,
+        duration: uploadData.duration || null,
+        width: uploadData.width || null,
+        height: uploadData.height || null,
         createdAt: new Date(),
         updatedAt: new Date(),
       })

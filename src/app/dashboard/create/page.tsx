@@ -145,14 +145,15 @@ export default function CreateGalleryPage() {
               eventId: event.id,
               fileName: coverImage.name,
               fileType: coverImage.type,
+              fileSize: coverImage.size
             }),
           })
 
-          if (uploadUrlResponse.ok) {
-            const { uploadUrl, fileUrl } = await uploadUrlResponse.json()
+          const uploadUrlResult = await uploadUrlResponse.json()
 
+          if (uploadUrlResult.success) {
             // Upload to R2 using presigned URL
-            const uploadResponse = await fetch(uploadUrl, {
+            const uploadResponse = await fetch(uploadUrlResult.uploadUrl, {
               method: 'PUT',
               body: coverImage,
               headers: {
@@ -161,14 +162,14 @@ export default function CreateGalleryPage() {
             })
 
             if (uploadResponse.ok) {
-              // Update event with cover image URL
-              await fetch(`/api/events/${event.id}/cover-image`, {
-                method: 'POST',
+              // Update event with cover image URL using settings endpoint
+              await fetch(`/api/events/${event.id}/settings`, {
+                method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ coverImageUrl: fileUrl }),
+                body: JSON.stringify({ coverImageUrl: uploadUrlResult.fileUrl }),
               })
 
-              optimisticEvent.coverImageUrl = fileUrl
+              optimisticEvent.coverImageUrl = uploadUrlResult.fileUrl
             }
           }
         } catch (uploadError) {

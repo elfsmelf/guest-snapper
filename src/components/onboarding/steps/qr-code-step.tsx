@@ -61,23 +61,23 @@ export function QRCodeStep({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Step Introduction */}
-      <div className="text-center space-y-3">
-        <p className="text-muted-foreground">
+      <div className="text-center space-y-3 px-2">
+        <p className="text-sm sm:text-base text-muted-foreground">
           Your gallery is live! Now let's make it easy for guests to find and access it.
         </p>
       </div>
 
       {/* Divider */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <div className="flex-1 border-t border-muted-foreground/20"></div>
-        <span className="text-sm font-medium text-muted-foreground">STEP 7</span>
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground">STEP 7</span>
         <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
-      {/* Landscape Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Responsive Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* QR Code Section */}
         <Card>
           <CardHeader>

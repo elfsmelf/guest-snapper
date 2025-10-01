@@ -155,18 +155,18 @@ export function CollaboratorsStep({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="space-y-2">
-        <h3 className="text-lg font-semibold">Add Team Members</h3>
-        <p className="text-muted-foreground">
+        <h3 className="text-base sm:text-lg font-semibold">Add Team Members</h3>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Invite team members to help manage your gallery (optional but helpful for larger events).
         </p>
       </div>
 
-      {/* Landscape Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Team Management Section - Takes 2 columns */}
-        <div className="lg:col-span-2">
+      {/* Responsive Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        {/* Team Management Section - Takes 2 columns on desktop */}
+        <div className="lg:col-span-2 order-2 lg:order-1">
           <CollaboratorsSection
             eventId={eventId}
             isOwner={true}
@@ -176,7 +176,7 @@ export function CollaboratorsStep({
         </div>
 
         {/* Information & Benefits Section */}
-        <Card>
+        <Card className="order-1 lg:order-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />

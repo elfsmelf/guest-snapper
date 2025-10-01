@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
 import { OrganizationInvitationTemplate } from '@/components/email-templates/organization-invitation';
 import { EmailOTPTemplate } from '@/components/email-templates/email-otp';
+import { ContactFormEmail } from '@/components/email-templates/contact-form';
 
 let resend: Resend | null = null;
 
@@ -116,6 +117,48 @@ export async function sendOTPEmail({
     return data;
   } catch (error) {
     console.error('Error sending OTP email:', error);
+    throw error;
+  }
+}
+
+interface SendContactFormParams {
+  name: string;
+  email: string;
+  message: string;
+}
+
+export async function sendContactForm({
+  name,
+  email,
+  message
+}: SendContactFormParams) {
+  try {
+    console.log('Attempting to send contact form email:', {
+      from: email,
+      name
+    });
+
+    const { data, error } = await getResendClient().emails.send({
+      from: process.env.EMAIL_FROM || 'Guest Snapper <noreply@notifications.guestsnapper.com>',
+      to: ['support@guestsnapper.com'],
+      replyTo: email,
+      subject: `Contact Form: Message from ${name}`,
+      react: ContactFormEmail({
+        name,
+        email,
+        message
+      }),
+    });
+
+    if (error) {
+      console.error('Resend API error:', error);
+      throw new Error(`Failed to send contact form email: ${error.message || JSON.stringify(error)}`);
+    }
+
+    console.log('Contact form email sent successfully:', data);
+    return data;
+  } catch (error) {
+    console.error('Error sending contact form email:', error);
     throw error;
   }
 }

@@ -54,6 +54,7 @@ export const albums = pgTable("albums", {
   description: text('description'),
   isDefault: boolean('is_default').default(false).notNull(),
   isVisible: boolean('is_visible').default(true).notNull(),
+  isFavorite: boolean('is_favorite').default(false).notNull(),
   sortOrder: integer('sort_order').default(0).notNull(),
   createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
   updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
@@ -74,6 +75,11 @@ export const uploads = pgTable("uploads", {
   caption: text('caption'),
   isApproved: boolean('is_approved').default(true).notNull(),
   uploaderName: text('uploader_name'),
+  // Video metadata fields
+  thumbnailUrl: text('thumbnail_url'), // URL to video thumbnail/poster image
+  duration: integer('duration'), // Video duration in seconds
+  width: integer('width'), // Video/image width in pixels
+  height: integer('height'), // Video/image height in pixels
   createdAt: timestamp('created_at').$defaultFn(() => new Date()).notNull(),
   updatedAt: timestamp('updated_at').$defaultFn(() => new Date()).notNull(),
 })

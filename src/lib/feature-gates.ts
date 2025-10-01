@@ -68,6 +68,45 @@ export function canPublishEvent(event: EventForFeatureGating): FeatureGateResult
 }
 
 /**
+ * Check if event has storage capacity for upload
+ */
+export function canAcceptUpload(event: EventForFeatureGating, currentStorageMB: number, fileSizeMB: number): FeatureGateResult {
+  const plan = event.plan || 'free_trial'
+  const features = getPlanFeatures(plan)
+
+  // Check individual file size limit
+  if (fileSizeMB > features.maxFileSizeMB) {
+    return {
+      allowed: false,
+      reason: `File exceeds ${features.maxFileSizeMB}MB limit. Your ${features.name} allows files up to ${features.maxFileSizeMB}MB each.`,
+      currentLimit: features.maxFileSizeMB,
+      suggestedPlan: plan === 'free_trial' ? 'bliss' : undefined,
+      upgradeRequired: plan === 'free_trial'
+    }
+  }
+
+  // Check total storage limit (only enforced for trial)
+  if (features.storageLimit !== 999999) {
+    const wouldExceedLimit = (currentStorageMB + fileSizeMB) > features.storageLimit
+
+    if (wouldExceedLimit) {
+      return {
+        allowed: false,
+        reason: `Storage limit exceeded. You have used ${currentStorageMB.toFixed(1)}MB of ${features.storageLimit}MB. This file would exceed your limit. Upgrade to get unlimited storage.`,
+        currentLimit: features.storageLimit,
+        suggestedPlan: 'bliss',
+        upgradeRequired: true
+      }
+    }
+  }
+
+  return {
+    allowed: true,
+    upgradeRequired: false
+  }
+}
+
+/**
  * Check if more guests can upload to event
  * Note: All paid plans now have unlimited guests, so this mainly handles free trial limits
  */

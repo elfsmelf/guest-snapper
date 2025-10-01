@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { xhrPut, pLimit, normalizeEtag, type UploadProgress, type PartResult } from "@/lib/upload-utils";
 import { uploadKeys } from "./use-onboarding";
+import { isVideoFile, createVideoThumbnailFile } from "@/lib/video-utils";
 
 // Single-part upload mutation with progress
 type SingleUploadInput = {
@@ -19,30 +20,75 @@ export function useSingleUpload() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      eventId, 
-      file, 
-      fileName, 
+    mutationFn: async ({
+      eventId,
+      file,
+      fileName,
       uploaderName,
       caption,
       albumId,
-      onProgress 
+      onProgress
     }: SingleUploadInput) => {
       const controller = new AbortController();
       const startTime = Date.now();
-      
+
       console.log(`Starting single upload for ${file.name} (${file.size} bytes)`) // Debug
 
-      // 1) Get presigned URL
+      // For videos: generate thumbnail first
+      let videoMetadata: { duration: number; width: number; height: number } | null = null;
+      let thumbnailUrl: string | null = null;
+
+      if (isVideoFile(file)) {
+        console.log(`Generating thumbnail for video: ${file.name}`);
+        try {
+          const { thumbnailFile, metadata } = await createVideoThumbnailFile(file);
+
+          // Upload thumbnail to R2
+          const thumbnailResponse = await fetch("/api/upload-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              eventId,
+              fileName: thumbnailFile.name,
+              fileType: thumbnailFile.type,
+              fileSize: thumbnailFile.size
+            }),
+            signal: controller.signal,
+          }).then((r) => {
+            if (!r.ok) throw new Error(`Failed to get thumbnail upload URL: ${r.status}`);
+            return r.json();
+          });
+
+          // Upload thumbnail without progress tracking (small file)
+          await xhrPut(thumbnailResponse.uploadUrl, thumbnailFile, {
+            headers: { "Content-Type": thumbnailFile.type },
+            signal: controller.signal,
+          });
+
+          thumbnailUrl = thumbnailResponse.fileUrl;
+          videoMetadata = {
+            duration: metadata.duration,
+            width: metadata.width,
+            height: metadata.height
+          };
+
+          console.log(`✅ Thumbnail uploaded for ${file.name}`, videoMetadata);
+        } catch (error) {
+          console.error('Failed to generate/upload thumbnail:', error);
+          // Continue with main upload even if thumbnail fails
+        }
+      }
+
+      // 1) Get presigned URL for main file
       onProgress?.({ totalBytes: file.size, uploadedBytes: 0, percent: 0 });
       const { uploadUrl, fileKey, fileUrl } = await fetch("/api/upload-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          eventId, 
-          fileName: fileName || file.name, 
+        body: JSON.stringify({
+          eventId,
+          fileName: fileName || file.name,
           fileType: file.type,
-          fileSize: file.size 
+          fileSize: file.size
         }),
         signal: controller.signal,
       }).then((r) => {
@@ -52,7 +98,7 @@ export function useSingleUpload() {
 
       console.log(`Got presigned URL for ${file.name}`) // Debug
 
-      // 2) Upload with progress
+      // 2) Upload main file with progress
       let uploadedBytes = 0;
       await xhrPut(uploadUrl, file, {
         headers: { "Content-Type": file.type || "application/octet-stream" },
@@ -85,7 +131,12 @@ export function useSingleUpload() {
           fileType: file.type.startsWith('image/') ? 'image' : file.type.startsWith('audio/') ? 'audio' : 'video',
           fileKey,
           fileUrl,
-          mimeType: file.type
+          mimeType: file.type,
+          // Video metadata
+          thumbnailUrl,
+          duration: videoMetadata?.duration,
+          width: videoMetadata?.width,
+          height: videoMetadata?.height
         })
       });
 

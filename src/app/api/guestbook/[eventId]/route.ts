@@ -19,7 +19,10 @@ export async function GET(
       .where(eq(events.id, eventId))
       .limit(1)
 
-    if (!event.length || event[0].guestCanViewGuestbook === false) {
+    // Default to true if not set (for backward compatibility)
+    const canViewGuestbook = event[0]?.guestCanViewGuestbook ?? true
+
+    if (!event.length || canViewGuestbook === false) {
       return NextResponse.json({
         success: false,
         entries: [],

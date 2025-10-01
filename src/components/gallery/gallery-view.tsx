@@ -222,7 +222,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
     // Optimistic update: immediately update local state
     const albumName = albumId ?
       event.albums.find(a => a.id === albumId)?.name || 'Album' :
-      'General'
+      'All Photos'
 
     toast.loading(`Moving ${selectedImages.size} image(s) to ${albumName}...`)
 
@@ -731,7 +731,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         size="sm"
                         onClick={() => setSelectedAlbum('unassigned')}
                       >
-                        General {!isGuestOwnContent && `(${selectedTab === 'pending'
+                        Unassigned {!isGuestOwnContent && `(${selectedTab === 'pending'
                           ? pendingUploads.filter(u => {
                               const isPhotoOrVideo = u.fileType === 'image' || u.fileType === 'video'
                               const isUnassigned = !u.albumId
@@ -895,28 +895,60 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         }
                       }}
                     >
-                      <CloudflareImage
-                        src={upload.fileUrl}
-                        alt={upload.fileName}
-                        width={600}
-                        height={800}
-                        className="w-full h-auto transition-transform duration-300 group-hover:scale-105 rounded-lg"
-                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-                        style={{ height: 'auto' }}
-                        loading="lazy"
-                      />
+                      {/* Show thumbnail for videos if available, otherwise show video with poster */}
+                      {upload.fileType === 'video' && upload.thumbnailUrl ? (
+                        <CloudflareImage
+                          src={upload.thumbnailUrl}
+                          alt={upload.fileName}
+                          width={600}
+                          height={800}
+                          className="w-full h-auto transition-transform duration-300 group-hover:scale-105 rounded-lg"
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                          style={{ height: 'auto' }}
+                          loading="lazy"
+                        />
+                      ) : upload.fileType === 'video' ? (
+                        <div className="relative w-full" style={{ paddingBottom: '133%' }}>
+                          <video
+                            src={upload.fileUrl}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            className="absolute inset-0 w-full h-full object-cover rounded-lg"
+                          />
+                        </div>
+                      ) : (
+                        <CloudflareImage
+                          src={upload.fileUrl}
+                          alt={upload.fileName}
+                          width={600}
+                          height={800}
+                          className="w-full h-auto transition-transform duration-300 group-hover:scale-105 rounded-lg"
+                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+                          style={{ height: 'auto' }}
+                          loading="lazy"
+                        />
+                      )}
 
                       {/* Hover overlay */}
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all duration-300" />
 
-                      {/* Video badge */}
+                      {/* Video play button and duration badge */}
                       {upload.fileType === 'video' && (
-                        <div className="absolute top-2 right-2">
-                          <Badge variant="secondary" className="text-xs flex items-center gap-1 bg-black/60 text-white border-none">
-                            <Play className="h-3 w-3" />
-                            Video
-                          </Badge>
-                        </div>
+                        <>
+                          {/* Play button overlay */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-16 h-16 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                              <Play className="w-8 h-8 text-black ml-1" fill="currentColor" />
+                            </div>
+                          </div>
+                          {/* Duration badge */}
+                          {upload.duration && (
+                            <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs font-medium px-1.5 py-0.5 rounded">
+                              {Math.floor(upload.duration / 60)}:{(upload.duration % 60).toString().padStart(2, '0')}
+                            </div>
+                          )}
+                        </>
                       )}
 
                       {/* Approval buttons for pending tab */}
@@ -1159,14 +1191,14 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               Choose an album to move {selectedImages.size} selected image{selectedImages.size !== 1 ? 's' : ''} to:
             </p>
             <div className="space-y-2">
-              {/* General/Unassigned option */}
+              {/* Unassigned option */}
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => handleBulkMoveToAlbum('')}
               >
                 <FolderPlus className="h-4 w-4 mr-2" />
-                General (No Album)
+                Unassigned (No Album)
               </Button>
 
               {/* Available albums */}

@@ -11,6 +11,8 @@ export const planFeatures = {
     uploadWindowMonths: 0, // Use uploadWindowDays instead for trial
     uploadWindowDays: 7, // 7 days for trial
     downloadWindowMonths: 12,
+    storageLimit: 100, // 100MB total storage limit
+    maxFileSizeMB: 100, // 100MB per file
     customBranding: false,
     videoGuestbook: true,
     publicAccess: true,
@@ -25,6 +27,8 @@ export const planFeatures = {
     themeLimit: 1, // default theme
     uploadWindowMonths: 3,
     downloadWindowMonths: 12,
+    storageLimit: 100 * 1024, // 100GB in MB
+    maxFileSizeMB: 100, // 100MB per file
     customBranding: false,
     videoGuestbook: true,
     publicAccess: true,
@@ -39,6 +43,8 @@ export const planFeatures = {
     themeLimit: 25,
     uploadWindowMonths: 12,
     downloadWindowMonths: 12,
+    storageLimit: 100 * 1024, // 100GB in MB
+    maxFileSizeMB: 100, // 100MB per file
     customBranding: false,
     videoGuestbook: true,
     publicAccess: true,
@@ -53,6 +59,8 @@ export const planFeatures = {
     themeLimit: 999999, // all themes
     uploadWindowMonths: 12,
     downloadWindowMonths: 12,
+    storageLimit: 100 * 1024, // 100GB in MB
+    maxFileSizeMB: 100, // 100MB per file
     customBranding: true,
     videoGuestbook: true,
     publicAccess: true,

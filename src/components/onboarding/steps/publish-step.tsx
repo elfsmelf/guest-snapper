@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useQueryClient } from "@tanstack/react-query"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -36,9 +37,10 @@ export function PublishStep({
   onUpdate,
   onComplete
 }: PublishStepProps) {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const [isUpdatingDate, setIsUpdatingDate] = useState(false)
   const [isPublishing, setIsPublishing] = useState(false)
-  const [showPaymentOptions, setShowPaymentOptions] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(detectUserCurrency())
   const queryClient = useQueryClient()
@@ -87,8 +89,9 @@ export function PublishStep({
     // Check if user has a paid plan
     const currentPlan = event?.plan || 'free_trial'
     if (currentPlan === 'free_trial' || currentPlan === 'free' || !event?.plan) {
-      // Show payment options
-      setShowPaymentOptions(true)
+      // Redirect to upgrade page instead of showing modal
+      toast.info('Please upgrade to a paid plan to publish your gallery')
+      router.push(`/dashboard/events/${eventId}?tab=billing`)
       return
     }
 
@@ -131,81 +134,6 @@ export function PublishStep({
     }
   }
 
-  const handleStartFreeTrial = async () => {
-    setLoading(true)
-
-    try {
-      // Update the onboarding state to reflect free trial selection
-      const updates = {
-        guestCountSet: true,
-        selectedPlan: 'free_trial' as Plan,
-        paymentCompleted: false,
-        currency: selectedCurrency
-      }
-
-      onUpdate(updates)
-
-      // Also persist to database
-      await updateOnboardingProgress(eventId, updates)
-
-      // Mark step as complete and move to next step
-      await onComplete()
-
-      toast.success('Free trial started! You can upgrade anytime.')
-    } catch (error) {
-      console.error('Failed to start free trial:', error)
-      toast.error('Failed to start free trial. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSelectPlan = async (plan: Plan) => {
-    if (loading) return
-
-    setLoading(true)
-
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plan,
-          currency: selectedCurrency,
-          eventId,
-          context: 'onboarding',
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create checkout')
-      }
-
-      if (data.url) {
-        // Store the selected plan before redirecting
-        const updates = {
-          selectedPlan: plan,
-          currency: selectedCurrency,
-          guestCountSet: true
-        }
-
-        onUpdate(updates)
-        await updateOnboardingProgress(eventId, updates)
-
-        // Redirect to Stripe checkout
-        window.location.href = data.url
-      } else {
-        throw new Error('No checkout URL received')
-      }
-    } catch (error: any) {
-      console.error('Purchase error:', error)
-      toast.error(error.message || 'Failed to start checkout process')
-      setLoading(false)
-    }
-  }
-
   const getUploadEndDate = () => {
     if (!activationDate) return null
     // Use the current plan, or default to bliss if no paid plan selected
@@ -226,16 +154,16 @@ export function PublishStep({
   return (
     <div className="space-y-6">
       {/* Step Header */}
-      <div className="text-center space-y-3">
-        <p className="text-muted-foreground">
+      <div className="text-center space-y-3 px-2">
+        <p className="text-sm sm:text-base text-muted-foreground">
           You've built an amazing gallery! Now let's activate it for your guests to enjoy.
         </p>
       </div>
 
       {/* Divider */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <div className="flex-1 border-t border-muted-foreground/20"></div>
-        <span className="text-sm font-medium text-muted-foreground">STEP 6</span>
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground">STEP 6</span>
         <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
@@ -325,95 +253,8 @@ export function PublishStep({
           </div>
         )}
 
-        {/* Payment Options Modal */}
-        {showPaymentOptions && !event?.isPublished && (
-          <div className="space-y-6">
-            <div className="p-4 rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border-2 border-primary/20">
-              <div className="font-medium text-primary mb-3 flex items-center gap-2">
-                <Globe className="w-4 h-4" />
-                Choose Your Plan to Publish
-              </div>
-              <p className="text-sm text-muted-foreground mb-3">
-                Your gallery is ready! Select a plan to make it publicly accessible to your guests.
-              </p>
-              <p className="text-xs text-muted-foreground">
-                💡 Your gallery needs a plan to be published. Until you choose a plan, guests won't be able to view or upload to your gallery.
-              </p>
-            </div>
-
-            {/* Pricing Cards */}
-            <div className="max-w-4xl mx-auto">
-              <PricingCards
-                selectedCurrency={selectedCurrency}
-                onCurrencyChange={setSelectedCurrency}
-                onSelectPlan={handleSelectPlan}
-                currentPlan={event?.plan || 'free_trial'}
-                showFreeTrial={false}
-                className="scale-90"
-              />
-            </div>
-
-            {/* Or Divider */}
-            <div className="flex items-center justify-center">
-              <div className="border-t border-muted flex-1"></div>
-              <span className="px-4 text-sm text-muted-foreground bg-background">or continue later</span>
-              <div className="border-t border-muted flex-1"></div>
-            </div>
-
-            {/* Free Trial Option */}
-            <Card>
-              <CardContent className="p-6 text-center">
-                <div className="flex items-center justify-center gap-2 mb-4">
-                  <Gift className="w-6 h-6" />
-                  <h4 className="text-xl font-bold">Skip Publishing for Now</h4>
-                </div>
-
-                <p className="text-muted-foreground mb-4">
-                  Continue setting up your gallery and publish it later when you're ready.
-                  <br />
-                  <span className="text-sm font-medium">Note: Your gallery won't be publicly visible until you upgrade and publish.</span>
-                </p>
-
-                <Button
-                  onClick={handleStartFreeTrial}
-                  disabled={loading}
-                  size="lg"
-                  variant="outline"
-                  className="px-8"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Continuing...
-                    </>
-                  ) : (
-                    <>
-                      <ArrowRight className="w-4 h-4 mr-2" />
-                      Continue Setup
-                    </>
-                  )}
-                </Button>
-
-                <p className="text-xs text-muted-foreground mt-2">
-                  You can always come back and publish later
-                </p>
-              </CardContent>
-            </Card>
-
-            <div className="text-center">
-              <Button
-                variant="ghost"
-                onClick={() => setShowPaymentOptions(false)}
-                className="text-muted-foreground"
-              >
-                Back to Gallery Settings
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons - only show if not showing payment options */}
-        {!event?.isPublished && !showPaymentOptions && (
+        {/* Action Buttons */}
+        {!event?.isPublished && (
           <div className="space-y-3">
             <Button
               onClick={handleInitiatePublish}

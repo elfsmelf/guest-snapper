@@ -19,6 +19,8 @@ export const getEventBySlug = db
     organizationId: events.organizationId,
     isPublished: events.isPublished,
     guestCanViewAlbum: events.guestCanViewAlbum,
+    guestCanViewGuestbook: events.guestCanViewGuestbook,
+    guestCanViewAudioMessages: events.guestCanViewAudioMessages,
     approveUploads: events.approveUploads,
     coverImageUrl: events.coverImageUrl,
     themeId: events.themeId,
@@ -46,6 +48,8 @@ export const getEventById = db
     organizationId: events.organizationId,
     isPublished: events.isPublished,
     guestCanViewAlbum: events.guestCanViewAlbum,
+    guestCanViewGuestbook: events.guestCanViewGuestbook,
+    guestCanViewAudioMessages: events.guestCanViewAudioMessages,
     approveUploads: events.approveUploads,
     coverImageUrl: events.coverImageUrl,
     themeId: events.themeId,
@@ -130,7 +134,8 @@ export const getAlbumsByEventId = db
     id: albums.id,
     name: albums.name,
     sortOrder: albums.sortOrder,
-    isVisible: albums.isVisible
+    isVisible: albums.isVisible,
+    isFavorite: albums.isFavorite
   })
   .from(albums)
   .where(eq(albums.eventId, placeholder("eventId")))

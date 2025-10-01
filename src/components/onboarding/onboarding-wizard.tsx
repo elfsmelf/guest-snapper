@@ -310,13 +310,13 @@ export function OnboardingWizard({
   return (
     <>
       <Card className="w-full max-w-4xl mx-auto border-2">
-        <CardHeader>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Rocket className="h-6 w-6 text-primary" />
-              <div>
-                <CardTitle>Setting up {eventName}</CardTitle>
-                <CardDescription>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <Rocket className="h-5 w-5 sm:h-6 sm:w-6 text-primary flex-shrink-0" />
+              <div className="min-w-0">
+                <CardTitle className="text-base sm:text-lg truncate">Setting up {eventName}</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">
                   Step {currentStep} of {totalSteps}
                 </CardDescription>
               </div>
@@ -325,26 +325,28 @@ export function OnboardingWizard({
               variant="ghost"
               size="sm"
               onClick={() => router.push(`/gallery/${eventSlug}`)}
+              className="self-end sm:self-auto text-xs sm:text-sm"
             >
-              <X className="h-4 w-4 mr-2" />
-              View Gallery
+              <Eye className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">View Gallery</span>
+              <span className="sm:hidden">View</span>
             </Button>
           </div>
-          
+
           <Progress value={progress} className="h-2" />
-          
-          <div className="flex items-center gap-2 mt-4">
+
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1">
             {STEPS.map((step, index) => {
               const stepNumber = index + 1
               const isComplete = isStepComplete(step.id)
               const isSkipped = isStepSkipped(step.id)
               const isCurrent = stepNumber === currentStep
               const isPast = stepNumber < currentStep
-              
+
               return (
                 <div
                   key={step.id}
-                  className={`flex items-center justify-center w-8 h-8 rounded-full text-xs font-medium transition-colors ${
+                  className={`flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs font-medium transition-colors flex-shrink-0 ${
                     isCurrent
                       ? "bg-primary text-primary-foreground"
                       : isComplete
@@ -358,7 +360,7 @@ export function OnboardingWizard({
                   title={step.title}
                 >
                   {isComplete ? (
-                    <Check className="h-4 w-4" />
+                    <Check className="h-3 w-3 sm:h-4 sm:w-4" />
                   ) : (
                     stepNumber
                   )}
@@ -386,23 +388,27 @@ export function OnboardingWizard({
           </div>
         </CardContent>
 
-        <CardFooter className="flex justify-between">
+        <CardFooter className="flex flex-col sm:flex-row justify-between gap-3 sm:gap-0">
           <Button
             variant="outline"
             onClick={handlePrevious}
             disabled={isFirstStep || isUpdating || isCompleting}
+            className="w-full sm:w-auto order-2 sm:order-1"
+            size="sm"
           >
             <ChevronLeft className="h-4 w-4 mr-2" />
             Previous
           </Button>
 
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 order-1 sm:order-2 w-full sm:w-auto">
             {/* Skip button - show for optional steps OR required steps that haven't been completed */}
             {(!currentStepData?.required || !isCurrentStepActionComplete()) && !isLastStep && currentStep !== 4 && (
               <Button
                 variant={currentStepData?.required && !isCurrentStepActionComplete() ? "outline" : "ghost"}
                 onClick={handleSkipStep}
                 disabled={isUpdating || isCompleting}
+                className="w-full sm:w-auto"
+                size="sm"
               >
                 {currentStepData?.required && !isCurrentStepActionComplete() ? (
                   <>Skip for Now</>
@@ -411,12 +417,14 @@ export function OnboardingWizard({
                 )}
               </Button>
             )}
-            
+
             {/* Next button - show when action is complete, OR for optional steps, OR for the last step */}
             {(isCurrentStepActionComplete() || !currentStepData?.required || isLastStep) && (
               <Button
                 onClick={handleNext}
                 disabled={isUpdating || isCompleting}
+                className="w-full sm:w-auto"
+                size="sm"
               >
                 {isLastStep ? (
                   <>
@@ -431,10 +439,10 @@ export function OnboardingWizard({
                 )}
               </Button>
             )}
-            
+
             {/* Show a hint when action is not complete for required steps only */}
             {!isCurrentStepActionComplete() && !isLastStep && currentStepData?.required && (
-              <div className="flex items-center text-sm text-muted-foreground">
+              <div className="flex items-center justify-center text-xs sm:text-sm text-muted-foreground text-center">
                 Complete the step to continue
               </div>
             )}

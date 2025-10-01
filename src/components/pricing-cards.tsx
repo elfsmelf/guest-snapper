@@ -134,14 +134,11 @@ export function PricingCards({
 
   return (
     <div className={cn("w-full", className)}>
-      {/* Header */}
-      <div className="text-center mb-8">
-
-        {/* Included in Every Package - only show for new users */}
-        {!showUpgradeOnly && (
-          <div className="mb-12 text-center max-w-5xl mx-auto">
-            <h3 className="text-2xl font-bold mb-8 tracking-wide">INCLUDED IN EVERY PACKAGE</h3>
-            <div className="grid grid-cols-1 gap-4 text-lg">
+      {/* Included in Every Package - only show for new users */}
+      {!showUpgradeOnly && (
+        <div className="mb-6 sm:mb-8 text-center max-w-5xl mx-auto">
+            <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-5 tracking-wide">INCLUDED IN EVERY PACKAGE</h3>
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 text-base sm:text-lg">
               <div className="flex items-center justify-center gap-3">
                 <Check className="h-5 w-5 text-primary flex-shrink-0" />
                 <span><strong>Unlimited</strong> Guests & Co-Hosts</span>
@@ -168,12 +165,12 @@ export function PricingCards({
               </div>
             </div>
           </div>
-        )}
+      )}
 
-        {/* Currency Selector */}
-        <div className="flex justify-center mb-12">
+      {/* Currency Selector */}
+      <div className="flex justify-center mb-8 sm:mb-12">
           <div className="text-center">
-            <p className="text-sm text-muted-foreground mb-2">Switch Currency</p>
+            <p className="text-sm text-muted-foreground mb-3">Switch Currency</p>
             <Select value={currency} onValueChange={handleCurrencyChange}>
               <SelectTrigger className="w-48">
                 <SelectValue>
@@ -195,13 +192,11 @@ export function PricingCards({
               </SelectContent>
             </Select>
           </div>
-        </div>
-
       </div>
 
       {/* Pricing Cards */}
       <div className={cn(
-        "grid gap-6 max-w-7xl mx-auto",
+        "grid gap-8 md:gap-6 max-w-7xl mx-auto",
         availablePlans.length === 1 ? "grid-cols-1 max-w-md" :
         availablePlans.length === 2 ? "grid-cols-1 md:grid-cols-2 max-w-4xl" :
         "grid-cols-1 md:grid-cols-3"

@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { X, Download, User, Calendar } from "lucide-react"
 import { CloudflareImage } from "@/components/ui/cloudflare-image"
 import { getOriginalImageUrl } from "@/lib/cloudflare-image"
+import { VideoPlayer } from "@/components/video-player"
 
 interface Upload {
   id: string
@@ -110,16 +111,18 @@ export function ImageViewer({ upload, isOpen, onClose, allowGuestDownloads = fal
               shouldLoadImage ? (
                 <video
                   src={upload.fileUrl}
+                  poster={upload.thumbnailUrl || undefined}
                   controls
+                  autoPlay
+                  playsInline
+                  preload="metadata"
                   className="
                     block
                     h-auto w-auto
                     max-w-[85vw]
+                    max-h-[75vh]
                     object-contain
                   "
-                  autoPlay
-                  muted
-                  preload="metadata"
                 />
               ) : (
                 <div className="w-full h-[50vh] bg-gray-200 animate-pulse flex items-center justify-center">

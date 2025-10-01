@@ -494,7 +494,7 @@ export default async function EventDetailPage({ params }: PageProps) {
           {/* 6. Stats */}
           <div className="order-6 lg:order-none" data-section="event-stats">
           <Suspense fallback={<StatsSkeleton />}>
-            <EventStatsGrid eventId={event.id} guestCount={event.guestCount || 0} />
+            <EventStatsGrid eventId={event.id} guestCount={event.guestCount || 0} plan={event.plan} />
           </Suspense>
           </div>
 

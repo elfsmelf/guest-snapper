@@ -7,6 +7,9 @@ export const metadata = {
   description: "Beautiful, ready-to-use templates for your wedding or event. Customize and download instantly.",
 }
 
+// Force static generation
+export const dynamic = 'force-static'
+
 const templates = [
   {
     id: "i_spy_template_5x7",

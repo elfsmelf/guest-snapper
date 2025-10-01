@@ -4,16 +4,20 @@ import { createUpload } from "@/app/actions/upload"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { 
-      eventId, 
-      albumId, 
-      uploaderName, 
-      caption, 
-      fileName, 
-      fileSize, 
-      fileType, 
+    const {
+      eventId,
+      albumId,
+      uploaderName,
+      caption,
+      fileName,
+      fileSize,
+      fileType,
       fileUrl,
-      mimeType
+      mimeType,
+      thumbnailUrl,
+      duration,
+      width,
+      height
     } = body
 
     const result = await createUpload({
@@ -25,7 +29,11 @@ export async function POST(request: NextRequest) {
       fileSize,
       fileType: fileType as 'image' | 'video' | 'audio',
       fileUrl,
-      mimeType
+      mimeType,
+      thumbnailUrl,
+      duration,
+      width,
+      height
     })
 
     if (result.success) {

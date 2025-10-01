@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { Plus, Eye, EyeOff, Lock, Info } from 'lucide-react'
+import { Plus, Eye, EyeOff, Lock, Info, Star } from 'lucide-react'
 import { CreateAlbumDialog } from './create-album-dialog'
 import { UpgradePrompt } from './upgrade-prompt'
 import { canCreateAlbum, type EventForFeatureGating } from '@/lib/feature-gates'
@@ -13,7 +13,7 @@ import { getPlanFeatures } from '@/lib/pricing'
 import type { Currency } from '@/lib/pricing'
 import { useCreateAlbum, useAlbumsData, albumKeys } from '@/hooks/use-onboarding'
 import { useQueryClient } from '@tanstack/react-query'
-import { toggleAlbumVisibility } from '@/app/actions/album'
+import { toggleAlbumVisibility, toggleAlbumFavorite } from '@/app/actions/album'
 import { toast } from 'sonner'
 
 interface Album {
@@ -22,6 +22,7 @@ interface Album {
   description?: string | null
   isDefault: boolean
   isVisible: boolean
+  isFavorite: boolean
   sortOrder: number
   createdAt: string
   updatedAt: string
@@ -49,6 +50,7 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
     currentLimit: number
   } | null>(null)
   const [togglingAlbums, setTogglingAlbums] = useState<Set<string>>(new Set())
+  const [togglingFavorites, setTogglingFavorites] = useState<Set<string>>(new Set())
 
   // Use TanStack Query for albums data and creation
   const queryClient = useQueryClient()
@@ -134,6 +136,63 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
     }
   }
 
+  const handleToggleFavorite = async (albumId: string) => {
+    // Prevent multiple toggles on the same album
+    if (togglingFavorites.has(albumId)) return
+
+    setTogglingFavorites(prev => new Set(prev).add(albumId))
+
+    // Get current album state
+    const currentAlbum = albums.find((a: Album) => a.id === albumId)
+    const willBeFavorite = !currentAlbum?.isFavorite
+
+    // Cancel any outgoing refetches to prevent race conditions
+    await queryClient.cancelQueries({ queryKey: albumKeys.list(eventId) })
+
+    // Snapshot the previous value for rollback
+    const previousData = queryClient.getQueryData(albumKeys.list(eventId))
+
+    // Optimistic update - immediately update UI
+    queryClient.setQueryData(albumKeys.list(eventId), (oldData: any) => {
+      if (!oldData?.albums) return oldData
+
+      return {
+        ...oldData,
+        albums: oldData.albums.map((album: Album) =>
+          album.id === albumId
+            ? { ...album, isFavorite: willBeFavorite }
+            : { ...album, isFavorite: false } // Unfavorite all others
+        )
+      }
+    })
+
+    try {
+      const result = await toggleAlbumFavorite(albumId)
+
+      if (result.success) {
+        toast.success(result.message)
+      } else {
+        // Revert optimistic update on error
+        queryClient.setQueryData(albumKeys.list(eventId), previousData)
+        toast.error(result.error || 'Failed to toggle album favorite')
+      }
+    } catch (error) {
+      // Revert optimistic update on error
+      queryClient.setQueryData(albumKeys.list(eventId), previousData)
+      console.error('Failed to toggle album favorite:', error)
+      toast.error('Failed to toggle album favorite')
+    } finally {
+      // Always refetch to ensure we're in sync with server
+      queryClient.invalidateQueries({ queryKey: albumKeys.list(eventId) })
+
+      setTogglingFavorites(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(albumId)
+        return newSet
+      })
+    }
+  }
+
   // Get plan info for UI display
   const planFeatures = getPlanFeatures(event.plan || 'free_trial')
   const albumUsage = {
@@ -182,6 +241,7 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {albums.map((album: Album) => {
               const isToggling = togglingAlbums.has(album.id)
+              const isTogglingFavorite = togglingFavorites.has(album.id)
               return (
                 <div
                   key={album.id}
@@ -191,7 +251,7 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className={`font-medium ${!album.isVisible ? 'line-through text-muted-foreground' : ''}`}>
+                      <h4 className="font-medium">
                         {album.name}
                       </h4>
                       {album.isDefault && (
@@ -204,14 +264,40 @@ export function AlbumsSection({ eventId, initialAlbums, event, onAlbumsChange }:
                           Hidden
                         </Badge>
                       )}
+                      {album.isFavorite && (
+                        <Badge variant="default" className="text-xs">
+                          Favorite
+                        </Badge>
+                      )}
                     </div>
                     {album.description && (
-                      <p className={`text-sm text-muted-foreground ${!album.isVisible ? 'line-through' : ''}`}>
+                      <p className="text-sm text-muted-foreground">
                         {album.description}
                       </p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleToggleFavorite(album.id)}
+                          disabled={isTogglingFavorite}
+                          className={`hover:bg-muted ${album.isFavorite ? 'text-yellow-500' : 'text-muted-foreground'}`}
+                        >
+                          <Star className={`h-4 w-4 ${album.isFavorite ? 'fill-current' : ''}`} />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>
+                          {album.isFavorite
+                            ? 'Remove as favorite album'
+                            : 'Set as favorite (default for uploads)'
+                          }
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button

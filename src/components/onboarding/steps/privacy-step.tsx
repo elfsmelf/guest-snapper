@@ -172,18 +172,18 @@ export function PrivacyStep({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Step Introduction */}
-      <div className="text-center space-y-3">
-        <p className="text-muted-foreground">
+      <div className="text-center space-y-3 px-2">
+        <p className="text-sm sm:text-base text-muted-foreground">
           Control who can view your gallery and how uploads are moderated. You can change these settings anytime.
         </p>
       </div>
 
       {/* Divider */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         <div className="flex-1 border-t border-muted-foreground/20"></div>
-        <span className="text-sm font-medium text-muted-foreground">STEP 3</span>
+        <span className="text-xs sm:text-sm font-medium text-muted-foreground">STEP 3</span>
         <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
