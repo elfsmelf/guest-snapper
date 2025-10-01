@@ -176,7 +176,9 @@ export default async function HomePage() {
                     <span>Avg setup time: 58 seconds</span>
                   </div>
 
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">Create Your QR</Button>
+                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">
+                    <Link href="/auth/sign-in">Create Your QR</Link>
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -212,8 +214,8 @@ export default async function HomePage() {
                     <span>Works on any phone - no app required</span>
                   </div>
 
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">
-                    Free Templates
+                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">
+                    <Link href="/auth/sign-in">Free Templates</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -251,8 +253,8 @@ export default async function HomePage() {
                     <span>Unlimited uploads included</span>
                   </div>
 
-                  <Button className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">
-                    Demo Event
+                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">
+                    <Link href="/auth/sign-in">Demo Event</Link>
                   </Button>
                 </CardContent>
               </Card>
