@@ -177,7 +177,6 @@ export function PublishStep({
             </p>
           </div>
           <PricingCards
-            eventId={eventId}
             selectedCurrency={selectedCurrency}
             onCurrencyChange={setSelectedCurrency}
           />
