@@ -24,6 +24,9 @@ interface GalleryPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
+// Force dynamic rendering to always show fresh data (no ISR caching)
+export const dynamic = 'force-dynamic'
+
 // Optimized SSR: Server-rendered with client-side hydration for interactive elements
 // No caching complexity, just fast server-side rendering + client interactivity
 

@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { validateEventAccess } from "@/lib/auth-helpers"
+import { revalidatePath } from "next/cache"
 
 export async function PATCH(
   request: Request,
@@ -123,7 +124,13 @@ export async function PATCH(
     }
 
     console.log(`Event settings updated for: ${event.slug}`)
-    
+
+    // Revalidate gallery paths to bust ISR cache
+    revalidatePath(`/gallery/${event.slug}`)
+    revalidatePath(`/gallery/${event.slug}/upload`)
+    revalidatePath(`/gallery/${event.slug}/slideshow`)
+    revalidatePath(`/gallery/${event.slug}/voice`)
+
     if (process.env.NODE_ENV === 'development') {
       console.log(`🗄️ Cache invalidated for event ${event.slug}: guestCanViewAlbum=${updateData.guestCanViewAlbum}`)
     }

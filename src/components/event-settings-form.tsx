@@ -329,12 +329,16 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
   // Calculate upload and download durations based on activation date
   const getUploadEndDate = () => {
     if (!activationDate) return null
-    return addMonths(activationDate, 3) // 3 months for upload
+    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+    const features = planFeatures[planToUse as Plan]
+    return addMonths(activationDate, features.uploadWindowMonths)
   }
 
   const getDownloadEndDate = () => {
     if (!activationDate) return null
-    return addMonths(activationDate, 12) // 12 months for download
+    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+    const features = planFeatures[planToUse as Plan]
+    return addMonths(activationDate, features.downloadWindowMonths)
   }
 
   return (
@@ -588,7 +592,13 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                     <div className="text-xs text-muted-foreground">
                       {format(activationDate, "MMM d, yyyy")} - {getUploadEndDate() ? format(getUploadEndDate()!, "MMM d, yyyy") : "N/A"}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">3 months duration</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {(() => {
+                        const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+                        const features = planFeatures[planToUse as Plan]
+                        return `${features.uploadWindowMonths} months duration`
+                      })()}
+                    </div>
                   </CardContent>
                 </Card>
                 <Card>
@@ -597,7 +607,13 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                     <div className="text-xs text-muted-foreground">
                       {format(activationDate, "MMM d, yyyy")} - {getDownloadEndDate() ? format(getDownloadEndDate()!, "MMM d, yyyy") : "N/A"}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">12 months duration</div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      {(() => {
+                        const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+                        const features = planFeatures[planToUse as Plan]
+                        return `${features.downloadWindowMonths} months duration`
+                      })()}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
