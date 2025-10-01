@@ -43,6 +43,7 @@ export function PublishStep({
   const [isPublishing, setIsPublishing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [selectedCurrency, setSelectedCurrency] = useState<Currency>(detectUserCurrency())
+  const [showPricingCards, setShowPricingCards] = useState(false)
   const queryClient = useQueryClient()
 
   // Use React Query to get event data (should be prefetched from layout)
@@ -89,9 +90,8 @@ export function PublishStep({
     // Check if user has a paid plan
     const currentPlan = event?.plan || 'free_trial'
     if (currentPlan === 'free_trial' || currentPlan === 'free' || !event?.plan) {
-      // Redirect to upgrade page instead of showing modal
-      toast.info('Please upgrade to a paid plan to publish your gallery')
-      router.push(`/dashboard/events/${eventId}?tab=billing`)
+      // Show pricing cards within the onboarding flow
+      setShowPricingCards(true)
       return
     }
 
@@ -167,7 +167,32 @@ export function PublishStep({
         <div className="flex-1 border-t border-muted-foreground/20"></div>
       </div>
 
-      {/* Activation Date */}
+      {/* Pricing Cards Section - Show when user clicks publish without a paid plan */}
+      {showPricingCards && (
+        <div className="space-y-4">
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-semibold">Choose Your Plan</h3>
+            <p className="text-sm text-muted-foreground">
+              Select a plan to publish your gallery and start collecting memories
+            </p>
+          </div>
+          <PricingCards
+            eventId={eventId}
+            selectedCurrency={selectedCurrency}
+            onCurrencyChange={setSelectedCurrency}
+          />
+          <Button
+            variant="outline"
+            onClick={() => setShowPricingCards(false)}
+            className="w-full"
+          >
+            Back to Gallery Setup
+          </Button>
+        </div>
+      )}
+
+      {/* Activation Date - Hide when showing pricing cards */}
+      {!showPricingCards && (
       <div className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm font-medium">
@@ -306,6 +331,7 @@ export function PublishStep({
         )}
 
       </div>
+      )}
     </div>
   )
 }
