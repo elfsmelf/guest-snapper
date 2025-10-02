@@ -108,6 +108,7 @@ export function PublishStep({
         body: JSON.stringify({
           isPublished: true,
           publishedAt: new Date().toISOString(),
+          fromOnboarding: true,
         }),
       })
 
@@ -197,7 +198,7 @@ export function PublishStep({
             Gallery Activation Date
             {event?.isPublished && <span className="text-xs text-muted-foreground ml-1">(locked)</span>}
           </label>
-          <Popover>
+          <Popover modal>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -212,7 +213,7 @@ export function PublishStep({
                 {isUpdatingDate && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
+            <PopoverContent className="w-auto p-0" align="center" sideOffset={4}>
               <Calendar
                 mode="single"
                 selected={activationDate}

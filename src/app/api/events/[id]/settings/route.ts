@@ -5,6 +5,12 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { validateEventAccess } from "@/lib/auth-helpers"
 import { revalidatePath } from "next/cache"
+import { PostHog } from 'posthog-node'
+
+const posthogClient = new PostHog(
+  process.env.NEXT_PUBLIC_POSTHOG_KEY!,
+  { host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com' }
+)
 
 export async function PATCH(
   request: Request,
@@ -45,6 +51,7 @@ export async function PATCH(
       isPublished,
       publishedAt,
       privacySettings,
+      fromOnboarding,
       settings: additionalSettings = {}
     } = body
 
@@ -118,9 +125,28 @@ export async function PATCH(
       .set(updateData)
       .where(eq(events.id, id))
       .returning()
-      
+
     if (process.env.NODE_ENV === 'development') {
       console.log(`✅ Event updated successfully:`, updatedEvent[0])
+    }
+
+    // Track event publishing in PostHog (if event is being published)
+    if (typeof isPublished === 'boolean' && isPublished === true && !event.isPublished) {
+      posthogClient.capture({
+        distinctId: session.user.id,
+        event: 'event_published',
+        properties: {
+          event_id: id,
+          event_slug: event.slug,
+          event_type: event.eventType,
+          plan: event.plan,
+          activation_date: event.activationDate,
+          from_onboarding: fromOnboarding || false,
+        }
+      })
+
+      // Flush PostHog events
+      await posthogClient.shutdown()
     }
 
     console.log(`Event settings updated for: ${event.slug}`)

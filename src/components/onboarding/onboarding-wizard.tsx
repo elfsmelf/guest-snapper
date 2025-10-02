@@ -28,8 +28,9 @@ import {
   Eye
 } from "lucide-react"
 import { toast } from "sonner"
+import posthog from 'posthog-js'
 // import { motion, AnimatePresence } from "framer-motion" // Commenting out for now
-import { 
+import {
   ONBOARDING_STEPS,
   type OnboardingState
 } from "@/types/onboarding"
@@ -174,7 +175,23 @@ export function OnboardingWizard({
   const handleNext = async () => {
     if (isLastStep) {
       completeOnboarding.mutate()
+      // Track onboarding completion
+      posthog.capture('onboarding_completed', {
+        event_id: eventId,
+        total_steps: totalSteps,
+      })
     } else {
+      // Track step completion
+      if (currentStepData) {
+        posthog.capture('onboarding_step_completed', {
+          event_id: eventId,
+          step_id: currentStepData.id,
+          step_number: currentStep,
+          step_title: currentStepData.title,
+          is_required: currentStepData.required,
+        })
+      }
+
       // For optional steps, mark as completed when pressing Next (if not already completed)
       if (currentStepData && !currentStepData.required && !isCurrentStepActionComplete()) {
         try {
@@ -183,13 +200,13 @@ export function OnboardingWizard({
           console.error('Failed to complete optional step:', error)
         }
       }
-      
+
       // Normal progression to next step (step 2 now uses Link component)
       const nextStep = Math.min(currentStep + 1, totalSteps)
-      
+
       // Update URL immediately for instant navigation
       setNavParams({ step: nextStep })
-      
+
       // Update database in background
       updateStep.mutate(nextStep)
     }
@@ -203,9 +220,18 @@ export function OnboardingWizard({
 
   const handleSkipStep = async () => {
     if (currentStepData) {
+      // Track step skip
+      posthog.capture('onboarding_step_skipped', {
+        event_id: eventId,
+        step_id: currentStepData.id,
+        step_number: currentStep,
+        step_title: currentStepData.title,
+        is_required: currentStepData.required,
+      })
+
       // Skip the current step
       skipStep.mutate(currentStepData.id)
-      
+
       if (!isLastStep) {
         const nextStep = currentStep + 1
         setNavParams({ step: nextStep })
@@ -289,7 +315,7 @@ export function OnboardingWizard({
       case ONBOARDING_STEPS.TEST_IMAGES:
         return (onboardingData.testImagesUploaded && onboardingData.testImageCount > 0) || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.TEST_IMAGES))
       case ONBOARDING_STEPS.PRIVACY:
-        return onboardingData.privacyConfigured
+        return true // Privacy settings are optional - users can proceed without changing defaults
       case ONBOARDING_STEPS.THEME:
         return onboardingData.themeSelected
       case ONBOARDING_STEPS.PUBLISH:

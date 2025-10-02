@@ -30,6 +30,8 @@ export async function POST(
     }
 
     const { id } = await params
+    const body = await request.json().catch(() => ({}))
+    const fromOnboarding = body.fromOnboarding || false
 
     // Verify the user can access this event (owner or organization member)
     let event
@@ -94,6 +96,7 @@ export async function POST(
         event_type: event.eventType,
         plan: event.plan,
         activation_date: event.activationDate,
+        from_onboarding: fromOnboarding,
       }
     })
 

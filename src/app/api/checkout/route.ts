@@ -137,8 +137,7 @@ export async function POST(req: NextRequest) {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      customer: customerId, // Link to existing customer
-      customer_email: session.user.email, // Prefill email for convenience
+      customer: customerId, // Link to existing customer (email is already stored with customer)
       line_items: lineItems,
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/events/${event.id}?payment_cancelled=true`,

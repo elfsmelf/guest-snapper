@@ -28,14 +28,12 @@ export function PaymentSuccessHandler({
     const paymentSuccessParam = searchParams.get('payment_success')
     const sessionId = searchParams.get('session_id')
     const paymentCancelled = searchParams.get('payment_cancelled')
-    
+
     if (paymentSuccessParam === 'true' && sessionId) {
       // Verify payment and get session data
       fetchPaymentData(sessionId)
     } else if (paymentCancelled === 'true') {
-      // Just open the dialog normally for cancelled payments
-      setDialogOpen(true)
-      // Clean up URL
+      // Just clean up URL - don't show modal when payment is cancelled
       const newUrl = window.location.pathname
       router.replace(newUrl)
     }

@@ -20,8 +20,10 @@ async function upgradeEvent(opts: {
   currency: string;
   stripeSessionId: string;
   paymentIntentId?: string;
+  amountTotal?: number;
+  isUpgrade?: boolean;
 }) {
-  const { userId, eventId, plan, currency, stripeSessionId, paymentIntentId } = opts;
+  const { userId, eventId, plan, currency, stripeSessionId, paymentIntentId, amountTotal, isUpgrade } = opts;
 
   try {
     // Verify user owns the event (defense-in-depth)
@@ -41,6 +43,8 @@ async function upgradeEvent(opts: {
       console.error(`User ${userId} does not own event ${eventId}`);
       return;
     }
+
+    const previousPlan = event.plan || 'free_trial';
 
     // Get plan features for upload/download window calculation
     const planFeatures = getPlanFeatures(plan);
@@ -78,18 +82,36 @@ async function upgradeEvent(opts: {
 
     console.log(`✅ Successfully upgraded event ${eventId} to ${plan} plan`);
 
-    // Track plan upgrade in PostHog
-    posthogClient.capture({
-      distinctId: userId,
-      event: 'plan_upgraded',
-      properties: {
-        event_id: eventId,
-        plan: plan,
-        currency: currency,
-        stripe_session_id: stripeSessionId,
-        previous_plan: 'free_trial',
-      }
-    })
+    // Track payment event in PostHog
+    if (isUpgrade && previousPlan !== 'free_trial' && previousPlan !== 'free') {
+      // Existing paid plan being upgraded to higher tier
+      posthogClient.capture({
+        distinctId: userId,
+        event: 'payment_upgrade_completed',
+        properties: {
+          event_id: eventId,
+          plan: plan,
+          previous_plan: previousPlan,
+          currency: currency,
+          amount: amountTotal ? amountTotal / 100 : undefined,
+          stripe_session_id: stripeSessionId,
+        }
+      })
+    } else {
+      // First time payment (from free trial or free)
+      posthogClient.capture({
+        distinctId: userId,
+        event: 'payment_success',
+        properties: {
+          event_id: eventId,
+          plan: plan,
+          previous_plan: previousPlan,
+          currency: currency,
+          amount: amountTotal ? amountTotal / 100 : undefined,
+          stripe_session_id: stripeSessionId,
+        }
+      })
+    }
 
     // Flush PostHog events
     await posthogClient.shutdown()
@@ -134,6 +156,7 @@ export async function POST(req: NextRequest) {
           const eventId = session.metadata?.eventId;
           const plan = session.metadata?.plan;
           const currency = session.metadata?.currency;
+          const isUpgrade = session.metadata?.isUpgrade === 'true';
 
           if (!userId || !eventId || !plan || !currency) {
             console.error("Missing required metadata in checkout session:", {
@@ -149,6 +172,8 @@ export async function POST(req: NextRequest) {
             currency,
             stripeSessionId: session.id,
             paymentIntentId: session.payment_intent,
+            amountTotal: session.amount_total,
+            isUpgrade,
           });
         }
         break;

@@ -611,8 +611,29 @@ export default async function EventDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {/* 11. Slideshow */}
-            <div className="order-11 lg:order-none" data-section="slideshow-settings">
+            {/* 11. Canva Templates */}
+            <Card className="order-11 lg:order-none" data-section="canva-templates">
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Presentation className="mr-2 h-5 w-5" />
+                  Canva Templates
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Get beautiful, ready-to-use templates for your event signage and materials.
+                </p>
+                <Button asChild className="w-full">
+                  <Link href="/canva-templates" target="_blank">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Templates
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* 12. Slideshow */}
+            <div className="order-12 lg:order-none" data-section="slideshow-settings">
               <SlideshowSettings
                 eventId={event.id}
                 eventSlug={event.slug}
@@ -621,8 +642,8 @@ export default async function EventDetailPage({ params }: PageProps) {
               />
             </div>
 
-            {/* 12. Download All Files */}
-            <Card className="order-12 lg:order-none">
+            {/* 13. Download All Files */}
+            <Card className="order-13 lg:order-none">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Download className="mr-2 h-5 w-5" />

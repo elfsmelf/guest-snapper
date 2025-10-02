@@ -156,21 +156,6 @@ export function PrivacyStep({
     }
   }
 
-  const handleContinue = async () => {
-    try {
-      // Update onboarding state
-      const result = await updateOnboardingProgress(eventId, {
-        privacyConfigured: true
-      })
-      if (result.success) {
-        onUpdate({ privacyConfigured: true })
-        await onComplete()
-      }
-    } catch (error) {
-      toast.error('Failed to continue')
-    }
-  }
-
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Step Introduction */}
@@ -306,28 +291,6 @@ export function PrivacyStep({
                 className="data-[state=checked]:bg-primary"
                 disabled={isUpdating || isLoading}
               />
-            </div>
-
-            {/* Continue Button */}
-            <div className="pt-4 border-t">
-              <Button 
-                onClick={handleContinue}
-                disabled={isUpdating}
-                className="w-full"
-                size="lg"
-              >
-                {isUpdating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle className="w-4 w-4 mr-2" />
-                    Continue with These Settings
-                  </>
-                )}
-              </Button>
             </div>
           </CardContent>
         </Card>
