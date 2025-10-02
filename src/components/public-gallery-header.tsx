@@ -6,7 +6,6 @@ import { ArrowLeft } from "lucide-react"
 import Image from "next/image"
 
 import { Button } from "./ui/button"
-import { ModeToggle } from "./mode-toggle"
 
 interface PublicGalleryHeaderProps {
     galleryTheme?: string
@@ -56,7 +55,6 @@ export function PublicGalleryHeader({ galleryTheme, eventSlug, showAuthButtons =
             </Link>
 
             <div className="flex items-center gap-2">
-                <ModeToggle />
                 {(isUploadPage || isVoicePage) && gallerySlug ? (
                     <Button asChild variant="outline" size="sm">
                         <Link href={`/gallery/${gallerySlug}`} prefetch={false}>

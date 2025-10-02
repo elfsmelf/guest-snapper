@@ -1,15 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Exclude directories from file watching to prevent unnecessary recompilation
-    watchOptions: {
-        ignored: [
-            '**/better-auth-ui-main/**',
-            '**/node_modules/**',
-            '**/.git/**',
-            '**/*.txt',
-            '**/debug-*.js'
-        ]
-    },
     // Speed up dev compilation with optimizations
     experimental: {
         // Temporarily disable Turbopack to fix build issues
@@ -29,8 +19,30 @@ const nextConfig = {
             'react-hook-form'
         ]
     },
-    // Let Next.js handle bundling optimally
-    // Remove custom webpack config to use defaults
+    // Custom webpack config for file watching
+    webpack: (config, { isServer }) => {
+        // Exclude directories from file watching to prevent unnecessary recompilation
+        if (!config.watchOptions) {
+            config.watchOptions = {}
+        }
+
+        const existingIgnored = Array.isArray(config.watchOptions.ignored)
+            ? config.watchOptions.ignored
+            : config.watchOptions.ignored
+                ? [config.watchOptions.ignored]
+                : []
+
+        config.watchOptions.ignored = [
+            ...existingIgnored,
+            '**/better-auth-ui-main/**',
+            '**/node_modules/**',
+            '**/.git/**',
+            '**/*.txt',
+            '**/debug-*.js'
+        ]
+
+        return config
+    },
     images: {
         // Disable Next.js image optimization to serve directly from Cloudflare
         unoptimized: true,

@@ -26,15 +26,80 @@ const playfairDisplay = Playfair_Display({
 // Gallery theme fonts now loaded directly from Google Fonts (no edge requests)
 // These are imported via CSS and only loaded when gallery components need them
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.guestsnapper.com'
+
 export const metadata: Metadata = {
-    title: "GuestSnapper - Wedding Photo Gallery",
+    metadataBase: new URL(siteUrl),
+    title: {
+        default: "Guest Snapper - QR Code Wedding Photo Sharing & Guest Album",
+        template: "%s | Guest Snapper"
+    },
     description:
-        "Create beautiful wedding photo galleries that guests can easily access and contribute to. Share memories, collect photos, and preserve your special moments.",
+        "Create a QR code wedding photo gallery in 60 seconds. Guests scan to upload unlimited photos & videos - no app required. Perfect for weddings, parties & events.",
+    keywords: [
+        "wedding photo sharing",
+        "QR code photo gallery",
+        "guest photo upload",
+        "wedding QR code",
+        "event photo sharing",
+        "digital wedding album",
+        "wedding photo app alternative",
+        "guest photo contribution",
+        "wedding memories"
+    ],
+    authors: [{ name: "Guest Snapper" }],
+    creator: "Guest Snapper",
+    publisher: "Guest Snapper",
+    formatDetection: {
+        email: false,
+        address: false,
+        telephone: false,
+    },
     manifest: "/manifest.webmanifest",
     appleWebApp: {
         capable: true,
-        title: "GuestSnapper",
+        title: "Guest Snapper",
         statusBarStyle: "default"
+    },
+    alternates: {
+        canonical: "/"
+    },
+    robots: {
+        index: true,
+        follow: true,
+        googleBot: {
+            index: true,
+            follow: true,
+            'max-video-preview': -1,
+            'max-image-preview': 'large',
+            'max-snippet': -1,
+        },
+    },
+    openGraph: {
+        type: "website",
+        locale: "en_US",
+        url: siteUrl,
+        title: "Guest Snapper - QR Code Wedding Photo Sharing",
+        description: "Create a QR code wedding photo gallery in 60 seconds. Guests scan to upload unlimited photos & videos - no app required.",
+        siteName: "Guest Snapper",
+        images: [
+            {
+                url: "/og-image.jpg",
+                width: 1200,
+                height: 630,
+                alt: "Guest Snapper - QR Code Wedding Photo Sharing"
+            }
+        ]
+    },
+    twitter: {
+        card: "summary_large_image",
+        title: "Guest Snapper - QR Code Wedding Photo Sharing",
+        description: "Create a QR code wedding photo gallery in 60 seconds. Guests scan to upload unlimited photos & videos - no app required.",
+        images: ["/og-image.jpg"],
+        creator: "@guestsnapper"
+    },
+    verification: {
+        google: "google-site-verification-code", // Add your actual verification code
     }
 }
 

@@ -2,7 +2,7 @@
 // Do not edit manually - run the script again to regenerate
 
 export const stripePriceIds = {
-  bliss: {
+  essential: {
     AUD: "price_1SBS2kRZSAuj4M4XmP6ll82u",
     USD: "price_1SBS2kRZSAuj4M4XBSW47Ceu",
     GBP: "price_1SBS2kRZSAuj4M4XoxF5y45V",
@@ -10,7 +10,7 @@ export const stripePriceIds = {
     CAD: "price_1SBS2lRZSAuj4M4Xe7R1VUqV",
     NZD: "price_1SBS2lRZSAuj4M4XxyxpNMvg",
   },
-  radiance: {
+  timeless: {
     AUD: "price_1SBS2mRZSAuj4M4XAYJbHkfg",
     USD: "price_1SBS2mRZSAuj4M4XjRlzRaIX",
     GBP: "price_1SBS2mRZSAuj4M4XH6TJaims",
@@ -18,7 +18,7 @@ export const stripePriceIds = {
     CAD: "price_1SBS2nRZSAuj4M4XvBen4Y4t",
     NZD: "price_1SBS2nRZSAuj4M4XdS3EXJjP",
   },
-  eternal: {
+  premier: {
     AUD: "price_1SBS2oRZSAuj4M4XaiCwc9EM",
     USD: "price_1SBS2oRZSAuj4M4XsoMTPO14",
     GBP: "price_1SBS2pRZSAuj4M4X4pYi20yF",

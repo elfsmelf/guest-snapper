@@ -8,7 +8,6 @@ import Image from "next/image"
 
 import { Button } from "./ui/button"
 import { UserButton } from "./user-button"
-import { ModeToggle } from "./mode-toggle"
 import { Skeleton } from "./ui/skeleton"
 
 interface HeaderProps {
@@ -62,7 +61,6 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
                 </Link>
 
                 <div className="flex items-center gap-2">
-                <ModeToggle />
                 {(isUploadPage || isVoicePage) && gallerySlug ? (
                     <Button asChild variant="outline">
                         <Link href={`/gallery/${gallerySlug}`} prefetch={false}>

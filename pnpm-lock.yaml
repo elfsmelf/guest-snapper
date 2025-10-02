@@ -16,10 +16,13 @@ importers:
         version: 3.864.0
       '@better-auth/stripe':
         specifier: ^1.3.7
-        version: 1.3.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@3.25.76)
+        version: 1.3.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@4.1.11)
       '@daveyplate/better-auth-ui':
         specifier: ^2.0.8
-        version: 2.0.8(f965ddaba90c43e2138ac21ad34422b1)
+        version: 2.0.8(ae359d90924cfb2fccb14bb2ca878f85)
+      '@hookform/resolvers':
+        specifier: ^5.2.2
+        version: 5.2.2(react-hook-form@7.63.0(react@19.1.0))
       '@internationalized/date':
         specifier: ^3.8.2
         version: 3.8.2
@@ -161,6 +164,9 @@ importers:
       react-google-recaptcha-v3:
         specifier: ^1.11.0
         version: 1.11.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      react-hook-form:
+        specifier: ^7.63.0
+        version: 7.63.0(react@19.1.0)
       react-masonry-css:
         specifier: ^1.0.16
         version: 1.0.16(react@19.1.0)
@@ -182,6 +188,9 @@ importers:
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.3.1
+      zod:
+        specifier: ^4.1.11
+        version: 4.1.11
     devDependencies:
       '@better-auth/cli':
         specifier: ^1.2.9
@@ -1036,8 +1045,8 @@ packages:
   '@hexagon/base64@1.1.28':
     resolution: {integrity: sha512-lhqDEAvWixy3bZ+UOYbPwUbBkwBq5C1LAJ/xPC8Oi+lL54oyakv/npbA0aU2hgCsx/1NUd4IBvV03+aUBWxerw==}
 
-  '@hookform/resolvers@5.0.1':
-    resolution: {integrity: sha512-u/+Jp83luQNx9AdyW2fIPGY6Y7NG68eN2ZW8FOJYL+M0i4s49+refdJdOp/A9n9HFQtQs3HIDHQvX3ZET2o7YA==}
+  '@hookform/resolvers@5.2.2':
+    resolution: {integrity: sha512-A/IxlMLShx3KjV/HeTcTfaMxdwy690+L/ZADoeaTltLx+CVuzkeVIPuybK3jrRfw7YZnmdKsVVHAlEPIAEUNlA==}
     peerDependencies:
       react-hook-form: ^7.55.0
 
@@ -4489,8 +4498,8 @@ packages:
     peerDependencies:
       react: '>=16.4.1'
 
-  react-hook-form@7.56.0:
-    resolution: {integrity: sha512-U2QQgx5z2Y8Z0qlXv3W19hWHJgfKdWMz0O/osuY+o+CYq568V2R/JhzC6OAXfR8k24rIN0Muan2Qliaq9eKs/g==}
+  react-hook-form@7.63.0:
+    resolution: {integrity: sha512-ZwueDMvUeucovM2VjkCf7zIHcs1aAlDimZu2Hvel5C5907gUzMpm4xCrQXtRzCvsBqFjonB4m3x4LzCFI1ZKWA==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
@@ -4997,11 +5006,11 @@ packages:
     resolution: {integrity: sha512-zK7YHHz4ZXpW89AHXUPbQVGKI7uvkd3hzusTdotCg1UxyaVtg0zFJSTfW/Dq5f7OBBVnq6cZIaC8Ti4hb6dtCA==}
     engines: {node: '>= 14'}
 
-  zod@3.25.67:
-    resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
-
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
+
+  zod@4.1.11:
+    resolution: {integrity: sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg==}
 
 snapshots:
 
@@ -5750,7 +5759,7 @@ snapshots:
       semver: 7.7.2
       tinyexec: 0.3.2
       yocto-spinner: 0.1.2
-      zod: 3.25.67
+      zod: 3.25.76
     transitivePeerDependencies:
       - '@aws-sdk/client-rds-data'
       - '@cloudflare/workers-types'
@@ -5779,10 +5788,10 @@ snapshots:
       - sqlite3
       - supports-color
 
-  '@better-auth/stripe@1.3.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@3.25.76)':
+  '@better-auth/stripe@1.3.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@4.1.11)':
     dependencies:
-      better-auth: 1.3.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@3.25.76)
-      zod: 3.25.76
+      better-auth: 1.3.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@4.1.11)
+      zod: 4.1.11
     transitivePeerDependencies:
       - react
       - react-dom
@@ -5869,12 +5878,12 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  '@daveyplate/better-auth-ui@2.0.8(f965ddaba90c43e2138ac21ad34422b1)':
+  '@daveyplate/better-auth-ui@2.0.8(ae359d90924cfb2fccb14bb2ca878f85)':
     dependencies:
       '@better-fetch/fetch': 1.1.18
       '@daveyplate/better-auth-tanstack': 1.3.6(@tanstack/query-core@5.85.5)(@tanstack/react-query@5.85.5(react@19.1.0))(better-auth@1.2.9)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@hcaptcha/react-hcaptcha': 1.12.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      '@hookform/resolvers': 5.0.1(react-hook-form@7.56.0(react@19.1.0))
+      '@hookform/resolvers': 5.2.2(react-hook-form@7.63.0(react@19.1.0))
       '@instantdb/react': 0.18.3(react@19.1.0)
       '@marsidev/react-turnstile': 1.1.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-avatar': 1.1.10(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -5904,14 +5913,14 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
       react-google-recaptcha: 3.1.0(react@19.1.0)
-      react-hook-form: 7.56.0(react@19.1.0)
+      react-hook-form: 7.63.0(react@19.1.0)
       react-qr-code: 2.0.18(react@19.1.0)
       sonner: 2.0.5(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       tailwind-merge: 3.3.1
       tailwindcss: 4.1.10
       ua-parser-js: 2.0.3
       vaul: 1.1.2(@types/react-dom@19.1.6(@types/react@19.1.8))(@types/react@19.1.8)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
-      zod: 3.25.76
+      zod: 4.1.11
     transitivePeerDependencies:
       - '@types/react'
       - '@types/react-dom'
@@ -6129,10 +6138,10 @@ snapshots:
 
   '@hexagon/base64@1.1.28': {}
 
-  '@hookform/resolvers@5.0.1(react-hook-form@7.56.0(react@19.1.0))':
+  '@hookform/resolvers@5.2.2(react-hook-form@7.63.0(react@19.1.0))':
     dependencies:
       '@standard-schema/utils': 0.3.0
-      react-hook-form: 7.56.0(react@19.1.0)
+      react-hook-form: 7.63.0(react@19.1.0)
 
   '@img/sharp-darwin-arm64@0.34.2':
     optionalDependencies:
@@ -8822,9 +8831,9 @@ snapshots:
       jose: 5.10.0
       kysely: 0.28.2
       nanostores: 0.11.4
-      zod: 3.25.67
+      zod: 3.25.76
 
-  better-auth@1.3.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@3.25.76):
+  better-auth@1.3.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(zod@4.1.11):
     dependencies:
       '@better-auth/utils': 0.2.6
       '@better-fetch/fetch': 1.1.18
@@ -8837,7 +8846,7 @@ snapshots:
       jose: 5.10.0
       kysely: 0.28.5
       nanostores: 0.11.4
-      zod: 3.25.76
+      zod: 4.1.11
     optionalDependencies:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
@@ -10066,7 +10075,7 @@ snapshots:
       react: 19.1.0
       react-async-script: 1.2.0(react@19.1.0)
 
-  react-hook-form@7.56.0(react@19.1.0):
+  react-hook-form@7.63.0(react@19.1.0):
     dependencies:
       react: 19.1.0
 
@@ -10634,6 +10643,6 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.7.0
 
-  zod@3.25.67: {}
-
   zod@3.25.76: {}
+
+  zod@4.1.11: {}

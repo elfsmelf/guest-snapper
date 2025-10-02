@@ -19,14 +19,20 @@ export default async function AuthPage({
     const { pathname } = await params
     const searchParamsData = await searchParams
 
+    // Check if user is already logged in
+    const sessionData = await auth.api.getSession({
+        headers: await headers()
+    })
+
+    // Redirect logged-in users to dashboard (except for settings page)
+    if (sessionData?.user && pathname !== "settings") {
+        redirect("/dashboard")
+    }
+
     // **EXAMPLE** SSR route protection for /auth/settings
     // NOTE: This opts /auth/settings out of static rendering
     // It already handles client side protection via useAuthenticate
     if (pathname === "settings") {
-        const sessionData = await auth.api.getSession({
-            headers: await headers()
-        })
-
         if (!sessionData) redirect("/auth/sign-in?redirectTo=/auth/settings")
     }
 

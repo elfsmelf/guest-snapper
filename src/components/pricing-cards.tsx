@@ -20,8 +20,8 @@ const currencies = [
 ]
 
 const planDetails = {
-  bliss: {
-    plan: "bliss" as Plan,
+  essential: {
+    plan: "essential" as Plan,
     icon: Heart,
     iconColor: "text-primary",
     borderColor: "border-muted",
@@ -37,8 +37,8 @@ const planDetails = {
       "12-Month Download Window"
     ]
   },
-  radiance: {
-    plan: "radiance" as Plan,
+  timeless: {
+    plan: "timeless" as Plan,
     icon: Star,
     iconColor: "text-primary",
     borderColor: "border-primary/20",
@@ -54,8 +54,8 @@ const planDetails = {
       "12-Month Download Window"
     ]
   },
-  eternal: {
-    plan: "eternal" as Plan,
+  premier: {
+    plan: "premier" as Plan,
     icon: Crown,
     iconColor: "text-primary",
     borderColor: "border-muted",
@@ -104,7 +104,7 @@ export function PricingCards({
   const currentCurrencyData = currencies.find(c => c.code === currency)
 
   // Plan hierarchy for upgrade filtering
-  const planHierarchy = ['bliss', 'radiance', 'eternal'] as Plan[]
+  const planHierarchy = ['essential', 'timeless', 'premier'] as Plan[]
 
   // Filter plans based on showUpgradeOnly
   const getAvailablePlans = () => {

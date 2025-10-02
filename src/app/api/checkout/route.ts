@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { stripe } from "@/lib/stripe";
 import { getPriceId, getUpgradePrice, isPlanUpgrade, type Plan, type Currency } from "@/lib/pricing";
+import { getOrCreateStripeCustomer } from "@/lib/stripe-customer";
 import { db } from "@/database/db";
 import { events } from "@/database/schema";
 import { eq } from "drizzle-orm";
@@ -122,6 +123,13 @@ export async function POST(req: NextRequest) {
       };
     }
 
+    // Get or create Stripe customer for this user
+    const customerId = await getOrCreateStripeCustomer(
+      session.user.id,
+      session.user.email,
+      session.user.name || undefined
+    );
+
     // Create Stripe checkout session
     if (!stripe) {
       throw new Error('Stripe is not configured')
@@ -129,7 +137,8 @@ export async function POST(req: NextRequest) {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      customer_email: session.user.email,
+      customer: customerId, // Link to existing customer
+      customer_email: session.user.email, // Prefill email for convenience
       line_items: lineItems,
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/events/${event.id}?payment_cancelled=true`,

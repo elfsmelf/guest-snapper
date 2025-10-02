@@ -26,14 +26,77 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion"
 
+import type { Metadata } from "next"
+
 // Force static generation
 export const dynamic = 'force-static'
 export const revalidate = 3600 // Revalidate every hour
+
+export const metadata: Metadata = {
+  title: "Guest Snapper - QR Code Wedding Photo Sharing & Guest Album",
+  description: "Create a QR code wedding photo gallery in 60 seconds. Guests scan to upload unlimited photos & videos - no app required. Perfect for weddings, parties & events.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Guest Snapper - QR Code Wedding Photo Sharing",
+    description: "Create a QR code wedding photo gallery in 60 seconds. Guests scan to upload unlimited photos & videos - no app required.",
+    url: "/",
+    images: [
+      {
+        url: "https://assets.guestsnapper.com/marketing/gallery/hero%20image%20mockup.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Guest Snapper - QR Code Wedding Photo Sharing",
+      },
+    ],
+  },
+}
+
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Guest Snapper',
+  applicationCategory: 'LifestyleApplication',
+  operatingSystem: 'Web Browser',
+  offers: {
+    '@type': 'AggregateOffer',
+    priceCurrency: 'USD',
+    lowPrice: '0',
+    highPrice: '299',
+  },
+  aggregateRating: {
+    '@type': 'AggregateRating',
+    ratingValue: '4.5',
+    reviewCount: '2378',
+  },
+  description: 'Create a QR code wedding photo gallery in 60 seconds. Guests scan to upload unlimited photos & videos - no app required.',
+  url: 'https://www.guestsnapper.com',
+  image: 'https://assets.guestsnapper.com/marketing/gallery/hero%20image%20mockup.jpg',
+  author: {
+    '@type': 'Organization',
+    name: 'Guest Snapper',
+  },
+  featureList: [
+    'QR Code Photo Sharing',
+    'Unlimited Photo & Video Uploads',
+    'No App Required',
+    'Live Gallery Updates',
+    'Custom Templates',
+    'Privacy Controls',
+    'Download All Photos',
+  ],
+}
 
 export default async function HomePage() {
 
   return (
     <div className="min-h-screen">
+      {/* JSON-LD structured data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <main className="relative">
         {/* Hero Section */}
         <section className="relative overflow-hidden bg-background">
@@ -714,7 +777,7 @@ export default async function HomePage() {
             </div>
 
             {/* Templates Grid */}
-            <div className="grid grid-cols-5 gap-6 mb-12">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6 mb-12">
               {/* Welcome Sign Template */}
               <div className="group relative overflow-hidden rounded-xl bg-white shadow-lg hover:shadow-xl transition-all duration-300">
                 <div className="aspect-[4/5] relative overflow-hidden">
@@ -986,7 +1049,7 @@ export default async function HomePage() {
         <PricingSection />
 
         {/* FAQ Section */}
-        <section className="py-16 pb-24 bg-background">
+        <section id="faq" className="py-16 pb-24 bg-background">
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               {/* Header */}
@@ -1132,19 +1195,14 @@ export default async function HomePage() {
                 <h3 className="font-semibold text-foreground mb-4">Guest Snapper</h3>
                 <ul className="space-y-2">
                   <li>
-                    <Link href="/how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
+                    <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
                       How it works
-                    </Link>
+                    </a>
                   </li>
                   <li>
-                    <Link href="#faq" className="text-muted-foreground hover:text-foreground transition-colors">
+                    <a href="#faq" className="text-muted-foreground hover:text-foreground transition-colors">
                       FAQ
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href="/blog" className="text-muted-foreground hover:text-foreground transition-colors">
-                      Blog
-                    </Link>
+                    </a>
                   </li>
                 </ul>
               </div>

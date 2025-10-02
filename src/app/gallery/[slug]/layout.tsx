@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import { getCachedEventData } from "@/lib/gallery-cache"
 import { GalleryThemeProvider } from "@/components/gallery-theme-provider"
 import "@/styles/gallery-themes.css"
@@ -6,6 +7,31 @@ import "@/styles/gallery-themes.css"
 interface GalleryLayoutProps {
   children: React.ReactNode
   params: Promise<{ slug: string }>
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  const eventData = await getCachedEventData(slug, false)
+
+  if (!eventData) {
+    return {
+      robots: {
+        index: false,
+        follow: false,
+      }
+    }
+  }
+
+  return {
+    title: `${eventData.name} - Photo Gallery`,
+    description: `View and share photos from ${eventData.name}`,
+    robots: {
+      index: false, // Never index user galleries
+      follow: false,
+      noarchive: true,
+      nocache: true,
+    },
+  }
 }
 
 export default async function GalleryLayout({ children, params }: GalleryLayoutProps) {

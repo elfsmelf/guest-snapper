@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { PricingCards } from "./pricing-cards"
 import { UpgradePrompt } from "./upgrade-prompt"
 import { canPublishEvent } from "@/lib/feature-gates"
-import { planFeatures, type Currency, type Plan } from "@/lib/pricing"
+import { planFeatures, normalizePlanName, type Currency, type Plan } from "@/lib/pricing"
 import { toast } from "sonner"
 import { getTrialStatus, formatTrialStatus } from "@/lib/trial-utils"
 
@@ -104,9 +104,9 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       case 'guest50': return 50 // legacy
       case 'guest100': return 100 // legacy
       case 'unlimited': return 999999 // legacy
-      case 'bliss': return 999999 // unlimited guests
-      case 'radiance': return 999999 // unlimited guests
-      case 'eternal': return 999999 // unlimited guests
+      case 'essential': return 999999 // unlimited guests
+      case 'timeless': return 999999 // unlimited guests
+      case 'premier': return 999999 // unlimited guests
       case 'free_trial': return 999999 // unlimited guests during trial
       default: return 999999 // default to unlimited
     }
@@ -329,15 +329,15 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
   // Calculate upload and download durations based on activation date
   const getUploadEndDate = () => {
     if (!activationDate) return null
-    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
-    const features = planFeatures[planToUse as Plan]
+    const planToUse = normalizePlanName(event?.plan)
+    const features = planFeatures[planToUse]
     return addMonths(activationDate, features.uploadWindowMonths)
   }
 
   const getDownloadEndDate = () => {
     if (!activationDate) return null
-    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
-    const features = planFeatures[planToUse as Plan]
+    const planToUse = normalizePlanName(event?.plan)
+    const features = planFeatures[planToUse]
     return addMonths(activationDate, features.downloadWindowMonths)
   }
 
@@ -346,19 +346,19 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
       {/* Choose Your Plan Card */}
       {(() => {
-        const currentPlan = event.plan || 'free_trial';
-        const isFreeTrial = currentPlan === 'free' || currentPlan === 'free_trial' || !event.plan;
-        const isEternal = currentPlan === 'eternal';
+        const currentPlan = normalizePlanName(event.plan);
+        const isFreeTrial = !event.plan || event.plan === 'free' || event.plan === 'free_trial';
+        const isPremier = currentPlan === 'premier';
 
-        // If user has eternal plan, just show a simple status message
-        if (isEternal) {
+        // If user has premier plan, just show a simple status message
+        if (isPremier) {
           return (
             <Card data-section="current-plan">
               <CardContent className="py-6">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Users className="w-5 h-5 text-primary" />
-                    <span className="font-semibold">Your current plan is Eternal</span>
+                    <span className="font-semibold">Your current plan is Premier</span>
                     <Badge variant="default" className="bg-primary text-primary-foreground">
                       Premium
                     </Badge>
@@ -386,7 +386,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                     if (isFreeTrial) {
                       return trialStatus.isExpired ? 'Free Trial - Expired' : 'Free Trial';
                     }
-                    return planFeatures[currentPlan as keyof typeof planFeatures]?.name || 'Free Trial';
+                    return planFeatures[currentPlan]?.name || 'Free Trial';
                   })()}
                 </Badge>
               </CardTitle>
@@ -431,7 +431,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
                   <div className="flex items-center justify-center gap-2 text-foreground">
                     <span className="font-semibold">
-                      Your current plan is {planFeatures[currentPlan as keyof typeof planFeatures]?.name}
+                      Your current plan is {planFeatures[currentPlan]?.name}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2 text-center">
@@ -594,8 +594,8 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {(() => {
-                        const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
-                        const features = planFeatures[planToUse as Plan]
+                        const planToUse = normalizePlanName(event?.plan)
+                        const features = planFeatures[planToUse]
                         return `${features.uploadWindowMonths} months duration`
                       })()}
                     </div>
@@ -609,8 +609,8 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {(() => {
-                        const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
-                        const features = planFeatures[planToUse as Plan]
+                        const planToUse = normalizePlanName(event?.plan)
+                        const features = planFeatures[planToUse]
                         return `${features.downloadWindowMonths} months duration`
                       })()}
                     </div>

@@ -22,10 +22,10 @@ export default function CreateGalleryPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
-    eventDate: '',
-    venue: '',
     eventType: 'wedding',
+    venue: '',
   })
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(null)
   const [coverImage, setCoverImage] = useState<File | null>(null)
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null)
@@ -81,8 +81,31 @@ export default function CreateGalleryPage() {
     setCoverImagePreview(null)
   }
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {}
+
+    if (!formData.name.trim()) {
+      newErrors.name = 'Event name is required'
+    } else if (formData.name.trim().length < 3) {
+      newErrors.name = 'Event name must be at least 3 characters'
+    }
+
+    if (!formData.eventType) {
+      newErrors.eventType = 'Please select an event type'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validate form
+    if (!validateForm()) {
+      return
+    }
+
     setIsLoading(true)
 
     try {
@@ -237,18 +260,29 @@ export default function CreateGalleryPage() {
                 type="text"
                 placeholder={getEventNamePlaceholder(formData.eventType)}
                 value={formData.name}
-                onChange={(e) =>
+                onChange={(e) => {
                   setFormData({ ...formData, name: e.target.value })
-                }
-                required
+                  if (errors.name) {
+                    setErrors({ ...errors, name: '' })
+                  }
+                }}
+                className={errors.name ? 'border-red-500' : ''}
               />
+              {errors.name && (
+                <p className="text-sm text-red-500 mt-1">{errors.name}</p>
+              )}
             </div>
 
             <div>
               <Label>Event Type *</Label>
               <RadioGroup
                 value={formData.eventType}
-                onValueChange={(value) => setFormData({ ...formData, eventType: value })}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, eventType: value })
+                  if (errors.eventType) {
+                    setErrors({ ...errors, eventType: '' })
+                  }
+                }}
                 className="grid grid-cols-2 gap-3 mt-3"
               >
                 {Object.values(eventTypes).filter(type => type.id === 'wedding' || type.id === 'party').map((type) => {
@@ -289,9 +323,7 @@ export default function CreateGalleryPage() {
                 type="text"
                 placeholder="Wedding venue name"
                 value={formData.venue}
-                onChange={(e) =>
-                  setFormData({ ...formData, venue: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, venue: e.target.value })}
               />
             </div>
 
@@ -343,13 +375,23 @@ export default function CreateGalleryPage() {
             </div>
 
             <div className="flex gap-3 pt-4">
-              <Button type="submit" disabled={isLoading || !formData.name}>
+              <Button type="submit" disabled={isLoading}>
                 {isLoading ? 'Creating...' : 'Create Event'}
               </Button>
               <Button type="button" variant="outline" asChild>
                 <Link href="/dashboard">Cancel</Link>
               </Button>
             </div>
+
+            {Object.keys(errors).length > 0 && (
+              <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <p className="text-sm text-red-800 dark:text-red-200 font-medium mb-1">Please fix the following errors:</p>
+                <ul className="text-sm text-red-700 dark:text-red-300 list-disc list-inside space-y-1">
+                  {errors.name && <li>{errors.name}</li>}
+                  {errors.eventType && <li>{errors.eventType}</li>}
+                </ul>
+              </div>
+            )}
           </form>
         </CardContent>
       </Card>

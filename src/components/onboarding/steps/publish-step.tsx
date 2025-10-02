@@ -158,16 +158,16 @@ export function PublishStep({
 
   const getUploadEndDate = () => {
     if (!activationDate) return null
-    // Use the current plan, or default to bliss if no paid plan selected
-    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+    // Use the current plan, or default to essential if no paid plan selected
+    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'essential'
     const planFeatures = getPlanFeatures(planToUse)
     return addMonths(activationDate, planFeatures.uploadWindowMonths)
   }
 
   const getDownloadEndDate = () => {
     if (!activationDate) return null
-    // Use the current plan, or default to bliss if no paid plan selected
-    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+    // Use the current plan, or default to essential if no paid plan selected
+    const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'essential'
     const planFeatures = getPlanFeatures(planToUse)
     return addMonths(activationDate, planFeatures.downloadWindowMonths)
   }
@@ -245,7 +245,7 @@ export function PublishStep({
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {(() => {
-                      const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+                      const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'essential'
                       const features = getPlanFeatures(planToUse)
                       const isDefaultPlan = !event?.plan || event.plan === 'free_trial'
                       return `${features.uploadWindowMonths} months duration${isDefaultPlan ? ' (with paid plan)' : ''}`
@@ -261,7 +261,7 @@ export function PublishStep({
                   </div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {(() => {
-                      const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'bliss'
+                      const planToUse = (event?.plan && event.plan !== 'free_trial') ? event.plan : 'essential'
                       const features = getPlanFeatures(planToUse)
                       const isDefaultPlan = !event?.plan || event.plan === 'free_trial'
                       return `${features.downloadWindowMonths} months duration${isDefaultPlan ? ' (with paid plan)' : ''}`

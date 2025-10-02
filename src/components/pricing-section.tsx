@@ -43,7 +43,7 @@ export function PricingSection() {
     setIsLoading(false)
   }, [])
 
-  const getPrice = (plan: "bliss" | "radiance" | "eternal") => {
+  const getPrice = (plan: "essential" | "timeless" | "premier") => {
     const priceInCents = pricingMatrix[plan][selectedCurrency]
     const price = priceInCents / 100
     return `${currencySymbols[selectedCurrency]}${Math.floor(price)}`
@@ -151,13 +151,13 @@ export function PricingSection() {
 
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {/* Bliss Plan */}
+          {/* Essential Plan */}
           <Card className="relative overflow-hidden">
             <CardContent className="p-6">
               <div className="mb-4">
-                <h3 className="text-xl font-bold text-foreground mb-2">bliss</h3>
+                <h3 className="text-xl font-bold text-foreground mb-2">Essential</h3>
                 <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-3xl font-bold">{getPrice("bliss")}</span>
+                  <span className="text-3xl font-bold">{getPrice("essential")}</span>
                   <span className="text-muted-foreground">one-time</span>
                 </div>
                 <p className="text-sm font-semibold text-muted-foreground">SINGLE GALLERY</p>
@@ -193,16 +193,16 @@ export function PricingSection() {
             </CardContent>
           </Card>
 
-          {/* Radiance Plan */}
+          {/* Timeless Plan */}
           <Card className="relative overflow-hidden border-primary border-2">
             <div className="absolute top-0 left-0 right-0 bg-primary text-primary-foreground text-center py-1 text-sm font-semibold">
               Most Popular
             </div>
             <CardContent className="p-6 pt-10">
               <div className="mb-4">
-                <h3 className="text-xl font-bold text-foreground mb-2">radiance</h3>
+                <h3 className="text-xl font-bold text-foreground mb-2">Timeless</h3>
                 <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-3xl font-bold">{getPrice("radiance")}</span>
+                  <span className="text-3xl font-bold">{getPrice("timeless")}</span>
                   <span className="text-muted-foreground">one-time</span>
                 </div>
                 <p className="text-sm font-semibold text-muted-foreground">INCLUDES ALBUMS</p>
@@ -238,13 +238,13 @@ export function PricingSection() {
             </CardContent>
           </Card>
 
-          {/* Eternal Plan */}
+          {/* Premier Plan */}
           <Card className="relative overflow-hidden">
             <CardContent className="p-6">
               <div className="mb-4">
-                <h3 className="text-xl font-bold text-foreground mb-2">eternal</h3>
+                <h3 className="text-xl font-bold text-foreground mb-2">Premier</h3>
                 <div className="flex items-baseline gap-1 mb-2">
-                  <span className="text-3xl font-bold">{getPrice("eternal")}</span>
+                  <span className="text-3xl font-bold">{getPrice("premier")}</span>
                   <span className="text-muted-foreground">one-time</span>
                 </div>
                 <p className="text-sm font-semibold text-muted-foreground">MULTI-DAY EVENTS</p>

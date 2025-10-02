@@ -56,7 +56,7 @@ export function canPublishEvent(event: EventForFeatureGating): FeatureGateResult
     return {
       allowed: false,
       reason: 'Free galleries cannot be made public. Upgrade to publish your gallery.',
-      suggestedPlan: 'bliss',
+      suggestedPlan: 'essential',
       upgradeRequired: true
     }
   }
@@ -80,7 +80,7 @@ export function canAcceptUpload(event: EventForFeatureGating, currentStorageMB: 
       allowed: false,
       reason: `File exceeds ${features.maxFileSizeMB}MB limit. Your ${features.name} allows files up to ${features.maxFileSizeMB}MB each.`,
       currentLimit: features.maxFileSizeMB,
-      suggestedPlan: plan === 'free_trial' ? 'bliss' : undefined,
+      suggestedPlan: plan === 'free_trial' ? 'essential' : undefined,
       upgradeRequired: plan === 'free_trial'
     }
   }
@@ -94,7 +94,7 @@ export function canAcceptUpload(event: EventForFeatureGating, currentStorageMB: 
         allowed: false,
         reason: `Storage limit exceeded. You have used ${currentStorageMB.toFixed(1)}MB of ${features.storageLimit}MB. This file would exceed your limit. Upgrade to get unlimited storage.`,
         currentLimit: features.storageLimit,
-        suggestedPlan: 'bliss',
+        suggestedPlan: 'essential',
         upgradeRequired: true
       }
     }
@@ -127,7 +127,7 @@ export function canAcceptMoreGuests(event: EventForFeatureGating, currentGuestCo
     return {
       allowed: true,
       reason: `You have ${currentGuestCount} guests on your free trial. Consider upgrading to a paid plan for the best experience.`,
-      suggestedPlan: 'bliss',
+      suggestedPlan: 'essential',
       upgradeRequired: false
     }
   }
@@ -149,7 +149,7 @@ export function canUseVideoGuestbook(event: EventForFeatureGating): FeatureGateR
     return {
       allowed: false,
       reason: 'Video guestbook is available on all paid plans.',
-      suggestedPlan: 'bliss',
+      suggestedPlan: 'essential',
       upgradeRequired: true
     }
   }
@@ -170,8 +170,8 @@ export function canUseCustomBranding(event: EventForFeatureGating): FeatureGateR
   if (!features.customBranding) {
     return {
       allowed: false,
-      reason: 'Custom branding is available on the Eternal plan.',
-      suggestedPlan: 'eternal',
+      reason: 'Custom branding is available on the Premier plan.',
+      suggestedPlan: 'premier',
       upgradeRequired: true
     }
   }
@@ -252,20 +252,20 @@ export function getPlanUsageSummary(event: EventForFeatureGating, stats: {
 // Helper functions to suggest appropriate plans
 
 function getSuggestedPlanForAlbums(requiredAlbums: number): Plan {
-  if (requiredAlbums <= 1) return 'bliss'
-  if (requiredAlbums <= 9) return 'radiance'
-  return 'eternal'
+  if (requiredAlbums <= 1) return 'essential'
+  if (requiredAlbums <= 9) return 'timeless'
+  return 'premier'
 }
 
 function getSuggestedPlanForGuests(requiredGuests: number): Plan {
   // All plans have unlimited guests now, so suggest based on other factors
-  return 'bliss' // Start with the most basic paid plan
+  return 'essential' // Start with the most basic paid plan
 }
 
 function getSuggestedPlanForThemes(requiredThemes: number): Plan {
-  if (requiredThemes <= 1) return 'bliss'
-  if (requiredThemes <= 25) return 'radiance'
-  return 'eternal'
+  if (requiredThemes <= 1) return 'essential'
+  if (requiredThemes <= 25) return 'timeless'
+  return 'premier'
 }
 
 /**
@@ -279,7 +279,7 @@ export function shouldShowUpgradeSuggestion(event: EventForFeatureGating, stats:
   const features = getPlanFeatures(plan)
 
   // Don't suggest upgrades for the highest plan
-  if (plan === 'eternal') {
+  if (plan === 'premier') {
     return { show: false }
   }
 
@@ -301,7 +301,7 @@ export function shouldShowUpgradeSuggestion(event: EventForFeatureGating, stats:
       show: true,
       suggestion: {
         feature: 'upgrade',
-        plan: 'bliss',
+        plan: 'essential',
         reason: `You have ${stats.guestCount} guests! Upgrade to unlock all features and extended access.`
       }
     }
