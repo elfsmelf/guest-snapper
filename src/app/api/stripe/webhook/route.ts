@@ -52,14 +52,7 @@ async function upgradeEvent(opts: {
     const activationDate = event.activationDate ? new Date(event.activationDate) : now;
 
     // Calculate new windows based on plan
-    // Check if plan has day-based window (shouldn't happen for paid plans, but be safe)
-    let uploadWindowEnd: Date;
-    if ('uploadWindowDays' in planFeatures && planFeatures.uploadWindowDays) {
-      uploadWindowEnd = new Date(activationDate);
-      uploadWindowEnd.setDate(uploadWindowEnd.getDate() + planFeatures.uploadWindowDays);
-    } else {
-      uploadWindowEnd = addMonths(activationDate, planFeatures.uploadWindowMonths);
-    }
+    const uploadWindowEnd = addMonths(activationDate, planFeatures.uploadWindowMonths);
     const downloadWindowEnd = addMonths(activationDate, planFeatures.downloadWindowMonths);
 
     // Update event with paid plan and payment details

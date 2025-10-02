@@ -181,7 +181,8 @@ export function calculateUploadWindowEnd(plan: string, startDate: Date = new Dat
 
   // Check if plan has day-based window (free trial)
   if ('uploadWindowDays' in features && features.uploadWindowDays) {
-    endDate.setDate(endDate.getDate() + features.uploadWindowDays);
+    const days = features.uploadWindowDays as number;
+    endDate.setDate(endDate.getDate() + days);
   } else if (features.uploadWindowMonths) {
     // Month-based window for paid plans
     endDate.setMonth(endDate.getMonth() + features.uploadWindowMonths);
