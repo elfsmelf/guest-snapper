@@ -131,23 +131,30 @@ export async function GET(
               const uploaderPrefix = upload.uploaderName ? `${upload.uploaderName.replace(/[^a-zA-Z0-9\s-]/g, '')}_` : ''
               const safeFileName = `${uploaderPrefix}${upload.fileName}`
               
-              // Convert S3 stream to Buffer for archiver
+              // Convert S3 stream to Buffer for archiver (binary-safe)
               if (s3Response.Body) {
                 try {
-                  const chunks: Buffer[] = []
                   const stream = s3Response.Body as any
-                  
-                  // Handle different stream types
-                  if (stream.transformToString) {
-                    // AWS SDK v3 stream
-                    const str = await stream.transformToString()
-                    archive.append(str, { 
+
+                  // Handle AWS SDK v3 stream - use transformToByteArray for binary data
+                  if (stream.transformToByteArray) {
+                    // AWS SDK v3 stream - get as binary
+                    const byteArray = await stream.transformToByteArray()
+                    const buffer = Buffer.from(byteArray)
+                    archive.append(buffer, {
+                      name: safeFileName,
+                      date: new Date()
+                    })
+                  } else if (stream.transformToString) {
+                    // Fallback - but this shouldn't be used for binary files
+                    const str = await stream.transformToString('base64')
+                    archive.append(Buffer.from(str, 'base64'), {
                       name: safeFileName,
                       date: new Date()
                     })
                   } else {
-                    // Fallback for other stream types
-                    archive.append(stream, { 
+                    // Fallback for Node.js stream types
+                    archive.append(stream, {
                       name: safeFileName,
                       date: new Date()
                     })

@@ -13,7 +13,7 @@ interface MessageDialogProps {
   eventName: string
   isOpen: boolean
   onClose: () => void
-  onMessageAdded?: () => void
+  onMessageAdded?: (guestName: string, message: string) => void
 }
 
 export function MessageDialog({ eventId, eventName, isOpen, onClose, onMessageAdded }: MessageDialogProps) {
@@ -29,13 +29,8 @@ export function MessageDialog({ eventId, eventName, isOpen, onClose, onMessageAd
     const trimmedName = guestName.trim()
     const trimmedMessage = message.trim()
 
-    // Optimistically update UI first
-    onMessageAdded?.()
-    
-    // Add optimistic entry to guestbook
-    if (typeof window !== 'undefined' && (window as any).addGuestbookEntry) {
-      (window as any).addGuestbookEntry(trimmedName, trimmedMessage)
-    }
+    // Optimistically update UI first - pass data to parent for optimistic update
+    onMessageAdded?.(trimmedName, trimmedMessage)
 
     // Reset form and close dialog immediately for better UX
     setGuestName("")

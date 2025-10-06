@@ -124,9 +124,11 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
   const [currentGuestCount, setCurrentGuestCount] = useState(intelligentGuestCount)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [updateAction, setUpdateAction] = useState<'date-change' | 'publishing' | null>(null)
 
-  const updateEventSettings = useCallback(async (updates: any) => {
+  const updateEventSettings = useCallback(async (updates: any, action?: 'date-change' | 'publishing') => {
     setIsUpdating(true)
+    setUpdateAction(action || null)
     console.log(`🔧 Frontend: Updating event settings:`, updates)
     try {
       const response = await fetch(`/api/events/${event.id}/settings`, {
@@ -152,6 +154,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       toast.error('Failed to update settings')
     } finally {
       setIsUpdating(false)
+      setUpdateAction(null)
     }
   }, [event.id])
 
@@ -168,7 +171,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
     setActivationDate(newDate)
     await updateEventSettings({
       activationDate: newDate ? formatLocalDate(newDate) : null,
-    })
+    }, 'date-change')
   }, [updateEventSettings])
 
   const handleGuestViewChange = useCallback(async (checked: boolean) => {
@@ -281,6 +284,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
     }
 
     setIsUpdating(true)
+    setUpdateAction('publishing')
     try {
       const response = await fetch(`/api/events/${event.id}/publish`, {
         method: 'POST',
@@ -312,6 +316,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
       toast.error(error.message || 'Failed to publish event')
     } finally {
       setIsUpdating(false)
+      setUpdateAction(null)
     }
   }, [activationDate, event.id, event.plan, event.guestCount, event.isPublished])
 
@@ -486,7 +491,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
           {event.publishedAt && (
             <div className="text-xs text-muted-foreground">
-              Published on {new Date(event.publishedAt).toLocaleString(undefined, {
+              Published on {new Date(event.publishedAt + (event.publishedAt.endsWith('Z') ? '' : 'Z')).toLocaleString(undefined, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -515,7 +520,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 >
                   <Calendar className="mr-2 h-4 w-4" />
                   {activationDate ? format(activationDate, "EEEE, MMMM do, yyyy") : "When should guests be able to access?"}
-                  {isUpdating && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
+                  {isUpdating && updateAction === 'date-change' && <Loader2 className="ml-auto h-4 w-4 animate-spin" />}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -543,10 +548,15 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 disabled={!activationDate || isUpdating || (event.plan === 'free' || event.plan === 'free_trial' || !event.plan)}
                 className="w-full"
               >
-                {isUpdating ? (
+                {isUpdating && updateAction === 'publishing' ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Publishing...
+                  </>
+                ) : isUpdating && updateAction === 'date-change' ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Setting date...
                   </>
                 ) : (
                   'Publish Gallery'

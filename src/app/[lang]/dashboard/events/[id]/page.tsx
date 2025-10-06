@@ -6,8 +6,8 @@ import { Suspense } from "react"
 import type { Metadata } from 'next'
 import { auth } from "@/lib/auth"
 import { db } from "@/database/db"
-import { albums, events } from "@/database/schema"
-import { eq } from "drizzle-orm"
+import { albums, events, uploads } from "@/database/schema"
+import { eq, and } from "drizzle-orm"
 import { getEventWithAccess } from "@/lib/auth-helpers"
 import {
   ArrowLeft,
@@ -237,10 +237,17 @@ export default async function EventDetailPage({ params }: PageProps) {
   let event = null
   let isOwner = false
   let eventAlbums: any[] = []
+  let approvedFileCount = 0
   try {
-    const [eventResult, albumsResult] = await Promise.all([
+    const [eventResult, albumsResult, uploadsResult] = await Promise.all([
       getEventWithAccess(id, user.id),
-      db.select().from(albums).where(eq(albums.eventId, id)).orderBy(albums.sortOrder, albums.name)
+      db.select().from(albums).where(eq(albums.eventId, id)).orderBy(albums.sortOrder, albums.name),
+      db.select().from(uploads).where(
+        and(
+          eq(uploads.eventId, id),
+          eq(uploads.isApproved, true)
+        )
+      )
     ])
 
     if (!eventResult) {
@@ -250,6 +257,7 @@ export default async function EventDetailPage({ params }: PageProps) {
     event = eventResult.event
     isOwner = eventResult.isOwner
     eventAlbums = albumsResult
+    approvedFileCount = uploadsResult.filter(u => u.fileType === 'image' || u.fileType === 'video').length
 
   } catch (error) {
     console.error('Error loading event:', error)
@@ -670,10 +678,10 @@ export default async function EventDetailPage({ params }: PageProps) {
                 <p className="text-sm text-muted-foreground">
                   Download all approved photos and videos from this event as a ZIP file.
                 </p>
-                <DownloadAllButton 
+                <DownloadAllButton
                   eventId={event.id}
-                  fileCount={0} // Will be determined by the component itself
-                  disabled={false} // Will be determined by the component itself
+                  fileCount={approvedFileCount}
+                  disabled={false}
                 />
               </CardContent>
             </Card>

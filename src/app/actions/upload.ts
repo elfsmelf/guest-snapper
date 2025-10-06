@@ -511,7 +511,8 @@ export async function hideImage(uploadId: string) {
 
     return {
       success: true,
-      message: 'Image hidden successfully'
+      message: 'Image hidden successfully',
+      hiddenAlbum
     }
 
   } catch (error) {
@@ -519,6 +520,46 @@ export async function hideImage(uploadId: string) {
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Hide failed'
+    }
+  }
+}
+
+export async function unhideImage(uploadId: string) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    })
+
+    if (!session?.user?.id) {
+      throw new Error('Unauthorized')
+    }
+
+    // Move upload back to no album (unassigned)
+    const updatedUpload = await db
+      .update(uploads)
+      .set({
+        albumId: null,
+        updatedAt: new Date()
+      })
+      .where(eq(uploads.id, uploadId))
+      .returning()
+
+    if (!updatedUpload.length) {
+      throw new Error('Upload not found')
+    }
+
+    console.log(`Unhid upload ${uploadId}`)
+
+    return {
+      success: true,
+      message: 'Image shown successfully'
+    }
+
+  } catch (error) {
+    console.error('Unhide image failed:', error)
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to show image'
     }
   }
 }

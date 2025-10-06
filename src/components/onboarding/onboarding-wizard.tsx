@@ -295,6 +295,11 @@ export function OnboardingWizard({
   }
 
   const isStepComplete = (stepId: string) => {
+    // Special case: view-gallery is never marked as complete (it's the final action step)
+    if (stepId === 'view-gallery') {
+      return false
+    }
+
     // Check if step is in completed array first
     if (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(stepId)) {
       return true
@@ -308,8 +313,6 @@ export function OnboardingWizard({
         return onboardingData.privacyConfigured
       case ONBOARDING_STEPS.THEME:
         return onboardingData.themeSelected
-      case 'view-gallery':
-        return true // This is always complete once reached
       default:
         return false
     }
@@ -327,9 +330,11 @@ export function OnboardingWizard({
       case ONBOARDING_STEPS.TEST_IMAGES:
         return (onboardingData.testImagesUploaded && onboardingData.testImageCount > 0) || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.TEST_IMAGES))
       case ONBOARDING_STEPS.PRIVACY:
-        return true // Privacy settings are optional - users can proceed without changing defaults
+        // Check if already marked complete in database, otherwise allow proceeding (will be marked complete on Next)
+        return (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PRIVACY))
       case ONBOARDING_STEPS.THEME:
-        return true // Theme is optional - users can proceed with default theme
+        // Check if already marked complete in database, otherwise allow proceeding (will be marked complete on Next)
+        return (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.THEME))
       case 'view-gallery':
         return true // Always ready to view gallery
       default:

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { GalleryLink } from "./gallery-link"
@@ -40,10 +40,10 @@ import {
 import { ImageViewer } from "./image-viewer"
 import { MessageDialog } from "./message-dialog"
 import Masonry from 'react-masonry-css'
-import { GuestbookEntries } from "./guestbook-entries"
+import { GuestbookEntries, type GuestbookEntriesHandle } from "./guestbook-entries"
 import { AudioPlayer } from "./audio-player"
 import { toast } from "sonner"
-import { approveUpload, rejectUpload, bulkMoveToAlbum, bulkHideImages, hideImage } from "@/app/actions/upload"
+import { approveUpload, rejectUpload, bulkMoveToAlbum, bulkHideImages, hideImage, unhideImage } from "@/app/actions/upload"
 import { parseLocalDate } from "@/lib/date-utils"
 
 interface Event {
@@ -130,7 +130,13 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
 
   // Optimistic hide state - tracks which images are being hidden or have been hidden
   const [hiddenImages, setHiddenImages] = useState<Set<string>>(new Set())
-  
+
+  // Optimistic albums - tracks optimistically created albums (like Hidden Images)
+  const [optimisticAlbums, setOptimisticAlbums] = useState<any[]>([])
+
+  // Ref for GuestbookEntries component
+  const guestbookRef = useRef<GuestbookEntriesHandle>(null)
+
   const router = useRouter()
 
   // Derive display data from props + optimistic actions
@@ -154,8 +160,10 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
   
   // Masonry layout handles responsive columns automatically
 
-  const handleMessageAdded = () => {
+  const handleMessageAdded = (guestName: string, message: string) => {
     setGuestbookCount(prev => prev + 1)
+    // Call the ref to add optimistic entry
+    guestbookRef.current?.addOptimisticEntry(guestName, message)
   }
 
   // Image selection helpers
@@ -505,7 +513,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               </div>
             </div>
 
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
               <div className="flex flex-col items-center text-white/80">
                 <p className="text-sm font-medium mb-2 tracking-wide">Scroll to Live Feed</p>
                 <ChevronDown className="w-5 h-5 animate-bounce" />
@@ -577,7 +585,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
               </div>
             </div>
 
-            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2">
+            <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2">
               <div className="flex flex-col items-center text-muted-foreground">
                 <p className="text-sm font-medium mb-2 tracking-wide">Scroll to Live Feed</p>
                 <ChevronDown className="w-5 h-5 animate-bounce" />
@@ -700,7 +708,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
             ) : selectedTab === 'photos' || selectedTab === 'pending' ? (
               <div>
                 {/* Album Filter Tabs */}
-                {event.albums.filter((album) => {
+                {[...event.albums, ...optimisticAlbums].filter((album) => {
                   // For public users, hide Hidden Images album and only show visible albums
                   if (uiMode === 'GUEST_UI') {
                     return album.name !== 'Hidden Images' && album.isVisible !== false
@@ -746,7 +754,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                             }).length
                         })`}
                       </Button>
-                      {event.albums.filter((album) => {
+                      {[...event.albums, ...optimisticAlbums].filter((album) => {
                         // For public users, hide Hidden Images album and only show visible albums
                         if (uiMode === 'GUEST_UI') {
                           return album.name !== 'Hidden Images' && album.isVisible !== false
@@ -1025,30 +1033,69 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                                 onClick={async (e) => {
                                   e.stopPropagation()
 
-                                  // Optimistically hide image immediately
-                                  setHiddenImages(prev => new Set(prev).add(upload.id))
+                                  // Check if we're viewing the Hidden Images album
+                                  const isViewingHiddenAlbum = selectedAlbum &&
+                                    [...event.albums, ...optimisticAlbums].find(a => a.id === selectedAlbum)?.name === 'Hidden Images'
 
-                                  toast.loading('Hiding image...')
-                                  const result = await hideImage(upload.id)
-
-                                  if (result.success) {
-                                    toast.dismiss()
-                                    toast.success(result.message || 'Image hidden successfully')
-                                  } else {
-                                    toast.dismiss()
-                                    toast.error(result.error || 'Failed to hide image')
-
-                                    // Revert optimistic update on error
+                                  if (isViewingHiddenAlbum) {
+                                    // Unhide: remove from hidden set
                                     setHiddenImages(prev => {
                                       const newHidden = new Set(prev)
                                       newHidden.delete(upload.id)
                                       return newHidden
                                     })
+
+                                    toast.loading('Showing image...')
+                                    const result = await unhideImage(upload.id)
+
+                                    if (result.success) {
+                                      toast.dismiss()
+                                      toast.success(result.message || 'Image shown successfully')
+                                    } else {
+                                      toast.dismiss()
+                                      toast.error(result.error || 'Failed to show image')
+
+                                      // Revert optimistic update on error
+                                      setHiddenImages(prev => new Set(prev).add(upload.id))
+                                    }
+                                  } else {
+                                    // Hide: add to hidden set
+                                    setHiddenImages(prev => new Set(prev).add(upload.id))
+
+                                    toast.loading('Hiding image...')
+                                    const result = await hideImage(upload.id)
+
+                                    if (result.success) {
+                                      toast.dismiss()
+                                      toast.success(result.message || 'Image hidden successfully')
+
+                                      // Optimistically create Hidden Images album if it doesn't exist
+                                      const hiddenAlbumExists = [...event.albums, ...optimisticAlbums].some(a => a.name === 'Hidden Images')
+                                      if (!hiddenAlbumExists && result.hiddenAlbum) {
+                                        setOptimisticAlbums(prev => [...prev, result.hiddenAlbum])
+                                      }
+                                    } else {
+                                      toast.dismiss()
+                                      toast.error(result.error || 'Failed to hide image')
+
+                                      // Revert optimistic update on error
+                                      setHiddenImages(prev => {
+                                        const newHidden = new Set(prev)
+                                        newHidden.delete(upload.id)
+                                        return newHidden
+                                      })
+                                    }
                                   }
                                 }}
-                                title="Hide image"
+                                title={selectedAlbum &&
+                                  [...event.albums, ...optimisticAlbums].find(a => a.id === selectedAlbum)?.name === 'Hidden Images'
+                                  ? "Show image"
+                                  : "Hide image"}
                               >
-                                <EyeOff className="h-4 w-4" />
+                                {selectedAlbum &&
+                                  [...event.albums, ...optimisticAlbums].find(a => a.id === selectedAlbum)?.name === 'Hidden Images'
+                                  ? <Eye className="h-4 w-4" />
+                                  : <EyeOff className="h-4 w-4" />}
                               </Button>
                               <Button
                                 size="sm"
@@ -1143,6 +1190,7 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                 {/* Check guestbook viewing permission */}
                 {(uiMode === 'OWNER_UI' || event.guestCanViewGuestbook) ? (
                   <GuestbookEntries
+                    ref={guestbookRef}
                     eventId={event.id}
                     onMessageAdded={handleMessageAdded}
                     customEntries={isGuestOwnContent ? guestbookEntries : undefined}

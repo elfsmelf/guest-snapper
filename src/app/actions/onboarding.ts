@@ -146,24 +146,29 @@ export async function completeOnboardingStep(eventId: string, stepId: string) {
   try {
     const { event } = await validateEventAccess(eventId)
     const currentState = parseOnboardingState(event.quickStartProgress) || createInitialOnboardingState()
-    
+
+    // Prevent 'view-gallery' from being marked as complete (it's the final action, not a completable step)
+    if (stepId === 'view-gallery') {
+      return { success: true, state: currentState }
+    }
+
     // Add step to completed steps if not already there
-    const completedSteps = currentState.completedSteps.includes(stepId) 
-      ? currentState.completedSteps 
+    const completedSteps = currentState.completedSteps.includes(stepId)
+      ? currentState.completedSteps
       : [...currentState.completedSteps, stepId]
-    
+
     // Remove from skipped steps if it was there
     const skippedSteps = currentState.skippedSteps.filter(id => id !== stepId)
-    
+
     return updateOnboardingProgress(eventId, {
       completedSteps,
       skippedSteps
     })
   } catch (error) {
     console.error('Error completing onboarding step:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Failed to complete step' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to complete step'
     }
   }
 }

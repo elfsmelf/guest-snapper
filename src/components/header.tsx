@@ -75,7 +75,7 @@ export function Header({ galleryTheme, eventSlug, eventId, showOnboardingSetup =
                             <Button asChild variant="outline">
                                 <Link href={`/gallery/${eventSlug}`} prefetch={false}>View Gallery</Link>
                             </Button>
-                        ) : showOnboardingSetup && eventId ? (
+                        ) : eventId ? (
                             <Button asChild variant="outline" className="gap-2">
                                 <Link href={`/dashboard/events/${eventId}`} prefetch={false}>
                                     <Settings className="h-4 w-4" />

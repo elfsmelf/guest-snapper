@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useImperativeHandle, forwardRef } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { User, Calendar } from "lucide-react"
@@ -15,11 +15,16 @@ interface GuestbookEntry {
 
 interface GuestbookEntriesProps {
   eventId: string
-  onMessageAdded?: () => void
+  onMessageAdded?: (guestName: string, message: string) => void
   customEntries?: GuestbookEntry[] // For guest's own content view
 }
 
-export function GuestbookEntries({ eventId, onMessageAdded, customEntries }: GuestbookEntriesProps) {
+export interface GuestbookEntriesHandle {
+  addOptimisticEntry: (guestName: string, message: string) => void
+}
+
+export const GuestbookEntries = forwardRef<GuestbookEntriesHandle, GuestbookEntriesProps>(
+  function GuestbookEntries({ eventId, onMessageAdded, customEntries }, ref) {
   const [entries, setEntries] = useState<GuestbookEntry[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -35,12 +40,10 @@ export function GuestbookEntries({ eventId, onMessageAdded, customEntries }: Gue
     setEntries(prev => [optimisticEntry, ...prev])
   }
 
-  // Expose the addOptimisticEntry function to parent
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).addGuestbookEntry = addOptimisticEntry
-    }
-  }, [])
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    addOptimisticEntry
+  }))
 
   useEffect(() => {
     // If custom entries are provided, use them instead of fetching
@@ -142,4 +145,4 @@ export function GuestbookEntries({ eventId, onMessageAdded, customEntries }: Gue
         ))}
     </div>
   )
-}
+})

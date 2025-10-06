@@ -439,7 +439,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
           guestbookEntries={accessResult.content.guestbookEntries as any}
           isGuestOwnContent={accessResult.isGuestOwnContent}
           uiMode={accessResult.uiMode}
-          continuationCard={isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped ? (
+          continuationCard={isOwner && !eventWithAlbums.isPublished && ((eventWithAlbums as any).plan === 'free_trial' || !(eventWithAlbums as any).plan) ? (
             <ContinueSetupCard
               eventId={eventWithAlbums.id}
               eventSlug={slug}
