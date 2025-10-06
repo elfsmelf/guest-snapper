@@ -28,11 +28,11 @@ export function PublicGalleryHeader({ galleryTheme, eventSlug, showAuthButtons =
     // Determine header classes based on gallery theme
     const getHeaderClasses = () => {
         if (!galleryTheme) {
-            return "sticky top-0 z-50 flex h-12 justify-between border-b bg-background px-4 md:h-14 md:px-6"
+            return "sticky top-0 z-50 border-b bg-background"
         }
-        
+
         // Use gallery theme variables - these will be available from the gallery-app container
-        return `sticky top-0 z-50 flex h-12 justify-between border-b border-border bg-card px-4 md:h-14 md:px-6`
+        return "sticky top-0 z-50 border-b border-border bg-card"
     }
 
     const getTextClasses = () => {
@@ -44,29 +44,31 @@ export function PublicGalleryHeader({ galleryTheme, eventSlug, showAuthButtons =
 
     return (
         <header className={getHeaderClasses()}>
-            <Link href="/" className="flex items-center" prefetch={false}>
-                <Image
-                    src="https://assets.guestsnapper.com/marketing/logos/Guest%20Snapper%20v6%20logo.png"
-                    alt="Guest Snapper"
-                    width={120}
-                    height={32}
-                    className="h-8 w-auto"
-                />
-            </Link>
+            <div className="container mx-auto flex h-16 justify-between items-center px-4 md:px-6 md:h-18">
+                <Link href="/" className="flex items-center" prefetch={false}>
+                    <Image
+                        src="https://assets.guestsnapper.com/marketing/logos/Guest%20Snapper%20v6%20logo.png"
+                        alt="Guest Snapper"
+                        width={156}
+                        height={42}
+                        className="h-8 w-auto"
+                    />
+                </Link>
 
-            <div className="flex items-center gap-2">
-                {(isUploadPage || isVoicePage) && gallerySlug ? (
-                    <Button asChild variant="outline" size="sm">
-                        <Link href={`/gallery/${gallerySlug}`} prefetch={false}>
-                            <ArrowLeft className="h-4 w-4 mr-2" />
-                            Back to Gallery
-                        </Link>
-                    </Button>
-                ) : showAuthButtons ? (
-                    <Button asChild size="sm">
-                        <Link href="/" prefetch={false}>Create QR Gallery</Link>
-                    </Button>
-                ) : null}
+                <div className="flex items-center gap-2">
+                    {(isUploadPage || isVoicePage) && gallerySlug ? (
+                        <Button asChild variant="outline">
+                            <Link href={`/gallery/${gallerySlug}`} prefetch={false}>
+                                <ArrowLeft className="h-4 w-4 mr-2" />
+                                Back to Gallery
+                            </Link>
+                        </Button>
+                    ) : showAuthButtons ? (
+                        <Button asChild>
+                            <Link href="/" prefetch={false}>Create QR Gallery</Link>
+                        </Button>
+                    ) : null}
+                </div>
             </div>
         </header>
     )

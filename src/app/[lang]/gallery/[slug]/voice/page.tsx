@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import Image from "next/image"
@@ -6,14 +6,15 @@ import { canUserAccessEvent } from "@/lib/auth-helpers"
 import { getCachedEventData } from "@/lib/gallery-cache"
 import { WaveformVoiceRecorder } from "@/components/gallery/waveform-voice-recorder"
 import { GalleryPageWrapper } from "@/components/gallery/gallery-page-wrapper"
+import { parseLocalDate } from "@/lib/date-utils"
 
 interface VoicePageProps {
   params: Promise<{ lang: string; slug: string }>
 }
 
 export default async function VoicePage({ params }: VoicePageProps) {
-  const { slug } = await params
-  
+  const { lang, slug } = await params
+
   // Check if current user has access to this event (owner or organization member)
   const session = await auth.api.getSession({
     headers: await headers()
@@ -21,7 +22,7 @@ export default async function VoicePage({ params }: VoicePageProps) {
 
   // Get cached event data
   const eventWithAlbums = await getCachedEventData(slug, false) // We'll check access separately
-  
+
   if (!eventWithAlbums) {
     notFound()
   }
@@ -29,7 +30,17 @@ export default async function VoicePage({ params }: VoicePageProps) {
   const isOwner = session?.user?.id === eventWithAlbums.userId
   const hasEventAccess = session?.user ? await canUserAccessEvent(eventWithAlbums.id, session.user.id) : false
 
-  const uploadWindowOpen = eventWithAlbums.activationDate ? 
+  // Check if activation date has passed
+  const isActivationDatePassed = eventWithAlbums.activationDate
+    ? parseLocalDate(eventWithAlbums.activationDate) <= new Date()
+    : true // If no activation date, consider it as passed
+
+  // Redirect to gallery page if gallery is not published OR activation date hasn't passed, and user is not the owner
+  if ((!eventWithAlbums.isPublished || !isActivationDatePassed) && !isOwner) {
+    redirect(`/${lang}/gallery/${slug}`)
+  }
+
+  const uploadWindowOpen = eventWithAlbums.activationDate ?
     new Date() >= new Date(eventWithAlbums.activationDate) : true
 
   return (

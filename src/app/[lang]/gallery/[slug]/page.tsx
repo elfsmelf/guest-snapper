@@ -101,11 +101,7 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
                 
                 {/* Event Header */}
                 <div className="mb-8 text-center">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center justify-center gap-2">
-                    {(() => {
-                      const EventIcon = getEventTypeInfo(eventWithAlbums.eventType || 'wedding').icon
-                      return <EventIcon className="w-8 h-8" />
-                    })()}
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     {eventWithAlbums.name}
                   </h1>
                   <p className="text-lg text-gray-600 mb-4">{getEventTypeInfo(eventWithAlbums.eventType || 'wedding').label}</p>

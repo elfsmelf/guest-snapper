@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { db } from "@/database/db"
 import { events, albums, uploads } from "@/database/schema"
 import { eq, and, count, isNull } from "drizzle-orm"
@@ -12,14 +12,15 @@ import { getTrialStatus } from "@/lib/trial-utils"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle, CreditCard } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { parseLocalDate } from "@/lib/date-utils"
 
 interface UploadPageProps {
-  params: Promise<{ slug: string }>
+  params: Promise<{ lang: string; slug: string }>
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export default async function UploadPage({ params, searchParams }: UploadPageProps) {
-  const { slug } = await params
+  const { slug, lang } = await params
   const search = await searchParams
   const forcePublicView = search?.view === 'public'
 
@@ -42,6 +43,8 @@ export default async function UploadPage({ params, searchParams }: UploadPagePro
       plan: events.plan,
       paidAt: events.paidAt,
       createdAt: events.createdAt,
+      isPublished: events.isPublished,
+      activationDate: events.activationDate,
     })
     .from(events)
     .where(eq(events.slug, slug))
@@ -66,12 +69,28 @@ export default async function UploadPage({ params, searchParams }: UploadPagePro
     .where(eq(albums.eventId, event.id))
     .orderBy(albums.sortOrder)
 
-  // Check if user is authenticated (for ownership detection) 
+  // Check if user is authenticated (for ownership detection)
   const session = await auth.api.getSession({
     headers: await headers()
   })
 
   const isOwner = session?.user?.id === event.userId
+
+  // Check if activation date has passed
+  const isActivationDatePassed = event.activationDate
+    ? parseLocalDate(event.activationDate) <= new Date()
+    : true // If no activation date, consider it as passed
+
+  // Redirect to gallery page if gallery is not published OR activation date hasn't passed, and user is not the owner
+  if ((!event.isPublished || !isActivationDatePassed) && !isOwner) {
+    redirect(`/${lang}/gallery/${slug}`)
+  }
+
+  // Also redirect if upload window has ended and user is not the owner
+  const uploadWindowOpen = isOwner || new Date(event.uploadWindowEnd) > new Date()
+  if (!uploadWindowOpen && !isOwner) {
+    redirect(`/${lang}/gallery/${slug}`)
+  }
 
   // Filter albums based on visibility for public users
   const visibleAlbums = (isOwner && !forcePublicView)
@@ -117,8 +136,6 @@ export default async function UploadPage({ params, searchParams }: UploadPagePro
     albums: albumsWithCounts,
     generalUploadsCount: generalCount,
   }
-
-  const uploadWindowOpen = isOwner || new Date(event.uploadWindowEnd) > new Date()
 
   // Check trial status
   const trialStatus = getTrialStatus({
