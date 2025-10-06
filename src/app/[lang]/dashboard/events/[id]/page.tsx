@@ -59,6 +59,7 @@ const EventDetailsForm = dynamic(
 )
 import { PaymentSuccessHandler } from "@/components/payment-success-handler"
 import { QuickActionsClient } from "@/components/quick-actions-client"
+import { HashScrollHandler } from "@/components/hash-scroll-handler"
 import { GalleryThemeManager } from "@/components/gallery-theme-manager"
 import { CoverImageUpload } from "@/components/cover-image-upload"
 import { QRCodeGeneratorClient } from "@/components/qr-code-generator-client"
@@ -261,6 +262,9 @@ export default async function EventDetailPage({ params }: PageProps) {
 
   return (
     <div className="w-full overflow-hidden space-y-6">
+      {/* Hash scroll handler for smooth scrolling to anchors */}
+      <HashScrollHandler />
+
       {/* Header */}
       <div className="flex items-center space-x-4">
         <Button variant="ghost" size="sm" asChild className="text-xs sm:text-sm">
@@ -428,13 +432,76 @@ export default async function EventDetailPage({ params }: PageProps) {
           />
           </div>
 
-          {/* 3. Gallery Cover Image */}
-          <div className="order-3 lg:order-none" data-section="gallery-cover-image">
+          {/* 3. QR Code & Canva Templates - Side by Side */}
+          <div className="order-3 lg:order-none grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* QR Code */}
+            <Card data-section="qr-code-sharing">
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <QrCode className="mr-2 h-5 w-5" />
+                  QR Code & Sharing
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Gallery URL:</label>
+                  <div className="flex items-center space-x-2">
+                    <code className="text-xs bg-muted px-1.5 py-1 rounded flex-1 truncate block overflow-hidden">
+                      {galleryUrl}
+                    </code>
+                    <Button variant="outline" size="icon" className="h-7 w-7" asChild>
+                      <Link href={galleryUrl} target="_blank" prefetch={false}>
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+
+                <QRCodeGeneratorClient
+                  value={galleryUrl}
+                  eventId={event.id}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Canva Templates */}
+            <Card data-section="canva-templates">
+              <CardHeader>
+                <CardTitle className="flex items-center text-lg">
+                  <Presentation className="mr-2 h-5 w-5" />
+                  Canva Templates
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="rounded-lg overflow-hidden flex items-center justify-center" style={{ maxHeight: '500px' }}>
+                  <Image
+                    src="https://assets.guestsnapper.com/marketing/gallery/welcome%20sign.jpg"
+                    alt="Canva template preview - Welcome sign with QR code"
+                    width={400}
+                    height={500}
+                    className="h-full w-auto object-contain"
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Get beautiful, ready-to-use templates for your event signage and materials.
+                </p>
+                <Button asChild className="w-full">
+                  <Link href="/canva-templates" target="_blank">
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    View Templates
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 5. Gallery Cover Image */}
+          <div className="order-5 lg:order-none" data-section="gallery-cover-image">
             <CoverImageUpload event={event as any} />
           </div>
 
-          {/* 4. Theme Manager */}
-          <div className="order-4 lg:order-none" data-section="gallery-theme-manager">
+          {/* 6. Theme Manager */}
+          <div className="order-6 lg:order-none" data-section="gallery-theme-manager">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
@@ -463,8 +530,8 @@ export default async function EventDetailPage({ params }: PageProps) {
             </Card>
           </div>
 
-          {/* 5. Albums Management - Temporarily disabled for debugging */}
-          <div className="order-5 lg:order-none" data-section="albums-management">
+          {/* 7. Albums Management - Temporarily disabled for debugging */}
+          <div className="order-7 lg:order-none" data-section="albums-management">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
@@ -581,59 +648,8 @@ export default async function EventDetailPage({ params }: PageProps) {
               </CardContent>
             </Card>
 
-            {/* 10. QR Code */}
-            <Card className="order-10 lg:order-none" data-section="qr-code-sharing">
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <QrCode className="mr-2 h-5 w-5" />
-                  QR Code & Sharing
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Gallery URL:</label>
-                  <div className="flex items-center space-x-2">
-                    <code className="text-xs bg-muted px-1.5 py-1 rounded flex-1 truncate block overflow-hidden">
-                      {galleryUrl}
-                    </code>
-                    <Button variant="outline" size="icon" className="h-7 w-7" asChild>
-                      <Link href={galleryUrl} target="_blank" prefetch={false}>
-                        <ExternalLink className="h-3 w-3" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-
-                <QRCodeGeneratorClient
-                  value={galleryUrl}
-                  eventId={event.id}
-                />
-              </CardContent>
-            </Card>
-
-            {/* 11. Canva Templates */}
-            <Card className="order-11 lg:order-none" data-section="canva-templates">
-              <CardHeader>
-                <CardTitle className="flex items-center text-lg">
-                  <Presentation className="mr-2 h-5 w-5" />
-                  Canva Templates
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  Get beautiful, ready-to-use templates for your event signage and materials.
-                </p>
-                <Button asChild className="w-full">
-                  <Link href="/canva-templates" target="_blank">
-                    <ExternalLink className="mr-2 h-4 w-4" />
-                    View Templates
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* 12. Slideshow */}
-            <div className="order-12 lg:order-none" data-section="slideshow-settings">
+            {/* 8. Slideshow */}
+            <div className="order-8 lg:order-none" data-section="slideshow-settings">
               <SlideshowSettings
                 eventId={event.id}
                 eventSlug={event.slug}
@@ -642,8 +658,8 @@ export default async function EventDetailPage({ params }: PageProps) {
               />
             </div>
 
-            {/* 13. Download All Files */}
-            <Card className="order-13 lg:order-none">
+            {/* 9. Download All Files */}
+            <Card className="order-9 lg:order-none">
               <CardHeader>
                 <CardTitle className="flex items-center text-lg">
                   <Download className="mr-2 h-5 w-5" />

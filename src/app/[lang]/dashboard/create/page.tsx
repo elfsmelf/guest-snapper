@@ -50,11 +50,13 @@ export default function CreateGalleryPage() {
       .substring(0, 50) + '-' + Math.random().toString(36).substring(2, 8)
   }
 
-  const handleCoverImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
+      const ext = file.name.split('.').pop()?.toLowerCase()
+
+      // Validate file type (including HEIC/HEIF/TIFF)
+      if (!file.type.startsWith('image/') && ext !== 'heic' && ext !== 'heif' && ext !== 'tiff' && ext !== 'tif') {
         toast.error('Please select an image file')
         return
       }
@@ -65,14 +67,77 @@ export default function CreateGalleryPage() {
         return
       }
 
-      setCoverImage(file)
+      let processedFile = file
+
+      // Convert HEIC/TIFF to JPEG
+      if (ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif') {
+        try {
+          toast.loading('Converting HEIC image...')
+          const heic2any = (await import('heic2any')).default
+
+          const convertedBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.9
+          })
+
+          const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
+          const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg')
+          processedFile = new File([blob], newFileName, { type: 'image/jpeg' })
+
+          toast.dismiss()
+          toast.success('HEIC image converted successfully')
+        } catch (error) {
+          toast.dismiss()
+          toast.error('Failed to convert HEIC image')
+          console.error('HEIC conversion error:', error)
+          return
+        }
+      } else if (ext === 'tiff' || ext === 'tif' || file.type === 'image/tiff') {
+        try {
+          toast.loading('Converting TIFF image...')
+
+          const arrayBuffer = await file.arrayBuffer()
+          const UTIF = (await import('utif2')).default
+
+          const ifds = UTIF.decode(arrayBuffer)
+          UTIF.decodeImage(arrayBuffer, ifds[0])
+          const rgba = UTIF.toRGBA8(ifds[0])
+
+          const canvas = document.createElement('canvas')
+          canvas.width = ifds[0].width
+          canvas.height = ifds[0].height
+          const ctx = canvas.getContext('2d')!
+
+          const imageData = ctx.createImageData(canvas.width, canvas.height)
+          imageData.data.set(rgba)
+          ctx.putImageData(imageData, 0, 0)
+
+          const blob = await new Promise<Blob>((resolve) => {
+            canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.9)
+          })
+
+          const newFileName = file.name.replace(/\.(tiff|tif)$/i, '.jpg')
+          processedFile = new File([blob], newFileName, { type: 'image/jpeg' })
+
+          toast.dismiss()
+          toast.success('TIFF image converted successfully')
+        } catch (error) {
+          toast.dismiss()
+          toast.error('Failed to convert TIFF image')
+          console.error('TIFF conversion error:', error)
+          return
+        }
+      }
+
+      setCoverImage(processedFile)
 
       // Create preview
       const reader = new FileReader()
       reader.onloadend = () => {
         setCoverImagePreview(reader.result as string)
       }
-      reader.readAsDataURL(file)
+      reader.readAsDataURL(processedFile)
     }
   }
 
@@ -338,7 +403,7 @@ export default function CreateGalleryPage() {
                   <input
                     type="file"
                     id="coverImage"
-                    accept="image/*"
+                    accept="image/*,.heic,.heif,.gif,.avif,.tiff,.tif"
                     onChange={handleCoverImageChange}
                     className="hidden"
                   />

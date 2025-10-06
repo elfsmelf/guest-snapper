@@ -12,32 +12,12 @@ import { authClient } from "@/lib/auth-client"
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { PostHogProvider } from "@/components/posthog-provider"
-import posthog from 'posthog-js'
+import { PostHogSessionTracker } from "@/components/posthog-session-tracker"
+import type { Locale, AuthDictionary } from "@/lib/dictionaries"
 // Note: Better Auth session management is handled directly via authClient.useSession()
 
-const authTexts = {
-  SIGN_IN: "Welcome to Guest Snapper",
-  SIGN_IN_DESCRIPTION: "Create your wedding photo gallery or access your existing one. Choose Google or enter your email to continue.",
-  SIGN_UP: "Welcome to Guest Snapper",
-  SIGN_UP_DESCRIPTION: "Create your wedding photo gallery or access your existing one. Choose Google or enter your email to continue.",
-  EMAIL_PLACEHOLDER: "Enter your email address",
-  MAGIC_LINK: "Continue with email",
-  MAGIC_LINK_DESCRIPTION: "Enter your email to continue",
-  MAGIC_LINK_ACTION: "Continue",
-  EMAIL_OTP: "Continue with email",
-  EMAIL_OTP_DESCRIPTION: "Enter your email to continue",
-  EMAIL_OTP_SEND_ACTION: "Send verification code",
-  EMAIL_OTP_VERIFY_ACTION: "Verify and continue",
-  OR_CONTINUE_WITH: "Or continue with",
-  SIGN_IN_WITH: "Continue with",
-  DONT_HAVE_AN_ACCOUNT: "New to Guest Snapper?",
-  ALREADY_HAVE_AN_ACCOUNT: "Already have an account?",
-  SIGN_IN_ACTION: "Continue",
-  SIGN_UP_ACTION: "Continue",
-  SIGN_IN_USERNAME_DESCRIPTION: "Enter your email to continue to your wedding gallery",
-} as const
-
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({ children, lang }: { children: ReactNode; lang: Locale }) {
+    const [authTexts, setAuthTexts] = useState<AuthDictionary | null>(null)
     const router = useRouter()
     const [queryClient] = useState(
         () =>
@@ -55,21 +35,19 @@ export function Providers({ children }: { children: ReactNode }) {
             })
     )
 
-    // Track user authentication state with PostHog
-    const { data: session } = authClient.useSession()
-
     useEffect(() => {
-        if (session?.user) {
-            // Identify user in PostHog when they sign in
-            posthog.identify(session.user.id, {
-                email: session.user.email,
-                name: session.user.name,
-            })
-        } else {
-            // Reset when user signs out
-            posthog.reset()
+        // Load auth dictionary based on locale
+        async function loadAuthDictionary() {
+            const dict = await import(`@/app/dictionaries/auth-${lang}.json`)
+            setAuthTexts(dict.default)
         }
-    }, [session])
+        loadAuthDictionary()
+    }, [lang])
+
+    // Don't render until auth texts are loaded
+    if (!authTexts) {
+        return null
+    }
 
     return (
         <PostHogProvider>
@@ -94,10 +72,11 @@ export function Providers({ children }: { children: ReactNode }) {
                                 providers: ["google"]
                             }}
                             settings={{
-                                url: "/settings" // Redirect to our custom settings page
+                                url: `/${lang}/settings` // Redirect to our custom settings page with locale
                             }}
                             localization={authTexts}
                         >
+                            <PostHogSessionTracker />
                             {children}
 
                             <Toaster position="top-right" />

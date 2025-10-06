@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { GalleryLink } from "./gallery-link"
 import { CloudflareImage } from "@/components/ui/cloudflare-image"
+import { HeicImage } from "./heic-image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -677,14 +678,12 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                         <p className="text-muted-foreground mb-4">
                           Be the first to share an audio message from this event!
                         </p>
-                        {uploadWindowOpen && (
-                          <Button onClick={() => {
-                            window.location.href = `/gallery/${eventSlug}/voice`
-                          }}>
+                        <GalleryLink href={`/gallery/${eventSlug}/voice`}>
+                          <Button>
                             <Mic className="h-4 w-4 mr-2" />
                             Record Audio Message
                           </Button>
-                        )}
+                        </GalleryLink>
                       </div>
                     )}
                   </>
@@ -918,13 +917,12 @@ export function GalleryView({ event, uploads, pendingUploads = [], eventSlug, is
                           />
                         </div>
                       ) : (
-                        <CloudflareImage
+                        <HeicImage
                           src={upload.fileUrl}
                           alt={upload.fileName}
                           width={600}
                           height={800}
                           className="w-full h-auto transition-transform duration-300 group-hover:scale-105 rounded-lg"
-                          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
                           style={{ height: 'auto' }}
                           loading="lazy"
                         />

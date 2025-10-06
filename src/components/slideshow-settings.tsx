@@ -62,7 +62,7 @@ export function SlideshowSettings({ eventId, eventSlug, currentDuration, hasPhot
           Slideshow Settings
         </CardTitle>
         <CardDescription>
-          Configure slideshow autoplay speed and share the slideshow link
+          Configure slideshow autoplay speed and share the slideshow link. The slideshow automatically refreshes every 10 minutes to include newly uploaded photos.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

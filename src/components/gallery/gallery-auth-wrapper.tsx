@@ -184,7 +184,7 @@ export function GalleryAuthWrapper({
           hasEventAccess={hasEventAccess}
           showWelcomeOnLoad={false}
           onboardingStep={onboardingState?.currentStep || 3}
-          continuationCard={isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped ? (
+          continuationCard={isOwner && (eventData.plan === 'free_trial' || !eventData.plan) ? (
             <ContinueSetupCard
               eventId={eventId}
               eventSlug={eventSlug}

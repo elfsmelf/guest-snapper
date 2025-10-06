@@ -96,28 +96,8 @@ export function formatCurrency(amountMinor: number, currency: Currency): string 
   return formatter.format(amount);
 }
 
-/**
- * Map old plan names to new ones for backward compatibility
- */
-export function normalizePlanName(plan: string | undefined | null): Plan {
-  if (!plan || plan === 'free_trial' || plan === 'free') return 'essential'
-
-  // Map old plan names to new ones
-  const planMap: Record<string, Plan> = {
-    'bliss': 'essential',
-    'radiance': 'timeless',
-    'eternal': 'premier',
-    'essential': 'essential',
-    'timeless': 'timeless',
-    'premier': 'premier'
-  }
-
-  return planMap[plan] || 'essential'
-}
-
 export function getPlanFeatures(plan: string) {
-  const normalizedPlan = normalizePlanName(plan);
-  return planFeatures[normalizedPlan] || planFeatures.free_trial;
+  return planFeatures[plan as Plan] || planFeatures.free_trial;
 }
 
 export function getPrice(plan: Plan, currency: Currency): number {

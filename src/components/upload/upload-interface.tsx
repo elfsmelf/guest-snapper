@@ -114,18 +114,120 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
     }
   }
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    const newFiles = acceptedFiles.map(file => ({
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    // Process special format files - convert both file and preview
+    const processedFiles = await Promise.all(
+      acceptedFiles.map(async (file) => {
+        const ext = file.name.split('.').pop()?.toLowerCase()
+
+        // Check if file is HEIC/HEIF
+        if (ext === 'heic' || ext === 'heif' || file.type === 'image/heic' || file.type === 'image/heif') {
+          try {
+            console.log(`🔄 Converting HEIC file: ${file.name}`)
+
+            // Dynamically import heic2any to avoid SSR issues
+            const heic2any = (await import('heic2any')).default
+
+            // Convert HEIC to JPEG
+            const convertedBlob = await heic2any({
+              blob: file,
+              toType: 'image/jpeg',
+              quality: 0.9
+            })
+
+            // Handle both single blob and array of blobs
+            const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob
+
+            // Create new File object with JPEG extension
+            const newFileName = file.name.replace(/\.(heic|heif)$/i, '.jpg')
+            const convertedFile = new File([blob], newFileName, { type: 'image/jpeg' })
+
+            console.log(`✅ HEIC converted: ${file.name} -> ${newFileName} (${blob.size} bytes)`)
+
+            return {
+              file: convertedFile,
+              preview: URL.createObjectURL(blob)
+            }
+          } catch (error) {
+            console.error('❌ Failed to convert HEIC file:', error)
+            const { toast } = await import('sonner')
+            toast.error(`Failed to convert ${file.name}. Please use a JPG or PNG file instead.`)
+            return null
+          }
+        }
+
+        // Check if file is TIFF
+        if (ext === 'tiff' || ext === 'tif' || file.type === 'image/tiff') {
+          try {
+            console.log(`🔄 Converting TIFF file: ${file.name}`)
+
+            // Read TIFF file as ArrayBuffer
+            const arrayBuffer = await file.arrayBuffer()
+
+            // Dynamically import utif2 to avoid SSR issues
+            const UTIF = (await import('utif2')).default
+
+            // Decode TIFF
+            const ifds = UTIF.decode(arrayBuffer)
+            UTIF.decodeImage(arrayBuffer, ifds[0])
+
+            const rgba = UTIF.toRGBA8(ifds[0])
+
+            // Create canvas to convert to JPEG
+            const canvas = document.createElement('canvas')
+            canvas.width = ifds[0].width
+            canvas.height = ifds[0].height
+            const ctx = canvas.getContext('2d')!
+
+            const imageData = ctx.createImageData(canvas.width, canvas.height)
+            imageData.data.set(rgba)
+            ctx.putImageData(imageData, 0, 0)
+
+            // Convert canvas to blob
+            const blob = await new Promise<Blob>((resolve) => {
+              canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.9)
+            })
+
+            // Create new File object with JPEG extension
+            const newFileName = file.name.replace(/\.(tiff|tif)$/i, '.jpg')
+            const convertedFile = new File([blob], newFileName, { type: 'image/jpeg' })
+
+            console.log(`✅ TIFF converted: ${file.name} -> ${newFileName} (${blob.size} bytes)`)
+
+            return {
+              file: convertedFile,
+              preview: URL.createObjectURL(blob)
+            }
+          } catch (error) {
+            console.error('❌ Failed to convert TIFF file:', error)
+            const { toast } = await import('sonner')
+            toast.error(`Failed to convert ${file.name}. Please use a JPG or PNG file instead.`)
+            return null
+          }
+        }
+
+        // Standard image formats
+        return {
+          file,
+          preview: URL.createObjectURL(file)
+        }
+      })
+    )
+
+    // Filter out failed conversions
+    const validFiles = processedFiles.filter((f): f is { file: File; preview: string } => f !== null)
+
+    const newFiles = validFiles.map(({ file, preview }) => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
-      preview: URL.createObjectURL(file),
+      preview,
       uploaderName: uploaderName,
       caption: "",
       albumId: selectedAlbumId,
       status: 'pending' as const,
       progress: 0
     }))
-    
+
     setFiles(prev => [...prev, ...newFiles])
   }, [uploaderName, selectedAlbumId])
 
@@ -137,7 +239,7 @@ export function UploadInterface({ event, uploadWindowOpen, isOwner, guestCanUplo
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic'],
+      'image/*': ['.jpeg', '.jpg', '.png', '.webp', '.heic', '.heif', '.gif', '.avif', '.tiff', '.tif'],
       'video/*': ['.mp4', '.mov', '.avi', '.quicktime']
     },
     maxSize: maxFileSize,

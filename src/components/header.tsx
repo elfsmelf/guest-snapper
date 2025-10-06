@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Settings } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import Image from "next/image"
 
@@ -13,11 +13,12 @@ import { Skeleton } from "./ui/skeleton"
 interface HeaderProps {
     galleryTheme?: string
     eventSlug?: string
+    eventId?: string
     showOnboardingSetup?: boolean
     onboardingStep?: number
 }
 
-export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, onboardingStep = 1 }: HeaderProps) {
+export function Header({ galleryTheme, eventSlug, eventId, showOnboardingSetup = false, onboardingStep = 1 }: HeaderProps) {
     const pathname = usePathname()
     const { data: session, isPending } = authClient.useSession()
 
@@ -49,14 +50,14 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
 
     return (
         <header className={getHeaderClasses()}>
-            <div className="container mx-auto flex h-16 justify-between items-center px-6 md:h-18">
+            <div className="container mx-auto flex h-16 justify-between items-center px-4 md:px-6 md:h-18">
                 <Link href="/" className="flex items-center" prefetch={false}>
                     <Image
                         src="https://assets.guestsnapper.com/marketing/logos/Guest%20Snapper%20v6%20logo.png"
                         alt="Guest Snapper"
                         width={156}
                         height={42}
-                        className="h-10 w-auto"
+                        className="h-8 w-auto"
                     />
                 </Link>
 
@@ -74,9 +75,12 @@ export function Header({ galleryTheme, eventSlug, showOnboardingSetup = false, o
                             <Button asChild variant="outline">
                                 <Link href={`/gallery/${eventSlug}`} prefetch={false}>View Gallery</Link>
                             </Button>
-                        ) : showOnboardingSetup && eventSlug ? (
-                            <Button asChild variant="outline">
-                                <Link href={`/onboarding?slug=${eventSlug}&step=${onboardingStep}`} prefetch={false}>Continue Setup</Link>
+                        ) : showOnboardingSetup && eventId ? (
+                            <Button asChild variant="outline" className="gap-2">
+                                <Link href={`/dashboard/events/${eventId}`} prefetch={false}>
+                                    <Settings className="h-4 w-4" />
+                                    Event Settings
+                                </Link>
                             </Button>
                         ) : (
                             <Button asChild variant="outline">

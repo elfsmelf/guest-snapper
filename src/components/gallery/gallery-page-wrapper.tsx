@@ -39,9 +39,10 @@ export function GalleryPageWrapper({ children, eventData, eventSlug }: GalleryPa
         />
       ) : session?.user ? (
         // Authenticated user - show full header
-        <Header 
-          galleryTheme={themeId} 
+        <Header
+          galleryTheme={themeId}
           eventSlug={eventSlug}
+          eventId={eventData.id}
           showOnboardingSetup={isOwner && onboardingState?.onboardingActive && !onboardingState?.onboardingComplete && !onboardingState?.onboardingSkipped}
           onboardingStep={onboardingState?.currentStep}
         />

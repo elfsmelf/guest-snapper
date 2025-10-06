@@ -25,7 +25,8 @@ import {
   X,
   Check,
   Rocket,
-  Eye
+  Eye,
+  Settings
 } from "lucide-react"
 import { toast } from "sonner"
 import posthog from 'posthog-js'
@@ -46,15 +47,10 @@ import {
 } from '@/hooks/use-onboarding'
 import { SkipConfirmationModal } from "./skip-confirmation-modal"
 
-// Import step components (we'll create these next)
+// Import step components
 import { TestImagesStep } from "./steps/test-images-step"
 import { PrivacyStep } from "./steps/privacy-step"
 import { ThemeStep } from "./steps/theme-step"
-import { PublishStep } from "./steps/publish-step"
-import { AlbumsStep } from "./steps/albums-step"
-import { QRCodeStep } from "./steps/qr-code-step"
-import { SlideshowStep } from "./steps/slideshow-step"
-import { CollaboratorsStep } from "./steps/collaborators-step"
 
 interface OnboardingWizardProps {
   eventId: string
@@ -65,13 +61,9 @@ interface OnboardingWizardProps {
 
 const STEPS = [
   { id: ONBOARDING_STEPS.TEST_IMAGES, title: "Upload Test Images", icon: Upload, required: true },
-  { id: ONBOARDING_STEPS.PRIVACY, title: "Configure Privacy", icon: Shield, required: true },
+  { id: ONBOARDING_STEPS.PRIVACY, title: "Configure Privacy", icon: Shield, required: false },
   { id: ONBOARDING_STEPS.THEME, title: "Choose Theme", icon: Palette, required: false },
-  { id: ONBOARDING_STEPS.PUBLISH, title: "Activate Your Gallery", icon: Globe, required: true },
-  { id: ONBOARDING_STEPS.QR_CODE, title: "Download QR Code", icon: QrCode, required: false },
-  { id: ONBOARDING_STEPS.ALBUMS, title: "Create Albums", icon: FolderPlus, required: false },
-  { id: ONBOARDING_STEPS.SLIDESHOW, title: "Test Slideshow", icon: Play, required: false },
-  { id: ONBOARDING_STEPS.COLLABORATORS, title: "Add Team", icon: UserPlus, required: false }
+  { id: 'view-gallery', title: "View Your Gallery", icon: Eye, required: false }
 ]
 
 export function OnboardingWizard({
@@ -265,11 +257,39 @@ export function OnboardingWizard({
       case 1: return <TestImagesStep {...props} />
       case 2: return <PrivacyStep {...props} />
       case 3: return <ThemeStep {...props} />
-      case 4: return <PublishStep {...props} />
-      case 5: return <QRCodeStep {...props} />
-      case 6: return <AlbumsStep {...props} />
-      case 7: return <SlideshowStep {...props} />
-      case 8: return <CollaboratorsStep {...props} />
+      case 4: return (
+        <div className="space-y-6 text-center py-8">
+          <div className="space-y-3">
+            <Rocket className="h-16 w-16 mx-auto text-primary" />
+            <h3 className="text-2xl font-bold">Your Gallery is Ready!</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+              You've successfully set up your gallery. Click below to view it and see how your guests will experience it.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+            <Button
+              asChild
+              size="lg"
+              className="gap-2"
+              onClick={async () => {
+                // Mark onboarding as complete when they view gallery
+                await completeOnboarding.mutateAsync()
+              }}
+            >
+              <Link href={`/gallery/${eventSlug}`} target="_blank">
+                <Eye className="h-5 w-5" />
+                View Gallery
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="lg" className="gap-2">
+              <Link href={`/dashboard/events/${eventId}`}>
+                <Settings className="h-5 w-5" />
+                Event Settings
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )
       default: return null
     }
   }
@@ -288,16 +308,8 @@ export function OnboardingWizard({
         return onboardingData.privacyConfigured
       case ONBOARDING_STEPS.THEME:
         return onboardingData.themeSelected
-      case ONBOARDING_STEPS.PUBLISH:
-        return onboardingData.eventPublished || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PUBLISH))
-      case ONBOARDING_STEPS.QR_CODE:
-        return onboardingData.qrDownloaded
-      case ONBOARDING_STEPS.ALBUMS:
-        return onboardingData.albumsCreated > 0
-      case ONBOARDING_STEPS.SLIDESHOW:
-        return onboardingData.slideshowTested
-      case ONBOARDING_STEPS.COLLABORATORS:
-        return onboardingData.collaboratorsInvited > 0
+      case 'view-gallery':
+        return true // This is always complete once reached
       default:
         return false
     }
@@ -317,17 +329,9 @@ export function OnboardingWizard({
       case ONBOARDING_STEPS.PRIVACY:
         return true // Privacy settings are optional - users can proceed without changing defaults
       case ONBOARDING_STEPS.THEME:
-        return onboardingData.themeSelected
-      case ONBOARDING_STEPS.PUBLISH:
-        return onboardingData.eventPublished || (Array.isArray(onboardingData?.completedSteps) && (onboardingData.completedSteps as string[]).includes(ONBOARDING_STEPS.PUBLISH))
-      case ONBOARDING_STEPS.QR_CODE:
-        return onboardingData.qrDownloaded
-      case ONBOARDING_STEPS.ALBUMS:
-        return onboardingData.albumsCreated > 0
-      case ONBOARDING_STEPS.SLIDESHOW:
-        return onboardingData.slideshowTested
-      case ONBOARDING_STEPS.COLLABORATORS:
-        return onboardingData.collaboratorsInvited > 0
+        return true // Theme is optional - users can proceed with default theme
+      case 'view-gallery':
+        return true // Always ready to view gallery
       default:
         return false
     }

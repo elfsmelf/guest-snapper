@@ -8,7 +8,7 @@ import { WaveformVoiceRecorder } from "@/components/gallery/waveform-voice-recor
 import { GalleryPageWrapper } from "@/components/gallery/gallery-page-wrapper"
 
 interface VoicePageProps {
-  params: Promise<{ slug: string }>
+  params: Promise<{ lang: string; slug: string }>
 }
 
 export default async function VoicePage({ params }: VoicePageProps) {
@@ -35,40 +35,13 @@ export default async function VoicePage({ params }: VoicePageProps) {
   return (
     <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
       <div className="min-h-screen bg-background">
-        {/* Compact Cover Image Header */}
-        {eventWithAlbums.coverImageUrl && (
-          <div className="relative h-32 md:h-40 overflow-hidden">
-            <Image
-              src={eventWithAlbums.coverImageUrl}
-              alt={`${eventWithAlbums.coupleNames} - ${eventWithAlbums.name}`}
-              fill
-              className="object-cover"
-              priority
-              sizes="100vw"
-            />
-            <div className="absolute inset-0 bg-black/40" />
-
-            {/* Content Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center text-white">
-                <h1 className="text-xl md:text-2xl font-bold mb-1">
-                  Record Voice Message
-                </h1>
-                <p className="text-sm md:text-base opacity-90">
-                  {eventWithAlbums.coupleNames} • {eventWithAlbums.name}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Owner badge - more compact */}
+        {/* Owner badge */}
         {isOwner && (
           <div className="bg-secondary border-b border-border">
             <div className="container mx-auto px-4 py-2">
-              <p className="text-xs text-secondary-foreground flex items-center justify-center gap-1">
+              <p className="text-sm text-secondary-foreground flex items-center justify-center gap-2">
                 <span className="text-primary">👑</span>
-                <strong>Owner</strong> - Record anytime
+                <strong>Gallery Owner:</strong> You can record anytime
               </p>
             </div>
           </div>

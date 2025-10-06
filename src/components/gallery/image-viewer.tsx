@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { X, Download, User, Calendar } from "lucide-react"
 import { CloudflareImage } from "@/components/ui/cloudflare-image"
+import { HeicImage } from "./heic-image"
 import { getOriginalImageUrl } from "@/lib/cloudflare-image"
 import { VideoPlayer } from "@/components/video-player"
 
@@ -131,7 +132,7 @@ export function ImageViewer({ upload, isOpen, onClose, allowGuestDownloads = fal
               )
             ) : (
               shouldLoadImage ? (
-                <CloudflareImage
+                <HeicImage
                   src={upload.fileUrl}
                   alt={upload.fileName}
                   className="

@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge"
 import { PricingCards } from "./pricing-cards"
 import { UpgradePrompt } from "./upgrade-prompt"
 import { canPublishEvent } from "@/lib/feature-gates"
-import { planFeatures, normalizePlanName, type Currency, type Plan } from "@/lib/pricing"
+import { planFeatures, type Currency, type Plan } from "@/lib/pricing"
 import { toast } from "sonner"
 import { getTrialStatus, formatTrialStatus } from "@/lib/trial-utils"
 
@@ -329,15 +329,15 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
   // Calculate upload and download durations based on activation date
   const getUploadEndDate = () => {
     if (!activationDate) return null
-    const planToUse = normalizePlanName(event?.plan)
-    const features = planFeatures[planToUse]
+    const planToUse = event?.plan || 'free_trial'
+    const features = planFeatures[planToUse as Plan]
     return addMonths(activationDate, features.uploadWindowMonths)
   }
 
   const getDownloadEndDate = () => {
     if (!activationDate) return null
-    const planToUse = normalizePlanName(event?.plan)
-    const features = planFeatures[planToUse]
+    const planToUse = event?.plan || 'free_trial'
+    const features = planFeatures[planToUse as Plan]
     return addMonths(activationDate, features.downloadWindowMonths)
   }
 
@@ -346,8 +346,8 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
       {/* Choose Your Plan Card */}
       {(() => {
-        const currentPlan = normalizePlanName(event.plan);
         const isFreeTrial = !event.plan || event.plan === 'free' || event.plan === 'free_trial';
+        const currentPlan = isFreeTrial ? undefined : event.plan;
         const isPremier = currentPlan === 'premier';
 
         // If user has premier plan, just show a simple status message
@@ -374,7 +374,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
 
         // For free trial or paid plans that can be upgraded
         return (
-          <Card data-section="choose-plan">
+          <Card id="choose-plan" data-section="choose-plan">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -386,7 +386,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                     if (isFreeTrial) {
                       return trialStatus.isExpired ? 'Free Trial - Expired' : 'Free Trial';
                     }
-                    return planFeatures[currentPlan]?.name || 'Free Trial';
+                    return currentPlan ? planFeatures[currentPlan as Plan]?.name || 'Free Trial' : 'Free Trial';
                   })()}
                 </Badge>
               </CardTitle>
@@ -431,7 +431,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                 <div className="bg-primary/10 border border-primary/20 rounded-lg p-4">
                   <div className="flex items-center justify-center gap-2 text-foreground">
                     <span className="font-semibold">
-                      Your current plan is {planFeatures[currentPlan]?.name}
+                      Your current plan is {currentPlan ? planFeatures[currentPlan as Plan]?.name : 'Free Trial'}
                     </span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2 text-center">
@@ -594,8 +594,8 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {(() => {
-                        const planToUse = normalizePlanName(event?.plan)
-                        const features = planFeatures[planToUse]
+                        const planToUse = event?.plan || 'free_trial'
+                        const features = planFeatures[planToUse as Plan]
                         return `${features.uploadWindowMonths} months duration`
                       })()}
                     </div>
@@ -609,8 +609,8 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
                     </div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {(() => {
-                        const planToUse = normalizePlanName(event?.plan)
-                        const features = planFeatures[planToUse]
+                        const planToUse = event?.plan || 'free_trial'
+                        const features = planFeatures[planToUse as Plan]
                         return `${features.downloadWindowMonths} months duration`
                       })()}
                     </div>

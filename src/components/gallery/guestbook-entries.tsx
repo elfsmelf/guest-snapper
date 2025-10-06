@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { User, Calendar, Heart } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { User, Calendar } from "lucide-react"
 
 interface GuestbookEntry {
   id: string
@@ -137,10 +136,6 @@ export function GuestbookEntries({ eventId, onMessageAdded, customEntries }: Gue
                     </span>
                   </div>
                 </div>
-
-                <Button variant="ghost" size="sm">
-                  <Heart className="h-4 w-4" />
-                </Button>
               </div>
             </CardContent>
           </Card>

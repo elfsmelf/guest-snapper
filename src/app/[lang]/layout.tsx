@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next"
-import { Geist, Geist_Mono, Playfair_Display } from "next/font/google"
+import { Geist, Geist_Mono, Playfair_Display, Noto_Sans_KR } from "next/font/google"
 import type { ReactNode } from "react"
 import { NuqsAdapter } from 'nuqs/adapters/next/app'
 
@@ -7,6 +7,7 @@ import "@/styles/globals.css"
 
 import { ConditionalHeader } from "@/components/conditional-header"
 import { Providers } from "./providers"
+import type { Locale } from "@/lib/dictionaries"
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -23,8 +24,18 @@ const playfairDisplay = Playfair_Display({
     subsets: ["latin"]
 })
 
+const notoSansKR = Noto_Sans_KR({
+    variable: "--font-noto-sans-kr",
+    subsets: ["latin"],
+    weight: ["400", "500", "700"]
+})
+
 // Gallery theme fonts now loaded directly from Google Fonts (no edge requests)
 // These are imported via CSS and only loaded when gallery components need them
+
+export async function generateStaticParams() {
+    return [{ lang: 'en' }, { lang: 'ko' }]
+}
 
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.guestsnapper.com'
 
@@ -109,18 +120,21 @@ export const viewport: Viewport = {
     width: "device-width"
 }
 
-export default function RootLayout({
-    children
+export default async function RootLayout({
+    children,
+    params
 }: Readonly<{
     children: ReactNode
+    params: Promise<{ lang: Locale }>
 }>) {
+    const { lang } = await params
     return (
-        <html lang="en" suppressHydrationWarning>
+        <html lang={lang} suppressHydrationWarning>
             <body
-                className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} flex min-h-svh flex-col antialiased`}
+                className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} ${notoSansKR.variable} flex min-h-svh flex-col antialiased`}
             >
                 <NuqsAdapter>
-                    <Providers>
+                    <Providers lang={lang}>
                         <ConditionalHeader />
 
                         {children}

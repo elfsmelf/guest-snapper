@@ -452,7 +452,7 @@ export function WaveformVoiceRecorder({ event, uploadWindowOpen, isOwner, guestC
                   <div className="flex items-center justify-center gap-4">
                     <Button
                       onClick={startRecording}
-                      disabled={!uploadWindowOpen || isUploading || status === 'acquiring_media'}
+                      disabled={(!uploadWindowOpen && !isOwner && !guestCanUpload) || isUploading || status === 'acquiring_media'}
                       size="lg"
                       className="bg-primary hover:bg-primary/90 text-primary-foreground"
                     >

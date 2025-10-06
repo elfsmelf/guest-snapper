@@ -1,0 +1,190 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "continue": "Continue",
+    "close": "Close",
+    "submit": "Submit",
+    "confirm": "Confirm"
+  },
+  "home": {
+    "hero": {
+      "title": "Never miss a moment from your special day!",
+      "description": "The simple QR-album that captures it all. Guests scan once to upload unlimited photos & videos straight to your collection.",
+      "ctaTryFree": "Try For Free",
+      "ctaHowItWorks": "How It Works",
+      "trust": {
+        "fiveStarRated": "5 Star Rated",
+        "eventsCount": "10k+ Events",
+        "noAppRequired": "No App Required"
+      }
+    },
+    "howItWorks": {
+      "title": "How Guest Snapper Works",
+      "subtitle": "Create Your Event QR in 3 Steps",
+      "description": "Guests scan a QR code to share photos, videos, and messages.\nNo app or signup, all in one digital album.",
+      "step1": {
+        "title": "Create your event",
+        "feature1": "Generate a unique QR & link in seconds",
+        "feature2": "Set album visibility, approvals, and download options",
+        "avgTime": "Avg setup time: 58 seconds",
+        "cta": "Create Your QR"
+      },
+      "step2": {
+        "title": "Share the QR",
+        "feature1": "Print cards or show on TV/projector",
+        "feature2": "Share the link in WhatsApp / iMessage / SMS",
+        "works": "Works on any phone - no app required",
+        "cta": "Free Templates"
+      },
+      "step3": {
+        "title": "Everything appears in\nyour live album",
+        "feature1": "Approve/hide uploads, run a live slideshow",
+        "feature2": "Download originals anytime (one-click export)",
+        "unlimited": "Unlimited uploads included",
+        "cta": "Demo Event"
+      }
+    },
+    "reviews": {
+      "title": "Capturing memories at 6000+ weddings this year",
+      "rating": "4.5",
+      "count": "2378 reviews"
+    },
+    "templates": {
+      "title": "Stunning Templates for Your Special Day",
+      "description": "Choose from our curated collection of beautiful, customizable designs. Perfect for any wedding theme or style.",
+      "cta": "View All Templates"
+    },
+    "comparison": {
+      "title": "Why Choose Guest Snapper?",
+      "description": "See how we compare to other photo sharing services. We're built specifically for weddings and events.",
+      "guestSnapper": "Guest Snapper",
+      "otherServices": "Other Services",
+      "features": {
+        "guests": "Number of Guests",
+        "photos": "Number of Photos",
+        "quality": "Photo & Video Quality",
+        "upload": "Upload Experience",
+        "updates": "Real-time Gallery Updates",
+        "storage": "Storage & Download Period",
+        "experience": "Guest Experience",
+        "qr": "QR Code & Templates",
+        "slideshow": "Live Slideshow Display"
+      },
+      "values": {
+        "unlimited": "Unlimited",
+        "limited2050": "Limited to 20-50 users",
+        "unlimitedPhotos": "Unlimited",
+        "photoLimit": "500-1000 photo limit",
+        "fullHD": "Full HD Photos & 4K Videos",
+        "compressed": "Compressed photos, no video support",
+        "batchUpload": "Batch Upload, No App Required",
+        "singleUpload": "Single uploads, app downloads needed",
+        "instantUpdates": "Instant Live Updates",
+        "manualRefresh": "Manual refresh required",
+        "oneYear": "1 Year Storage",
+        "shortTerm": "30-90 days then pay extra",
+        "noSignup": "No Sign-up, Just Scan & Upload",
+        "registration": "Email/app registration required",
+        "freeTemplates": "Free QR Codes & Print Templates",
+        "diy": "DIY setup or pay extra",
+        "builtIn": "Built-in Presentation Mode",
+        "premium": "Premium add-on feature"
+      },
+      "cta": "Start Your Free Event"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions",
+      "q1": {
+        "question": "How do guests upload photos?",
+        "answer": "Guests simply scan your unique wedding QR code or click your share link to upload photos directly from their phones – no app required!"
+      },
+      "q2": {
+        "question": "Can I download all the photos?",
+        "answer": "Yes! Download all photos and videos in full, original quality whenever you want."
+      },
+      "q3": {
+        "question": "How long do you keep my photos and videos?",
+        "answer": "Your memories are safely stored for 12 months, giving you plenty of time to download and share them. Need more time? Just contact us and we'll help extend your storage."
+      },
+      "q4": {
+        "question": "Can guests upload videos too?",
+        "answer": "Absolutely! Guests can upload videos in full quality, capturing every speech, dance, and special moment without any compression."
+      },
+      "q5": {
+        "question": "How do guests find my photo album?",
+        "answer": "Share your invitation link ahead of time or display the QR code at your venue. Guests can join instantly by scanning the code or clicking the link – it's that simple!"
+      },
+      "q6": {
+        "question": "Do I need to use a QR code?",
+        "answer": "Not at all! You can share just the link if you prefer. The QR code is simply an easy option for guests to access your gallery at the venue."
+      },
+      "q7": {
+        "question": "How do you protect our privacy?",
+        "answer": "Your privacy is our priority. You control who can see uploaded content with configurable settings, so your wedding memories are shared exactly how you want."
+      },
+      "q8": {
+        "question": "Can I organize photos into separate galleries?",
+        "answer": "Yes! Create multiple galleries for different events like the ceremony, reception, or rehearsal dinner. Each gets its own QR code for easy organization and targeted sharing."
+      },
+      "q9": {
+        "question": "How do I get my QR code?",
+        "answer": "Download your QR code instantly from your Guest Snapper account after purchase. We provide elegant print-ready templates, plus our designer can create custom materials like table cards or TV graphics that match your wedding theme – at no extra cost!"
+      },
+      "q10": {
+        "question": "Do guests need to download an app?",
+        "answer": "No downloads or sign-ups required for guests! Everything works through any web browser. Only you need to create an account, making it effortless for everyone to participate."
+      },
+      "q11": {
+        "question": "Do you provide design templates?",
+        "answer": "Absolutely! Choose from our collection of elegant, print-ready templates for banners, cards, table displays, and digital screens. Want something custom? Our designer will create personalized materials that perfectly match your wedding style."
+      },
+      "q12": {
+        "question": "How can I get help if needed?",
+        "answer": "Our support team is ready to assist! Use our contact form to reach us, and we'll make sure your Guest Snapper experience is seamless and stress-free."
+      }
+    },
+    "footer": {
+      "company": "Guest Snapper",
+      "howItWorks": "How it works",
+      "faq": "FAQ",
+      "support": "Support",
+      "contact": "Contact",
+      "refundPolicy": "Refund policy",
+      "app": "App",
+      "login": "Login",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "copyright": "© 2025 Guest Snapper. All rights reserved."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "createEvent": "Create Event",
+    "myEvents": "My Events",
+    "noEvents": "No events yet",
+    "settings": "Settings"
+  },
+  "gallery": {
+    "uploadPhotos": "Upload Photos",
+    "viewGallery": "View Gallery",
+    "noPhotos": "No photos yet",
+    "addMore": "Add more",
+    "uploading": "Uploading...",
+    "uploadSuccess": "Upload successful!",
+    "uploadError": "Upload failed"
+  },
+  "nav": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "login": "Login",
+    "createAccount": "Create Account",
+    "signOut": "Sign Out"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "SIGN_IN": "게스트스내퍼에 오신 것을 환영합니다",
+  "SIGN_IN_DESCRIPTION": "웨딩 포토 갤러리를 만들거나 기존 갤러리에 액세스하세요. Google을 선택하거나 이메일을 입력하여 계속하세요.",
+  "SIGN_UP": "게스트스내퍼에 오신 것을 환영합니다",
+  "SIGN_UP_DESCRIPTION": "웨딩 포토 갤러리를 만들거나 기존 갤러리에 액세스하세요. Google을 선택하거나 이메일을 입력하여 계속하세요.",
+  "EMAIL_PLACEHOLDER": "이메일 주소 입력",
+  "MAGIC_LINK": "이메일로 계속하기",
+  "MAGIC_LINK_DESCRIPTION": "이메일을 입력하여 계속하세요",
+  "MAGIC_LINK_ACTION": "계속",
+  "EMAIL_OTP": "이메일로 계속하기",
+  "EMAIL_OTP_DESCRIPTION": "이메일을 입력하여 계속하세요",
+  "EMAIL_OTP_SEND_ACTION": "인증 코드 보내기",
+  "EMAIL_OTP_VERIFY_ACTION": "확인 후 계속하기",
+  "OR_CONTINUE_WITH": "또는 다음으로 계속",
+  "SIGN_IN_WITH": "다음으로 계속",
+  "DONT_HAVE_AN_ACCOUNT": "게스트스내퍼가 처음이신가요?",
+  "ALREADY_HAVE_AN_ACCOUNT": "이미 계정이 있으신가요?",
+  "SIGN_IN_ACTION": "계속",
+  "SIGN_UP_ACTION": "계속",
+  "SIGN_IN_USERNAME_DESCRIPTION": "웨딩 갤러리로 계속하려면 이메일을 입력하세요"
+}

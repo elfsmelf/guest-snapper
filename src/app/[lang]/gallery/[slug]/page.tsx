@@ -73,8 +73,13 @@ export default async function GalleryPage({ params, searchParams }: GalleryPageP
   // Parse onboarding state for owner continuation card
   const onboardingState = isOwner ? parseOnboardingState(eventWithAlbums.quickStartProgress) : null
 
-  // If gallery is not published and user doesn't have access, show draft message
-  if (!eventWithAlbums.isPublished && !hasEventAccess) {
+  // Check if activation date has passed
+  const isActivationDatePassed = eventWithAlbums.activationDate
+    ? parseLocalDate(eventWithAlbums.activationDate) <= new Date()
+    : true // If no activation date, consider it as passed
+
+  // If gallery is not published OR activation date hasn't passed, and user doesn't have access, show draft message
+  if ((!eventWithAlbums.isPublished || !isActivationDatePassed) && !hasEventAccess) {
     return (
       <GalleryPageWrapper eventData={eventWithAlbums} eventSlug={slug}>
         <div className="min-h-screen bg-background">

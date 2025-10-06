@@ -5,11 +5,12 @@ import { Header } from "./header"
 
 export function ConditionalHeader() {
     const pathname = usePathname()
-    
+
     // Don't render header on gallery routes - gallery layout handles its own header
-    if (pathname?.startsWith('/gallery/')) {
+    // Check for both /gallery/ and /[lang]/gallery/ patterns
+    if (pathname?.includes('/gallery/')) {
         return null
     }
-    
+
     return <Header />
 }

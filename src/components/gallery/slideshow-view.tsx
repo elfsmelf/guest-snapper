@@ -55,17 +55,42 @@ export function SlideshowView({ event, uploads, eventSlug, slideDuration = 5 }: 
   const [api, setApi] = useState<CarouselApi>()
   const router = useRouter()
   const containerRef = useRef<HTMLDivElement>(null)
-  
+  const previousUploadCountRef = useRef(0)
+
   // Filter to only approved photos and videos
-  const mediaUploads = uploads.filter(upload => 
+  const mediaUploads = uploads.filter(upload =>
     upload.isApproved && (upload.fileType === 'image' || upload.fileType === 'video')
   )
 
   // Create autoplay plugin instance with current slide duration
-  const autoplayPlugin = useMemo(() => 
-    Autoplay({ delay: slideDuration * 1000, stopOnInteraction: false }), 
+  const autoplayPlugin = useMemo(() =>
+    Autoplay({ delay: slideDuration * 1000, stopOnInteraction: false }),
     [slideDuration]
   )
+
+  // Auto-refresh every 10 minutes to fetch new images
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      router.refresh()
+    }, 10 * 60 * 1000) // 10 minutes in milliseconds
+
+    return () => clearInterval(refreshInterval)
+  }, [router])
+
+  // Detect when new images are added and resume autoplay if needed
+  useEffect(() => {
+    const currentCount = mediaUploads.length
+    const previousCount = previousUploadCountRef.current
+
+    if (previousCount > 0 && currentCount > previousCount) {
+      // New images added! Resume autoplay if it was playing
+      if (isPlaying && autoplayPlugin) {
+        autoplayPlugin.play()
+      }
+    }
+
+    previousUploadCountRef.current = currentCount
+  }, [mediaUploads.length, isPlaying, autoplayPlugin])
 
   useEffect(() => {
     if (!api) return

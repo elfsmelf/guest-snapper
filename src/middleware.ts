@@ -1,5 +1,27 @@
 import { getSessionCookie } from "better-auth/cookies"
 import { type NextRequest, NextResponse } from "next/server"
+import { match } from '@formatjs/intl-localematcher'
+import Negotiator from 'negotiator'
+
+// Internationalization configuration
+const locales = ['en', 'ko']
+const defaultLocale = 'en'
+
+function getLocale(request: NextRequest): string {
+  // Get the accept-language header
+  const acceptLanguage = request.headers.get('accept-language') || ''
+
+  // Use Negotiator to parse the accept-language header
+  const headers = { 'accept-language': acceptLanguage }
+  const languages = new Negotiator({ headers }).languages()
+
+  // Match against supported locales
+  try {
+    return match(languages, locales, defaultLocale)
+  } catch (error) {
+    return defaultLocale
+  }
+}
 
 export async function middleware(request: NextRequest) {
     // Block Vercel's automated requests and other bots to reduce edge function usage
@@ -18,23 +40,43 @@ export async function middleware(request: NextRequest) {
         )
     }
 
+    const { pathname } = request.nextUrl
+
+    // Check if pathname already has a locale
+    const pathnameHasLocale = locales.some(
+        (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`
+    )
+
+    // If no locale in pathname, redirect to locale-prefixed URL
+    if (!pathnameHasLocale) {
+        const locale = getLocale(request)
+        request.nextUrl.pathname = `/${locale}${pathname}`
+        return NextResponse.redirect(request.nextUrl)
+    }
+
     // Public routes that don't require authentication
     const publicRoutes = [
-        '/', 
-        '/gallery', 
-        '/auth/sign-in', 
-        '/auth/sign-up', 
+        '/gallery',
+        '/auth/sign-in',
+        '/auth/sign-up',
         '/auth/email-otp',
         '/auth/forgot-password',
-        '/auth/reset-password', 
+        '/auth/reset-password',
         '/auth/magic-link',
-        '/auth/accept-invitation', 
+        '/auth/accept-invitation',
         '/api/accept-invitation'
     ]
-    const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route))
+
+    // Check if route is public (account for locale prefix)
+    const isPublicRoute = publicRoutes.some(route => {
+        // Check with locale prefix
+        return locales.some(locale =>
+            pathname.startsWith(`/${locale}${route}`) || pathname === `/${locale}`
+        )
+    })
     
-    // Admin routes require special handling
-    const isAdminRoute = request.nextUrl.pathname.startsWith('/admin')
+    // Admin routes require special handling (check with locale prefix)
+    const isAdminRoute = locales.some(locale => pathname.startsWith(`/${locale}/admin`))
     
     if (isPublicRoute) {
         return NextResponse.next()
@@ -45,11 +87,13 @@ export async function middleware(request: NextRequest) {
     const sessionCookie = getSessionCookie(request)
 
     if (!sessionCookie) {
-        const redirectTo = request.nextUrl.pathname + request.nextUrl.search
-        
-        // Redirect to sign-in with the original destination
+        // Extract locale from pathname
+        const locale = locales.find(loc => pathname.startsWith(`/${loc}/`)) || defaultLocale
+        const redirectTo = pathname + request.nextUrl.search
+
+        // Redirect to sign-in with the original destination (maintain locale)
         return NextResponse.redirect(
-            new URL(`/auth/sign-in?redirectTo=${encodeURIComponent(redirectTo)}`, request.url)
+            new URL(`/${locale}/auth/sign-in?redirectTo=${encodeURIComponent(redirectTo)}`, request.url)
         )
     }
 
@@ -57,14 +101,17 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    // Only match routes that absolutely need server-side middleware protection
-    // Gallery routes removed - handle view persistence and auth client-side for better performance
+    // Match all routes except static files and API routes
     matcher: [
-        "/dashboard/:path*",     // Protected dashboard routes
-        "/admin/:path*",         // Admin routes  
-        "/auth/settings",        // Settings page
-        "/onboarding/:path*",    // Onboarding flow
-        "/events/:path*",        // Event management (if exists)
-        "/checkout/:path*"       // Payment flows
+        /*
+         * Match all request paths except:
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico (favicon file)
+         * - public folder files
+         * - API routes that handle their own auth
+         * - PostHog ingest endpoints
+         */
+        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/|ingest/).*)',
     ]
 }
