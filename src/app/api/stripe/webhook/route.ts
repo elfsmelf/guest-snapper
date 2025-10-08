@@ -116,8 +116,14 @@ async function upgradeEvent(opts: {
 }
 
 export async function POST(req: NextRequest) {
-  const sig = (await headers()).get("stripe-signature")!;
-  const rawBody = await req.text();
+  try {
+    const sig = (await headers()).get("stripe-signature");
+    if (!sig) {
+      console.error("Missing stripe-signature header");
+      return new NextResponse("Missing signature", { status: 400 });
+    }
+
+    const rawBody = await req.text();
 
   let event;
   try {
@@ -227,6 +233,15 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     );
   }
+  } catch (error) {
+    console.error("Fatal webhook error:", error);
+    return new NextResponse("Internal server error", { status: 500 });
+  }
+}
+
+// Optional: Handle GET requests for debugging
+export async function GET() {
+  return new NextResponse("Stripe webhook endpoint - POST only", { status: 200 });
 }
 
 export const runtime = "nodejs"; // Ensure raw body support under App Router
