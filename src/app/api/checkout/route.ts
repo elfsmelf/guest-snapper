@@ -143,6 +143,7 @@ export async function POST(req: NextRequest) {
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/events/${event.id}?payment_cancelled=true`,
       metadata: sessionMetadata,
       billing_address_collection: "auto",
+      allow_promotion_codes: true,
     });
 
     // Store checkout session ID for tracking
