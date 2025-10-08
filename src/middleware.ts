@@ -111,7 +111,8 @@ export const config = {
          * - public folder files
          * - API routes that handle their own auth
          * - PostHog ingest endpoints
+         * - og-image files
          */
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/|ingest/).*)',
+        '/((?!_next/static|_next/image|favicon.ico|og-image|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|api/|ingest/).*)',
     ]
 }
