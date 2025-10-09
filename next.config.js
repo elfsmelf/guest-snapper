@@ -54,7 +54,7 @@ const nextConfig = {
                 pathname: '/a/**',
             },
             {
-                protocol: 'https', 
+                protocol: 'https',
                 hostname: '*.googleusercontent.com',
                 port: '',
                 pathname: '/**',

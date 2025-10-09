@@ -20,6 +20,8 @@ declare global {
         setFirstName: (name: string) => void
         setEmail: (email: string) => void
         setProperties: (properties: Record<string, any>) => void
+        create: () => Promise<{ data: any }>
+        get: () => Promise<{ data: any }>
       }
       isInitialized: () => boolean
       open: () => void
@@ -37,11 +39,16 @@ declare global {
  * Integrates Freshworks Chat with Better Auth for user identification.
  * - Authenticated users: Shows name, email, user ID, and plan
  * - Anonymous users: Allows anonymous chat
+ *
+ * IMPORTANT: All user data must be set immediately after widget initialization
+ * to ensure it's applied before the user sends their first message. Freshchat
+ * creates the user record on first message, not when setExternalId() is called.
  */
 export function FreshchatWrapper() {
   const { data: session } = authClient.useSession()
   const [userPlan, setUserPlan] = useState<string>('free_trial')
   const [widgetReady, setWidgetReady] = useState(false)
+  const [userDataSet, setUserDataSet] = useState(false)
 
   const token = process.env.NEXT_PUBLIC_FRESHCHAT_TOKEN
   const host = process.env.NEXT_PUBLIC_FRESHCHAT_HOST || 'https://au.fw-cdn.com'
@@ -54,68 +61,165 @@ export function FreshchatWrapper() {
     }
   }, [session?.user?.id])
 
-  // Enrich user data when widget is ready and session changes
+  // Debug: Log when session changes
   useEffect(() => {
-    if (!widgetReady || !window.fcWidget || !session?.user) return
+    console.log('[Freshchat] Session state:', {
+      hasSession: !!session,
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      userName: session?.user?.name
+    })
+  }, [session])
 
-    console.log('Enriching Freshchat with user data...')
+  // Debug: Log when widget ready state changes
+  useEffect(() => {
+    console.log('[Freshchat] Widget ready state:', widgetReady)
+    if (widgetReady) {
+      console.log('[Freshchat] fcWidget available:', !!window.fcWidget)
+    }
+  }, [widgetReady])
+
+  // Set up event listener for widget initialization AND check if already initialized
+  useEffect(() => {
+    console.log('[Freshchat] Setting up widget detection...')
+
+    // Check if widget is already initialized
+    if (window.fcWidget && window.fcWidget.isInitialized && window.fcWidget.isInitialized()) {
+      console.log('[Freshchat] Widget already initialized on mount!')
+      setWidgetReady(true)
+      return
+    }
+
+    // Listen for initialization event
+    const handleReady = () => {
+      console.log('[Freshchat] Received freshchat-ready event')
+      setWidgetReady(true)
+    }
+
+    window.addEventListener('freshchat-ready', handleReady)
+    console.log('[Freshchat] Event listener added for freshchat-ready')
+
+    // Polling fallback - check if widget becomes available (with 10s timeout)
+    let pollCount = 0
+    const maxPolls = 100 // 10 seconds at 100ms intervals
+    const pollInterval = setInterval(() => {
+      pollCount++
+      if (window.fcWidget && window.fcWidget.isInitialized && window.fcWidget.isInitialized()) {
+        console.log('[Freshchat] Widget detected via polling!')
+        setWidgetReady(true)
+        clearInterval(pollInterval)
+      } else if (pollCount >= maxPolls) {
+        console.warn('[Freshchat] Widget polling timeout after 10s')
+        clearInterval(pollInterval)
+      }
+    }, 100)
+
+    // Cleanup
+    return () => {
+      console.log('[Freshchat] Cleaning up widget detection listeners')
+      window.removeEventListener('freshchat-ready', handleReady)
+      clearInterval(pollInterval)
+    }
+  }, []) // Run once on mount
+
+  // Set user data immediately when both widget is ready AND session is available
+  useEffect(() => {
+    console.log('[Freshchat] User data effect check:', {
+      widgetReady,
+      hasFcWidget: !!window.fcWidget,
+      hasSessionUser: !!session?.user,
+      userDataSet,
+      shouldRun: widgetReady && !!window.fcWidget && !!session?.user && !userDataSet
+    })
+
+    if (!widgetReady || !window.fcWidget || !session?.user || userDataSet) {
+      console.log('[Freshchat] Skipping user data set - conditions not met')
+      return
+    }
+
+    console.log('[Freshchat] ✅ Setting Freshchat user data NOW...')
+    console.log('[Freshchat] Session user data:', session.user)
 
     try {
-      // Update basic user identification
-      if (session.user.id) {
-        window.fcWidget.setExternalId(session.user.id)
+      const userId = session.user.id
+      const userName = session.user.name
+      const userEmail = session.user.email
+      const firstName = userName?.split(' ')[0]
+      const createdAt = session.user.createdAt
+      const emailVerified = session.user.emailVerified
+      const avatarUrl = session.user.image
+
+      // Set basic user identification
+      if (userId) {
+        console.log('[Freshchat] Calling setExternalId with:', userId)
+        window.fcWidget.setExternalId(userId)
+        console.log('[Freshchat] ✓ Set external ID:', userId)
+      } else {
+        console.warn('[Freshchat] ⚠️ No userId available')
       }
 
-      // Update user name (Freshchat will split into first/last automatically if configured)
-      if (session.user.name) {
-        window.fcWidget.user.setFirstName(session.user.name)
-      }
-      if (session.user.email) {
-        window.fcWidget.user.setEmail(session.user.email)
+      if (firstName) {
+        console.log('[Freshchat] Calling setFirstName with:', firstName)
+        window.fcWidget.user.setFirstName(firstName)
+        console.log('[Freshchat] ✓ Set first name:', firstName)
+      } else {
+        console.warn('[Freshchat] ⚠️ No firstName available')
       }
 
-      // Add custom properties (use cf_ prefix for custom fields)
-      // NOTE: For these to display nicely in Freshchat agent interface, you need to:
-      // 1. Go to Freshchat > Contacts > Add field
-      // 2. Create custom fields with matching names (e.g., "plan", "user_id", "signup_date")
-      // 3. Choose appropriate field type (Text, Dropdown, Date, etc.)
-      // Even without pre-creating fields, properties are stored - they just appear as raw key-value pairs
+      if (userEmail) {
+        console.log('[Freshchat] Calling setEmail with:', userEmail)
+        window.fcWidget.user.setEmail(userEmail)
+        console.log('[Freshchat] ✓ Set email:', userEmail)
+      } else {
+        console.warn('[Freshchat] ⚠️ No userEmail available')
+      }
+
+      // Set custom properties (use cf_ prefix for custom fields)
       const customProperties: Record<string, any> = {
-        cf_user_id: session.user.id,
+        cf_user_id: userId,
         cf_plan: userPlan,
       }
 
-      // Add signup date if available
-      if (session.user.createdAt) {
-        customProperties.cf_signup_date = new Date(session.user.createdAt).toISOString()
+      if (createdAt) {
+        customProperties.cf_signup_date = new Date(createdAt).toISOString()
       }
 
-      // Add email verified status
-      if (typeof session.user.emailVerified !== 'undefined') {
-        customProperties.cf_email_verified = session.user.emailVerified ? 'Yes' : 'No'
+      if (typeof emailVerified !== 'undefined') {
+        customProperties.cf_email_verified = emailVerified ? 'Yes' : 'No'
       }
 
-      // Add image/avatar URL if available
-      if (session.user.image) {
-        customProperties.cf_avatar_url = session.user.image
+      if (avatarUrl) {
+        customProperties.cf_avatar_url = avatarUrl
       }
 
+      console.log('[Freshchat] Calling setProperties with:', customProperties)
       window.fcWidget.user.setProperties(customProperties)
-      console.log('Freshchat user data enriched:', customProperties)
+      console.log('[Freshchat] ✓ Set custom properties:', customProperties)
+
+      // Force user creation immediately to ensure data is captured
+      // before first message is sent
+      console.log('[Freshchat] Calling user.create()...')
+      window.fcWidget.user.create().then(
+        (response) => {
+          console.log('[Freshchat] ✅ User created successfully:', response)
+          setUserDataSet(true)
+        },
+        (error) => {
+          // User might already exist, which is fine
+          console.log('[Freshchat] User creation response (may already exist):', error)
+          setUserDataSet(true)
+        }
+      )
     } catch (error) {
-      console.error('Failed to enrich Freshchat user data:', error)
+      console.error('[Freshchat] ❌ Failed to set user data:', error)
     }
-  }, [widgetReady, session?.user, userPlan])
+  }, [widgetReady, session?.user, userPlan, userDataSet])
 
   if (!token) {
     console.warn('Freshchat token not configured')
     return null
   }
-
-  // Get basic user info for initial fcSettings
-  const firstName = session?.user?.name?.split(' ')[0] || undefined
-  const userId = session?.user?.id
-  const userEmail = session?.user?.email
 
   return (
     <>
@@ -126,15 +230,12 @@ export function FreshchatWrapper() {
         {`
           window.fcSettings = {
             token: "${token}",
-            host: "${host}",${userId ? `
-            externalId: "${userId}",` : ''}${firstName ? `
-            firstName: "${firstName}",` : ''}${userEmail ? `
-            email: "${userEmail}",` : ''}
+            host: "${host}",
             onInit: function() {
-              console.log('Freshchat widget initialized successfully!');
+              console.log('Freshchat widget initialized');
               window.fcWidgetInitialized = true;
 
-              // Trigger React component to know widget is ready
+              // Trigger event for React component to set user data
               window.dispatchEvent(new Event('freshchat-ready'));
             }
           };
@@ -147,17 +248,10 @@ export function FreshchatWrapper() {
         src="https://au.fw-cdn.com/20945682/366721.js"
         strategy="afterInteractive"
         onLoad={() => {
-          // Listen for widget ready event
-          const handleReady = () => {
-            setWidgetReady(true)
-          }
-          window.addEventListener('freshchat-ready', handleReady)
-
-          // Cleanup
-          return () => window.removeEventListener('freshchat-ready', handleReady)
+          console.log('[Freshchat] Widget script loaded')
         }}
         onError={(e) => {
-          console.error('Failed to load Freshchat script:', e)
+          console.error('[Freshchat] Failed to load script:', e)
         }}
       />
     </>
