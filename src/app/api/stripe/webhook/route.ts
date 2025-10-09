@@ -2,11 +2,12 @@ import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import { db } from "@/database/db";
-import { events } from "@/database/schema";
+import { events, users } from "@/database/schema";
 import { eq } from "drizzle-orm";
 import { addMonths } from "date-fns";
 import { getPlanFeatures } from "@/lib/pricing";
 import { PostHog } from 'posthog-node'
+import { inngest } from '@/inngest/client'
 
 const posthogClient = new PostHog(
   process.env.NEXT_PUBLIC_POSTHOG_KEY!,
@@ -108,6 +109,40 @@ async function upgradeEvent(opts: {
 
     // Flush PostHog events
     await posthogClient.shutdown()
+
+    // Trigger activation confirmation email workflow
+    try {
+      // Fetch user details from Better Auth users table
+      const userRecord = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1)
+        .then(results => results[0]);
+
+      if (userRecord && userRecord.email && event.activationDate) {
+        await inngest.send({
+          name: "guestsnapper/gallery.activated",
+          data: {
+            eventId: event.id,
+            userId: userId,
+            userEmail: userRecord.email,
+            userName: userRecord.name || userRecord.email.split('@')[0],
+            eventName: event.name,
+            eventSlug: event.slug,
+            activationDate: event.activationDate,
+          },
+        });
+        console.log('Activation confirmation email workflow triggered for event:', event.id);
+      } else if (!event.activationDate) {
+        console.log('Skipping activation email - no activation date set for event:', event.id);
+      } else if (!userRecord?.email) {
+        console.log('Skipping activation email - no email found for user:', userId);
+      }
+    } catch (inngestError) {
+      // Log error but don't fail the request - email workflow is non-critical
+      console.error('Failed to trigger activation confirmation workflow:', inngestError);
+    }
 
   } catch (error) {
     console.error(`Failed to upgrade event ${eventId}:`, error);

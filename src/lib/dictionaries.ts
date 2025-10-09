@@ -15,11 +15,31 @@ const authDictionaries = {
 export type Locale = 'en' | 'ko'
 
 export const getDictionary = async (locale: Locale) => {
-  return dictionaries[locale]()
+  // Ensure locale is valid, default to 'en' if not
+  const validLocale = (locale === 'en' || locale === 'ko') ? locale : 'en'
+  const dictionaryLoader = dictionaries[validLocale]
+
+  if (typeof dictionaryLoader !== 'function') {
+    console.error(`Dictionary loader for locale "${validLocale}" is not a function:`, dictionaryLoader)
+    // Fallback to English if the loader is invalid
+    return dictionaries.en()
+  }
+
+  return dictionaryLoader()
 }
 
 export const getAuthDictionary = (locale: Locale) => {
-  return authDictionaries[locale]()
+  // Ensure locale is valid, default to 'en' if not
+  const validLocale = (locale === 'en' || locale === 'ko') ? locale : 'en'
+  const dictionaryLoader = authDictionaries[validLocale]
+
+  if (typeof dictionaryLoader !== 'function') {
+    console.error(`Auth dictionary loader for locale "${validLocale}" is not a function:`, dictionaryLoader)
+    // Fallback to English if the loader is invalid
+    return authDictionaries.en()
+  }
+
+  return dictionaryLoader()
 }
 
 // Type helper to get dictionary structure
