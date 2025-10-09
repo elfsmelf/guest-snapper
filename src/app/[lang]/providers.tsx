@@ -13,6 +13,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import { PostHogProvider } from "@/components/posthog-provider"
 import { PostHogSessionTracker } from "@/components/posthog-session-tracker"
+import { FreshchatWrapper } from "@/components/freshchat-wrapper"
 import type { Locale, AuthDictionary } from "@/lib/dictionaries"
 // Note: Better Auth session management is handled directly via authClient.useSession()
 
@@ -77,6 +78,7 @@ export function Providers({ children, lang }: { children: ReactNode; lang: Local
                             localization={authTexts}
                         >
                             <PostHogSessionTracker />
+                            <FreshchatWrapper />
                             {children}
 
                             <Toaster position="top-right" />
