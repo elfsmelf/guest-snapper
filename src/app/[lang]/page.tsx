@@ -2,7 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Star, Smartphone, Sparkles, Check, Infinity, X, MapPin } from "lucide-react"
+import { Star, Smartphone, Sparkles, Check, Infinity, X, MapPin, Shield, Key, Edit, Globe, Film, Palette } from "lucide-react"
 import { PricingSection } from "@/components/pricing-section"
 import { ReviewsCarousel } from "@/components/reviews-carousel"
 import {
@@ -89,23 +89,23 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Loc
 
   // Reviews data
   const reviews = [
-    { name: "Marcus", location: "Copenhagen, Denmark", rating: 5, text: "Got almost 400 photos from our guests! Amazing to see our day through everyone else's eyes. Photographer loved it too." },
-    { name: "Emma", location: "Wellington, NZ", rating: 5, text: "Wish this existed for my sister's wedding last year! Already recommended it to three engaged friends. Game changer!" },
-    { name: "Gabriella", location: "Geneva, Switzerland", rating: 5, text: "The design was so clean and elegant. Fit perfectly with our minimalist theme. Guests kept asking where we found it." },
-    { name: "Erik", location: "Stockholm, Sweden", rating: 5, text: "Had no idea people could share photos days before the ceremony. Got some sweet getting-ready shots we never would have seen." },
-    { name: "Chiara M.", location: "Milan, Italy", rating: 5, text: "Way better than creating a shared album or bothering people for photos later. Everything just appeared automatically." },
-    { name: "Liisa", location: "Tallinn, Estonia", rating: 5, text: "Some older relatives needed help at first, but once they scanned it, they went crazy uploading! 200+ photos from them alone." },
-    { name: "James K.", location: "Adelaide, AUS", rating: 5, text: "The no-app-required thing was brilliant. Everyone could use it instantly, even my tech-phobic uncle." },
-    { name: "Sarah P.", location: "Vancouver, BC", rating: 5, text: "Added this two weeks before the wedding and it was the best last-minute decision we made. So many candid moments captured." },
-    { name: "Rachel", location: "Denver, CO", rating: 5, text: "Gave us a completely different perspective on our wedding day. Some of these photos are now our absolute favorites." },
-    { name: "Ryan M.", location: "Manchester, UK", rating: 5, text: "Literally just put the card on each table and magic happened. Friends were sharing photos before we even left for the honeymoon." },
-    { name: "Lukas", location: "Vienna, Austria", rating: 5, text: "Simple setup, worked flawlessly. Even my 80-year-old grandmother figured it out and uploaded 50 photos! 😊" },
-    { name: "Grace L.", location: "Edinburgh, UK", rating: 5, text: "Blown away by how seamless this was. Had 600+ photos by Sunday morning without lifting a finger." },
-    { name: "Tyler", location: "Toronto, ON", rating: 4, text: "actually incredible how many pics we got 📸 everyone was just scanning and uploading all night lol" },
-    { name: "Carmen R.", location: "Barcelona, Spain", rating: 5, text: "Not every guest participated but those who did gave us pure gold. Some hilarious moments we completely missed." },
-    { name: "Jake & Olivia", location: "Portland, OR", rating: 5, text: "Skeptical at first but this ended up being such a highlight. Got to see our wedding through 30 different perspectives." },
-    { name: "Sam & Kate", location: "Melbourne, AUS", rating: 5, text: "The morning after was like Christmas - so many surprise photos waiting for us. No awkward \"can you send me pics\" texts needed." },
-    { name: "Chris W.", location: "Montreal, QC", rating: 5, text: "Completely forgot about it during the reception and then discovered this treasure trove of photos days later. Mind blown." },
+    { name: "Marcus", location: "Copenhagen, Denmark", rating: 5, text: "Got almost 400 photos from our guests! Amazing to see our day through everyone else's eyes. Photographer loved it too.", image: "https://assets.guestsnapper.com/marketing/gallery/marcus.jpg" },
+    { name: "Emma", location: "Wellington, NZ", rating: 5, text: "Wish this existed for my sister's wedding last year! Already recommended it to three engaged friends. Game changer!", image: "https://assets.guestsnapper.com/marketing/gallery/emma.jpg" },
+    { name: "Gabriella", location: "Geneva, Switzerland", rating: 5, text: "The design was so clean and elegant. Fit perfectly with our minimalist theme. Guests kept asking where we found it.", image: "https://assets.guestsnapper.com/marketing/gallery/gabriella.jpg" },
+    { name: "Erik", location: "Stockholm, Sweden", rating: 5, text: "Had no idea people could share photos days before the ceremony. Got some sweet getting-ready shots we never would have seen.", image: "https://assets.guestsnapper.com/marketing/gallery/erik.jpg" },
+    { name: "Chiara M.", location: "Milan, Italy", rating: 5, text: "Way better than creating a shared album or bothering people for photos later. Everything just appeared automatically.", image: "https://assets.guestsnapper.com/marketing/gallery/chiara%20v2.jpg" },
+    { name: "Liisa", location: "Tallinn, Estonia", rating: 5, text: "Some older relatives needed help at first, but once they scanned it, they went crazy uploading! 200+ photos from them alone.", image: "https://assets.guestsnapper.com/marketing/gallery/liisa.jpg" },
+    { name: "James K.", location: "Adelaide, AUS", rating: 5, text: "The no-app-required thing was brilliant. Everyone could use it instantly, even my tech-phobic uncle.", image: "https://assets.guestsnapper.com/marketing/gallery/james%20k.jpg" },
+    { name: "Sarah P.", location: "Vancouver, BC", rating: 5, text: "Added this two weeks before the wedding and it was the best last-minute decision we made. So many candid moments captured.", image: "https://assets.guestsnapper.com/marketing/gallery/sarah%20p.jpg" },
+    { name: "Rachel", location: "Denver, CO", rating: 5, text: "Gave us a completely different perspective on our wedding day. Some of these photos are now our absolute favorites.", image: "https://assets.guestsnapper.com/marketing/gallery/rachel.jpg" },
+    { name: "Ryan M.", location: "Manchester, UK", rating: 5, text: "Literally just put the card on each table and magic happened. Friends were sharing photos before we even left for the honeymoon.", image: "https://assets.guestsnapper.com/marketing/gallery/ryan%20m.jpg" },
+    { name: "Lukas", location: "Vienna, Austria", rating: 5, text: "Simple setup, worked flawlessly. Even my 80-year-old grandmother figured it out and uploaded 50 photos! 😊", image: "https://assets.guestsnapper.com/marketing/gallery/lukas.jpg" },
+    { name: "Grace L.", location: "Edinburgh, UK", rating: 5, text: "Blown away by how seamless this was. Had 600+ photos by Sunday morning without lifting a finger.", image: "https://assets.guestsnapper.com/marketing/gallery/grace%20l.jpg" },
+    { name: "Tyler", location: "Toronto, ON", rating: 4, text: "actually incredible how many pics we got 📸 everyone was just scanning and uploading all night lol", image: "https://assets.guestsnapper.com/marketing/gallery/tyler.jpg" },
+    { name: "Carmen R.", location: "Barcelona, Spain", rating: 5, text: "Not every guest participated but those who did gave us pure gold. Some hilarious moments we completely missed.", image: "https://assets.guestsnapper.com/marketing/gallery/carmen.jpg" },
+    { name: "Jake & Olivia", location: "Portland, OR", rating: 5, text: "Skeptical at first but this ended up being such a highlight. Got to see our wedding through 30 different perspectives.", image: "https://assets.guestsnapper.com/marketing/gallery/jake%20%26%20olivia.jpg" },
+    { name: "Sam & Kate", location: "Melbourne, AUS", rating: 5, text: "The morning after was like Christmas - so many surprise photos waiting for us. No awkward \"can you send me pics\" texts needed.", image: "https://assets.guestsnapper.com/marketing/gallery/sam%20%26%20kate.jpg" },
+    { name: "Chris W.", location: "Montreal, QC", rating: 5, text: "Completely forgot about it during the reception and then discovered this treasure trove of photos days later. Mind blown.", image: "https://assets.guestsnapper.com/marketing/gallery/chris%20w%20v2.jpg" },
   ]
 
   return (
@@ -117,83 +117,79 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Loc
       />
       <main className="relative">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-background">
-          <div className="container mx-auto px-4 md:px-6 py-16 lg:py-24">
-            <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
+        <section className="relative overflow-hidden min-h-[400px] lg:min-h-[1000px] flex items-center">
+          {/* Background Image */}
+          <div className="absolute inset-0 z-0">
+            <Image
+              src="https://assets.guestsnapper.com/marketing/heroes/guest%20snapper%20hero%202.jpg"
+              alt="Wedding photo gallery background"
+              fill
+              className="object-cover object-[65%_center] lg:object-bottom"
+              priority
+              quality={90}
+            />
+            {/* Dark overlay for text readability */}
+            <div className="absolute inset-0 bg-black/40" />
+          </div>
+
+          <div className="container mx-auto px-4 md:px-6 py-16 lg:py-24 relative z-10">
+            <div className="grid items-center gap-12 lg:grid-cols-2">
               {/* Left: Content */}
-              <div className="relative z-10">
-                <h1 className="text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl text-foreground font-serif">
-                  {dict.home.hero.title}
+              <div className="text-white">
+                <h1 className="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl mb-6 font-serif">
+                  QR Code Photo Sharing for Weddings & Events
                 </h1>
 
-                <p className="mt-6 text-lg text-muted-foreground max-w-xl leading-relaxed">
-                  {dict.home.hero.description}
+                <p className="text-lg lg:text-xl mb-8 leading-relaxed max-w-xl">
+                  Collect <span className="font-bold">UNLIMITED</span> photos and videos from your guests. No app required - just scan, upload, and share memories instantly.
                 </p>
 
-                {/* CTA Buttons */}
-                <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                  <Button
-                    asChild
-                    size="lg"
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-12 py-6 text-xl rounded-full"
-                  >
-                    <Link href={`/${lang}/auth/sign-in`}>
-                      {dict.home.hero.ctaTryFree}
-                    </Link>
-                  </Button>
-
-                  <Button
-                    asChild
-                    size="lg"
-                    variant="outline"
-                    className="border-muted-foreground/20 bg-background text-foreground hover:bg-muted font-semibold px-12 py-6 text-xl rounded-full"
-                  >
-                    <a href="#how-it-works">
-                      {dict.home.hero.ctaHowItWorks}
-                    </a>
-                  </Button>
-                </div>
-
-                {/* Trust Indicators */}
-                <div className="mt-12 flex flex-wrap items-center gap-6 text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <div className="flex">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      ))}
-                    </div>
-                    <span className="text-sm font-medium">{dict.home.hero.trust.fiveStarRated}</span>
+                {/* Features Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-10">
+                  <div className="flex items-start gap-3">
+                    <Infinity className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                    <span className="text-base lg:text-lg">Unlimited Photos & Videos</span>
                   </div>
-
-                  <div className="w-px h-4 bg-muted-foreground/30" />
-
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    <span className="text-sm font-medium">{dict.home.hero.trust.eventsCount}</span>
+                  <div className="flex items-start gap-3">
+                    <Smartphone className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                    <span className="text-base lg:text-lg">No App Required - Just Scan</span>
                   </div>
-
-                  <div className="w-px h-4 bg-muted-foreground/30" />
-
-                  <div className="flex items-center gap-2">
-                    <Smartphone className="h-4 w-4" />
-                    <span className="text-sm font-medium">{dict.home.hero.trust.noAppRequired}</span>
+                  <div className="flex items-start gap-3">
+                    <Palette className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                    <span className="text-base lg:text-lg">Free QR Codes & Templates</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                    <span className="text-base lg:text-lg">1 Year Storage Included</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Sparkles className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                    <span className="text-base lg:text-lg">Instant Live Updates</span>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Globe className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
+                    <span className="text-base lg:text-lg">Used in 120+ Countries</span>
                   </div>
                 </div>
+
+                {/* CTA Button */}
+                <Button
+                  asChild
+                  size="lg"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold px-10 py-6 lg:py-8 text-lg lg:text-2xl rounded-full shadow-lg"
+                >
+                  <Link href={`/${lang}/auth/sign-in`}>
+                    Try For Free
+                  </Link>
+                </Button>
+
+                <p className="text-sm lg:text-base text-white/90 mt-4 text-center italic">
+                  Create and upload photos to your digital gallery in less than <span className="font-bold">2 minutes</span>!
+                </p>
               </div>
 
-              {/* Right: Hero Image */}
-              <div className="relative lg:h-[600px] flex items-center justify-center">
-                <div className="relative">
-                  <Image
-                    src="https://assets.guestsnapper.com/marketing/gallery/hero%20image%20mockup.jpg"
-                    alt="Hero image mockup showing QR code photo sharing in action"
-                    width={600}
-                    height={600}
-                    className="relative z-10 max-w-full h-auto rounded-xl shadow-2xl"
-                    priority
-                  />
-                </div>
-              </div>
+              {/* Right side is intentionally left empty to show the background image */}
+              <div className="hidden lg:block" />
             </div>
           </div>
         </section>
@@ -204,23 +200,29 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Loc
             {/* Header Section */}
             <div className="text-center mb-16">
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 text-balance font-serif">{dict.home.howItWorks.title}</h1>
-              <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 text-balance font-serif">
-                {dict.home.howItWorks.subtitle}
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto text-pretty whitespace-pre-line">
-                {dict.home.howItWorks.description}
-              </p>
             </div>
 
             {/* Steps Section */}
-            <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
               {/* Step 1 */}
               <Card className="relative overflow-hidden border-2 border-border flex flex-col">
                 <div className="absolute top-4 left-4 w-12 h-12 bg-secondary rounded-full flex items-center justify-center border-4 border-background z-10">
                   <span className="text-2xl font-bold text-secondary-foreground">1</span>
                 </div>
                 <CardContent className="p-8 pt-12 flex flex-col flex-1">
-                  <div className="space-y-4 mb-6 flex-shrink-0">
+                  <h3 className="text-2xl font-bold text-foreground mb-4 font-serif">Create your event</h3>
+
+                  <div className="space-y-2 mb-4">
+                    <p className="text-muted-foreground">Generate a unique QR & link in seconds</p>
+                    <p className="text-muted-foreground">Set album visibility, approvals, and download options</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+                    <span className="text-primary">⚡</span>
+                    <span>Avg setup time: 58 seconds</span>
+                  </div>
+
+                  <div className="space-y-4 flex-shrink-0">
                     <div className="rounded-2xl min-h-[150px] overflow-hidden">
                       <img
                         src="https://assets.guestsnapper.com/marketing/heroes/create%20new%20event.png"
@@ -236,28 +238,6 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Loc
                       />
                     </div>
                   </div>
-
-                  <h3 className="text-2xl font-bold text-foreground mb-4 font-serif">{dict.home.howItWorks.step1.title}</h3>
-
-                  <div className="space-y-3 mb-6 flex-1">
-                    <div className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-muted-foreground">{dict.home.howItWorks.step1.feature1}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-muted-foreground">{dict.home.howItWorks.step1.feature2}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-                    <span className="text-primary">⚡</span>
-                    <span>{dict.home.howItWorks.step1.avgTime}</span>
-                  </div>
-
-                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">
-                    <Link href={`/${lang}/auth/sign-in`}>{dict.home.howItWorks.step1.cta}</Link>
-                  </Button>
                 </CardContent>
               </Card>
 
@@ -267,35 +247,25 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Loc
                   <span className="text-2xl font-bold text-secondary-foreground">2</span>
                 </div>
                 <CardContent className="p-8 pt-12 flex flex-col flex-1">
-                  <div className="rounded-2xl mb-6 min-h-[328px] overflow-hidden flex-shrink-0">
+                  <h3 className="text-2xl font-bold text-foreground mb-4 font-serif">Share the QR</h3>
+
+                  <div className="space-y-2 mb-4">
+                    <p className="text-muted-foreground">Print cards or show on TV/projector</p>
+                    <p className="text-muted-foreground">Share the link in WhatsApp / iMessage / SMS</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+                    <span className="text-foreground">📱</span>
+                    <span>Works on any phone - no app required</span>
+                  </div>
+
+                  <div className="rounded-2xl overflow-hidden flex-shrink-0">
                     <img
                       src="https://assets.guestsnapper.com/marketing/gallery/welcome%20sign.jpg"
                       alt="Wedding welcome sign with QR code"
                       className="w-full h-full object-cover"
                     />
                   </div>
-
-                  <h3 className="text-2xl font-bold text-foreground mb-4 font-serif">{dict.home.howItWorks.step2.title}</h3>
-
-                  <div className="space-y-3 mb-6 flex-1">
-                    <div className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-muted-foreground">{dict.home.howItWorks.step2.feature1}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-muted-foreground">{dict.home.howItWorks.step2.feature2}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-                    <span className="text-foreground">📱</span>
-                    <span>{dict.home.howItWorks.step2.works}</span>
-                  </div>
-
-                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">
-                    <Link href={`/${lang}/auth/sign-in`}>{dict.home.howItWorks.step2.cta}</Link>
-                  </Button>
                 </CardContent>
               </Card>
 
@@ -305,35 +275,48 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Loc
                   <span className="text-2xl font-bold text-secondary-foreground">3</span>
                 </div>
                 <CardContent className="p-8 pt-12 flex flex-col flex-1">
-                  <div className="rounded-2xl mb-6 min-h-[328px] overflow-hidden flex-shrink-0">
+                  <h3 className="text-2xl font-bold text-foreground mb-4 font-serif">Everything appears in your live album</h3>
+
+                  <div className="space-y-2 mb-4">
+                    <p className="text-muted-foreground">Approve/hide uploads, run a live slideshow</p>
+                    <p className="text-muted-foreground">Download originals anytime (one-click export)</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
+                    <Infinity className="w-4 h-4" />
+                    <span>Unlimited uploads included</span>
+                  </div>
+
+                  <div className="rounded-2xl overflow-hidden flex-shrink-0">
                     <img
                       src="https://assets.guestsnapper.com/marketing/gallery/wedding%20gallery.png"
                       alt="Wedding photo gallery interface"
                       className="w-full h-full object-cover"
                     />
                   </div>
+                </CardContent>
+              </Card>
 
-                  <h3 className="text-2xl font-bold text-foreground mb-4 font-serif whitespace-pre-line">{dict.home.howItWorks.step3.title}</h3>
+              {/* Step 4 */}
+              <Card className="relative overflow-hidden border-2 border-border flex flex-col">
+                <div className="absolute top-4 left-4 w-12 h-12 bg-secondary rounded-full flex items-center justify-center border-4 border-background z-10">
+                  <span className="text-2xl font-bold text-secondary-foreground">4</span>
+                </div>
+                <CardContent className="p-8 pt-12 flex flex-col flex-1">
+                  <h3 className="text-2xl font-bold text-foreground mb-4 font-serif">Relive Your Special Moments</h3>
 
-                  <div className="space-y-3 mb-6 flex-1">
-                    <div className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-muted-foreground">{dict.home.howItWorks.step3.feature1}</span>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <Check className="w-5 h-5 text-primary flex-shrink-0" />
-                      <span className="text-muted-foreground">{dict.home.howItWorks.step3.feature2}</span>
-                    </div>
+                  <div className="space-y-2 mb-6">
+                    <p className="text-muted-foreground">Browse and download all photos</p>
+                    <p className="text-muted-foreground">Share memories with guests</p>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-                    <Infinity className="w-4 h-4" />
-                    <span>{dict.home.howItWorks.step3.unlimited}</span>
+                  <div className="rounded-2xl overflow-hidden flex-shrink-0">
+                    <img
+                      src="https://assets.guestsnapper.com/marketing/heroes/guest%20snapper%20example%20gallery.jpg"
+                      alt="Beautiful wedding gallery moments"
+                      className="w-full h-full object-cover"
+                    />
                   </div>
-
-                  <Button asChild className="w-full bg-primary hover:bg-primary/90 text-primary-foreground mt-auto">
-                    <Link href={`/${lang}/auth/sign-in`}>{dict.home.howItWorks.step3.cta}</Link>
-                  </Button>
                 </CardContent>
               </Card>
             </div>

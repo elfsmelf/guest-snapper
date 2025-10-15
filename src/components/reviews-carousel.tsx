@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Star, MapPin } from "lucide-react"
+import Image from "next/image"
 import {
   Carousel,
   CarouselContent,
@@ -17,6 +18,7 @@ interface Review {
   location: string
   rating: number
   text: string
+  image?: string
 }
 
 interface ReviewsCarouselProps {
@@ -52,27 +54,31 @@ export function ReviewsCarousel({ reviews }: ReviewsCarouselProps) {
         <CarouselContent>
           {reviews.map((review, index) => (
             <CarouselItem key={index} className="md:basis-1/2 lg:basis-1/3">
-              <Card className="h-full">
-                <CardContent className="p-6 flex flex-col h-full">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="font-semibold">{review.name}</div>
-                    <div className="text-sm text-muted-foreground flex items-center gap-1">
-                      <MapPin className="h-3 w-3" />
-                      {review.location}
-                    </div>
+              <Card className="h-full overflow-hidden p-0 gap-0">
+                {review.image && (
+                  <div className="relative w-full aspect-[16/9] overflow-hidden">
+                    <Image
+                      src={review.image}
+                      alt={review.name}
+                      fill
+                      className="object-cover"
+                    />
                   </div>
-                  <div className="flex mb-3">
+                )}
+                <div className="p-6 flex flex-col flex-1">
+                  <div className="flex mb-4">
                     {[...Array(review.rating)].map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                      <Star key={i} className="h-5 w-5 fill-yellow-400 text-yellow-400" />
                     ))}
                     {review.rating < 5 && [...Array(5 - review.rating)].map((_, i) => (
-                      <Star key={`empty-${i}`} className="h-4 w-4 text-yellow-400" />
+                      <Star key={`empty-${i}`} className="h-5 w-5 text-yellow-400" />
                     ))}
                   </div>
-                  <p className="text-sm text-muted-foreground flex-1">
-                    {review.text}
+                  <p className="text-base text-foreground mb-4 flex-1 italic">
+                    "{review.text}"
                   </p>
-                </CardContent>
+                  <div className="font-semibold text-foreground">{review.name}</div>
+                </div>
               </Card>
             </CarouselItem>
           ))}
