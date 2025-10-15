@@ -117,7 +117,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Loc
       />
       <main className="relative">
         {/* Hero Section */}
-        <section className="relative overflow-hidden min-h-[400px] lg:min-h-[1000px] flex items-center">
+        <section className="relative overflow-hidden min-h-[280px] lg:min-h-[700px] flex items-center">
           {/* Background Image */}
           <div className="absolute inset-0 z-0">
             <Image
