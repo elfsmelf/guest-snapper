@@ -22,6 +22,7 @@ export const trialEmailWorkflow = inngest.createFunction(
   {
     id: "trial-email-workflow",
     name: "Trial Email Workflow",
+    idempotency: "event.data.eventId", // Prevent duplicate workflows for same event
   },
   { event: "guestsnapper/event.created" },
   async ({ event, step }) => {

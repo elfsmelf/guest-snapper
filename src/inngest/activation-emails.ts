@@ -15,6 +15,7 @@ export const activationConfirmationWorkflow = inngest.createFunction(
   {
     id: "activation-confirmation-workflow",
     name: "Activation Confirmation Workflow",
+    idempotency: "event.data.eventId", // Prevent duplicate emails for same event activation
   },
   { event: "guestsnapper/gallery.activated" },
   async ({ event, step }) => {
