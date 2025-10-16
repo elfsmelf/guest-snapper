@@ -31,6 +31,7 @@ import { CheckCircle, XCircle, AlertCircle } from "lucide-react"
 import { parseOnboardingState } from "@/types/onboarding"
 import { formatEventTitle, getEventTypeInfo } from "@/lib/event-types"
 import { getTrialStatus, formatTrialStatus } from "@/lib/trial-utils"
+import { displayDate } from "@/lib/date-utils"
 
 function SectionTitle({
   title,
@@ -324,12 +325,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
                             {formatEventTitle(event.coupleNames, event.eventType || 'wedding')}
                           </h3>
                           <p className="text-sm text-muted-foreground">
-                            {event.eventDate ? new Date(event.eventDate).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            }) : "Date not set"}
+                            {event.eventDate ? displayDate(event.eventDate) : "Date not set"}
                           </p>
                         </div>
 

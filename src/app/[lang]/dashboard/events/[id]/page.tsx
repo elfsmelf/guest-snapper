@@ -66,6 +66,7 @@ import { QRCodeGeneratorClient } from "@/components/qr-code-generator-client"
 import { updateEventTheme } from "@/app/actions/update-theme"
 import type { Currency } from "@/lib/pricing"
 import { formatEventTitle, getEventTypeInfo } from "@/lib/event-types"
+import { displayDate } from "@/lib/date-utils"
 import dynamic from 'next/dynamic'
 
 // Dynamically import heavy client components
@@ -342,7 +343,7 @@ export default async function EventDetailPage({ params }: PageProps) {
                 <p className="text-sm sm:text-lg text-white/90 flex items-center gap-2 drop-shadow">
                   <Calendar className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
                   <span className="truncate">
-                    {new Date(event.eventDate).toLocaleDateString('en-US', {
+                    {displayDate(event.eventDate, {
                       weekday: 'short',
                       year: 'numeric',
                       month: 'short',
