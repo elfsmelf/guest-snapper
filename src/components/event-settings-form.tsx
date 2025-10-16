@@ -735,7 +735,7 @@ export function EventSettingsForm({ event, calculatedGuestCount }: EventSettings
           }}
           eventId={event.id}
           currentPlan={event.plan || 'free_trial'}
-          eventCurrency={(event.currency as any) || 'AUD'}
+          eventCurrency={(event.currency as any) || 'USD'}
           reason={publishError.reason}
           suggestedPlan={publishError.suggestedPlan}
           feature="publishing"

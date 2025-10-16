@@ -32,7 +32,7 @@ export const events = pgTable("events", {
   guestCount: integer('guest_count').default(0),
   // Payment-related fields
   plan: text('plan').default('free_trial').notNull(), // 'free_trial', 'essential', 'timeless', 'premier'
-  currency: text('currency').default('AUD').notNull(), // 'AUD', 'USD', 'GBP', 'EUR', 'CAD', 'NZD'
+  currency: text('currency').default('USD').notNull(), // 'AUD', 'USD', 'GBP', 'EUR', 'CAD', 'NZD'
   paidAt: timestamp('paid_at', { mode: 'string' }),
   stripeSessionId: text('stripe_session_id'),
   stripePaymentIntent: text('stripe_payment_intent'),

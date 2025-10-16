@@ -135,7 +135,7 @@ export default async function HomePage({ params }: { params: Promise<{ lang: Loc
           <div className="container mx-auto px-4 md:px-6 py-16 lg:py-24 relative z-10">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               {/* Left: Content */}
-              <div className="text-white">
+              <div className="text-white max-w-2xl">
                 <h1 className="text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl mb-6 font-serif">
                   QR Code Photo Sharing for Weddings & Events
                 </h1>

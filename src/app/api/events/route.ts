@@ -50,24 +50,23 @@ export async function POST(request: NextRequest) {
 
     // Note: Album creation removed for now - table may not exist in actual DB
 
-    // Trigger trial email workflow
-    try {
-      await inngest.send({
-        name: "guestsnapper/event.created",
-        data: {
-          eventId: newEvent.id,
-          userId: session.user.id,
-          userEmail: session.user.email,
-          userName: session.user.name || session.user.email.split('@')[0],
-          eventSlug: newEvent.slug,
-          createdAt: newEvent.createdAt,
-        },
-      });
+    // Trigger trial email workflow (fire-and-forget - don't await)
+    inngest.send({
+      name: "guestsnapper/event.created",
+      data: {
+        eventId: newEvent.id,
+        userId: session.user.id,
+        userEmail: session.user.email,
+        userName: session.user.name || session.user.email.split('@')[0],
+        eventSlug: newEvent.slug,
+        createdAt: newEvent.createdAt,
+      },
+    }).then(() => {
       console.log('Trial email workflow triggered for event:', newEvent.id);
-    } catch (inngestError) {
+    }).catch((inngestError) => {
       // Log error but don't fail the request - email workflow is non-critical
       console.error('Failed to trigger trial email workflow:', inngestError);
-    }
+    })
 
     return NextResponse.json(newEvent, { status: 201 })
   } catch (error) {
