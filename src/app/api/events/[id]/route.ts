@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { validateEventAccess } from "@/lib/auth-helpers"
 import { NextRequest } from "next/server"
+import { revalidatePath } from "next/cache"
 
 export async function GET(
   request: Request,
@@ -95,6 +96,14 @@ export async function PATCH(
 
     if (!updatedEvent) {
       return Response.json({ error: "Failed to update event" }, { status: 500 })
+    }
+
+    // Revalidate the event detail page and dashboard to show updated data
+    revalidatePath(`/dashboard/events/${id}`)
+    revalidatePath('/dashboard')
+    // Also revalidate the gallery page if slug changed
+    if (updatedEvent.slug) {
+      revalidatePath(`/gallery/${updatedEvent.slug}`)
     }
 
     return Response.json(updatedEvent)

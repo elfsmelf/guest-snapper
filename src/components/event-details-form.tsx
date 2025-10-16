@@ -124,8 +124,8 @@ export function EventDetailsForm({ event, isOwner }: EventDetailsFormProps) {
 
       toast.success('Event details updated successfully!')
 
-      // Note: Other components will update on their next render cycle
-      // We avoid full page reload to maintain better UX
+      // Refresh the page to update server-rendered components (like hero section)
+      window.location.reload()
 
     } catch (error) {
       console.error('Error updating event:', error)
