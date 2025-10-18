@@ -14,6 +14,10 @@ posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
   debug: process.env.NODE_ENV === "development",
   // Disable tracking on localhost to prevent polluting production data
   opt_out_capturing_by_default: isLocalhost,
+  // Persistence configuration for OAuth tracking continuity
+  persistence: 'localStorage+cookie', // Most resilient persistence method
+  cross_subdomain_cookie: true, // Persist across subdomains
+  secure_cookie: true, // Use secure cookies in production
   loaded: (posthog) => {
     if (isLocalhost) {
       console.log('PostHog: Tracking disabled on localhost')
