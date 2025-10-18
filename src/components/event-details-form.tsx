@@ -50,8 +50,10 @@ export function EventDetailsForm({ event, isOwner }: EventDetailsFormProps) {
   })
   const [selectedDate, setSelectedDate] = useState<CalendarDate | null>(() => {
     try {
-      const date = new Date(event.eventDate)
-      return parseDate(date.toISOString().split('T')[0])
+      // Parse date string directly to avoid timezone conversion
+      // If eventDate is "2025-12-19", parseDate expects "2025-12-19"
+      const dateStr = event.eventDate.split('T')[0] // Extract YYYY-MM-DD part
+      return parseDate(dateStr)
     } catch {
       return null
     }
